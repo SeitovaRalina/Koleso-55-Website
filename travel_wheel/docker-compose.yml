@@ -8,9 +8,9 @@ services:
     environment:
       POSTGRES_DB: travel_db
       POSTGRES_USER: travel_user
-      POSTGRES_PASSWORD: travel_pass
+      POSTGRES_PASSWORD: "123456"
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
