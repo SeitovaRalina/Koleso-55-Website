@@ -2,7 +2,6 @@ from django.db import models
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator
 
-
 class Category(models.Model):
     name = models.CharField('Название', max_length=100, unique=True)
     slug = models.SlugField('Slug', max_length=120, unique=True, blank=True)
@@ -23,11 +22,23 @@ class Category(models.Model):
 
 
 class Excursion(models.Model):
+    class LocationType(models.TextChoices):
+        CITY = 'city', 'Городские экскурсии'
+        SUBURBAN = 'suburban', 'Загородные экскурсии'
+        RUSSIA = 'russia', 'Туры по России'
+
     title = models.CharField('Название экскурсии', max_length=200)
     slug = models.SlugField('Slug', max_length=250, unique=True, blank=True)
     category = models.ForeignKey(
         Category, on_delete=models.PROTECT, related_name='excursions',
         verbose_name='Категория'
+    )
+    location_type = models.CharField(
+        'Тип локации',
+        max_length=20,
+        choices=LocationType.choices,
+        default=LocationType.CITY,
+        db_index=True
     )
     description = models.TextField('Полное описание')
     short_description = models.TextField('Краткое описание', max_length=500)

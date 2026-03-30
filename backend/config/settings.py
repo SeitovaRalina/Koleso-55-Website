@@ -1,6 +1,5 @@
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-27zzoez!lxe8wdjcp08ny^uow1ci)de)xga(&jo97pi8gaw&y1'
@@ -19,6 +18,9 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'debug_toolbar',
+    'django_filters',
+    'drf_spectacular',
+    'drf_spectacular_sidecar',
 
     # Local apps
     'excursions',
@@ -80,6 +82,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 MEDIA_URL = '/media/'
@@ -89,3 +92,22 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static'
 
 INTERNAL_IPS = ['127.0.0.1']
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'API «КОЛЕСО путешествий 55»',
+    'DESCRIPTION': 'Полная документация REST API туристической компании «КОЛЕСО путешествий 55». '
+                   'Каталог экскурсий, бронирование, оплата и личный кабинет.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+
+    'SWAGGER_UI_DIST': 'SIDECAR',
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+        'displayRequestDuration': True,
+    },
+    'COMPONENT_SPLIT_REQUEST': True,
+    'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
+    'POSTPROCESSING_HOOKS': [],
+}

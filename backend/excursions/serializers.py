@@ -29,12 +29,13 @@ class SlotSerializer(serializers.ModelSerializer):
 class ExcursionListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     main_image = serializers.SerializerMethodField()
+    location_type_display = serializers.CharField(source='get_location_type_display', read_only=True)
 
     class Meta:
         model = Excursion
         fields = [
             'id', 'title', 'slug', 'short_description',
-            'price', 'duration', 'category', 'main_image'
+            'location_type_display', 'price', 'duration', 'category', 'main_image'
         ]
 
     def get_main_image(self, obj):
@@ -46,10 +47,11 @@ class ExcursionDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     images = ExcursionImageSerializer(many=True, read_only=True)
     slots = SlotSerializer(many=True, read_only=True)
+    location_type_display = serializers.CharField(source='get_location_type_display', read_only=True)
 
     class Meta:
         model = Excursion
         fields = [
             'id', 'title', 'slug', 'description', 'short_description',
-            'price', 'duration', 'category', 'images', 'slots', 'is_active'
+            'price', 'duration', 'category', 'location_type_display', 'images', 'slots', 'is_active'
         ]
