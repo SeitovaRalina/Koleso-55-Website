@@ -8,6 +8,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -23,6 +25,7 @@ INSTALLED_APPS = [
     'drf_spectacular_sidecar',
 
     # Local apps
+    'accounts',
     'excursions',
 ]
 
@@ -82,7 +85,16 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ],
+
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
 }
 
 MEDIA_URL = '/media/'
@@ -106,8 +118,8 @@ SPECTACULAR_SETTINGS = {
     'SWAGGER_UI_SETTINGS': {
         'persistAuthorization': True,
         'displayRequestDuration': True,
+        'tryItOutEnabled': True,
     },
+
     'COMPONENT_SPLIT_REQUEST': True,
-    'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
-    'POSTPROCESSING_HOOKS': [],
 }

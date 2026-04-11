@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from .models import Excursion, Category, ExcursionImage, Slot
 
@@ -15,8 +16,8 @@ class ExcursionImageSerializer(serializers.ModelSerializer):
 
 
 class SlotSerializer(serializers.ModelSerializer):
-    available_seats = serializers.ReadOnlyField()
-    is_available = serializers.ReadOnlyField()
+    available_seats = serializers.IntegerField(read_only=True)
+    is_available = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Slot
@@ -38,6 +39,7 @@ class ExcursionListSerializer(serializers.ModelSerializer):
             'location_type_display', 'price', 'duration', 'category', 'main_image'
         ]
 
+    @extend_schema_field(serializers.URLField())
     def get_main_image(self, obj):
         main = obj.images.filter(is_main=True).first()
         return main.image.url if main else None
