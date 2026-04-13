@@ -6,6 +6,10 @@ from .serializers import (
     UserProfileSerializer,
     MyTokenObtainPairSerializer,
 )
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from allauth.socialaccount.providers.vk.views import VKOAuth2Adapter
+from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+from dj_rest_auth.registration.views import SocialLoginView
 
 
 class RegisterView(generics.CreateAPIView):
@@ -32,3 +36,11 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+class GoogleLogin(SocialLoginView):
+    adapter_class = GoogleOAuth2Adapter
+    client_class = OAuth2Client
+
+class VKLogin(SocialLoginView):
+    adapter_class = VKOAuth2Adapter
+    client_class = OAuth2Client

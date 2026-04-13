@@ -19,10 +19,19 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'rest_framework.authtoken',
     'debug_toolbar',
     'django_filters',
     'drf_spectacular',
     'drf_spectacular_sidecar',
+
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.vk',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
 
     # Local apps
     'accounts',
@@ -36,6 +45,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -122,4 +132,52 @@ SPECTACULAR_SETTINGS = {
     },
 
     'COMPONENT_SPLIT_REQUEST': True,
+}
+
+SITE_ID = 1
+
+ACCOUNT_LOGIN_METHODS = {'email'}
+
+ACCOUNT_SIGNUP_FIELDS = [
+    'email*',
+    'phone',
+    'first_name',
+    'last_name',
+    'password1*',
+    'password2*'
+]
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_PHONE_VERIFICATION_ENABLED = False
+
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': 'access',
+    'JWT_AUTH_REFRESH_COOKIE': 'refresh',
+    'JWT_AUTH_HTTPONLY': False,
+    'REGISTER_SERIALIZER': 'accounts.serializers.UserRegisterSerializer',
+    'USER_DETAILS_SERIALIZER': 'accounts.serializers.UserProfileSerializer',
+}
+
+SOCIALACCOUNT_AUTO_SIGNUP = True                    # автоматически создавать пользователя
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True           # использовать email для связи
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_LOGIN_ON_GET = False
+ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
+
+ACCOUNT_LOGOUT_ON_GET = False
+ACCOUNT_UNIQUE_EMAIL = True
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+        'OAUTH_PKCE_ENABLED': True,
+    },
+    'vk': {
+        'SCOPE': ['email'],
+    }
 }
