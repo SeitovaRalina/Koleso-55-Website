@@ -33,9 +33,9 @@ INSTALLED_APPS = [
     'dj_rest_auth',
     'dj_rest_auth.registration',
 
-    # Local apps
     'accounts',
     'excursions',
+    'bookings',
 ]
 
 MIDDLEWARE = [
@@ -159,8 +159,8 @@ REST_AUTH = {
     'USER_DETAILS_SERIALIZER': 'accounts.serializers.UserProfileSerializer',
 }
 
-SOCIALACCOUNT_AUTO_SIGNUP = True                    # автоматически создавать пользователя
-SOCIALACCOUNT_EMAIL_AUTHENTICATION = True           # использовать email для связи
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_EMAIL_REQUIRED = True
 SOCIALACCOUNT_QUERY_EMAIL = True
