@@ -8,7 +8,8 @@ class ExcursionFilter(django_filters.FilterSet):
         queryset=Category.objects.all(),
         field_name='category__slug',
         to_field_name='slug',
-        label='Категория'
+        label='Категория',
+        help_text='Фильтр по категории экскурсии (используйте slug категории)'
     )
 
     min_price = django_filters.NumberFilter(field_name='price', lookup_expr='gte', label='Цена от')
