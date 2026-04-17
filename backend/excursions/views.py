@@ -6,13 +6,13 @@ from .filters import ExcursionFilter
 
 
 class ExcursionListView(generics.ListAPIView):
-    queryset = Excursion.objects.filter(is_active=True).prefetch_related('images')
+    queryset = Excursion.objects.filter(is_active=True).prefetch_related('images', 'reviews')
     serializer_class = ExcursionListSerializer
 
     filter_backends = [
-        DjangoFilterBackend,           # наши фильтры из filters.py
-        drf_filters.SearchFilter,      # ?search=...
-        drf_filters.OrderingFilter,    # ?ordering=price,-duration
+        DjangoFilterBackend,
+        drf_filters.SearchFilter,
+        drf_filters.OrderingFilter,
     ]
 
     filterset_class = ExcursionFilter

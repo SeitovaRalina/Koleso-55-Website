@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions
 
-from .models import Review
-from .serializers import ReviewCreateSerializer, ReviewListSerializer
+from .models import Review, ReviewStatus
+from .serializers import ReviewCreateSerializer, ReviewListSerializer, ReviewUpdateSerializer
 
 class ReviewCreateView(generics.CreateAPIView):
     serializer_class = ReviewCreateSerializer
@@ -19,3 +19,17 @@ class ReviewListView(generics.ListAPIView):
             excursion_id=excursion_id,
             status='approved'
         ).select_related('user')
+
+class ReviewUpdateView(generics.UpdateAPIView):
+    serializer_class = ReviewUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Review.objects.filter(user=self.request.user, status=ReviewStatus.PENDING)
+
+class MyReviewsListView(generics.ListAPIView):
+    serializer_class = ReviewListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Review.objects.filter(user=self.request.user).select_related('excursion').order_by('-created_at')

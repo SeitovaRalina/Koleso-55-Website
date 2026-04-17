@@ -50,3 +50,15 @@ class ReviewListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ['id', 'user_name', 'rating', 'text', 'images', 'created_at']
+
+class ReviewUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['rating', 'text', 'images']
+
+    def validate(self, attrs):
+        if self.instance and not self.instance.can_be_edited():
+            raise serializers.ValidationError(
+                "Редактировать можно только отзывы, находящиеся на модерации."
+            )
+        return attrs

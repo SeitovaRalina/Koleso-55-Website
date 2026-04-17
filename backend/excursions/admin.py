@@ -1,4 +1,6 @@
 from django.contrib import admin
+
+from reviews.admin import ReviewInline
 from .models import Category, Excursion, ExcursionImage, Slot
 
 
@@ -24,7 +26,7 @@ class ExcursionAdmin(admin.ModelAdmin):
     list_filter = ['category', 'is_active']
     search_fields = ['title', 'description']
     prepopulated_fields = {'slug': ('title',)}
-    inlines = [ExcursionImageInline, SlotInline]
+    inlines = [ExcursionImageInline, SlotInline, ReviewInline]
 
 
 @admin.register(Slot)

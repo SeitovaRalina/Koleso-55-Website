@@ -4,12 +4,20 @@ from django.utils.translation import gettext_lazy as _
 
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, first_name, last_name, password=None, **extra_fields):
-        if not email:
-            raise ValueError(_('Email обязателен'))
-        email = self.normalize_email(email)
+    def create_user(self, identifier, first_name, last_name, password=None, **extra_fields):
+        if not identifier:
+            raise ValueError(_('Email или телефон обязателен'))
+
+        if '@' in identifier:
+            email = self.normalize_email(identifier)
+            phone = None
+        else:
+            email = None
+            phone = identifier
+
         user = self.model(
             email=email,
+            phone=phone,
             first_name=first_name,
             last_name=last_name,
             **extra_fields
@@ -21,7 +29,6 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, first_name, last_name, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('is_active', True)
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError(_('Superuser must have is_staff=True.'))
@@ -32,7 +39,7 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(_('email address'), unique=True)
+    email = models.EmailField(_('email address'), unique=True, null=True, blank=True)
     phone = models.CharField(_('phone number'), max_length=20, unique=True, null=True, blank=True)
     first_name = models.CharField(_('first name'), max_length=150)
     last_name = models.CharField(_('last name'), max_length=150)
