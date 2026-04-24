@@ -39,14 +39,41 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(_('email address'), unique=True, null=True, blank=True)
-    phone = models.CharField(_('phone number'), max_length=20, unique=True, null=True, blank=True)
-    first_name = models.CharField(_('first name'), max_length=150)
-    last_name = models.CharField(_('last name'), max_length=150)
+    email = models.EmailField(
+        _('Электронная почта'), 
+        unique=True, 
+        null=True, 
+        blank=True,
+    )
+    phone = models.CharField(
+        _('Номер телефона'), 
+        max_length=20, 
+        unique=True, 
+        null=True, 
+        blank=True,
+    )
+    first_name = models.CharField(
+        _('Имя пользователя'), 
+        max_length=150,
+    )
+    last_name = models.CharField(
+        _('Фамилия пользователя'), 
+        max_length=150,
+    )
 
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(
+        _('Активен'),
+        default=True,
+    )
+    is_staff = models.BooleanField(
+        _('Сотрудник'),
+        default=False,
+        help_text=_('Имеет ли пользователь доступ к админ-панели')
+    )
+    date_joined = models.DateTimeField(
+        _('Дата регистрации'),
+        auto_now_add=True,
+    )
 
     objects = CustomUserManager()
 

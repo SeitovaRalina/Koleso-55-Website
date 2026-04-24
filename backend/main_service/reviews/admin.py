@@ -1,6 +1,8 @@
 from django.contrib import admin
-from .models import Review, ReviewImage, ReviewStatus
+from django.utils.formats import localize
 from django.utils.translation import gettext_lazy as _
+
+from .models import Review, ReviewImage, ReviewStatus
 
 
 class ReviewImageInline(admin.TabularInline):
@@ -21,12 +23,22 @@ class ReviewInline(admin.TabularInline):
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ['id', 'excursion', 'user', 'rating', 'status', 'is_toxic', 'created_at']
+    """Админ-панель для управления отзывами"""
+    
+    list_display = [
+        'id', 'excursion', 'user', 'rating', 'status', 
+        'is_toxic', 'get_created_at_formatted'
+    ]
     list_filter = ['status', 'is_toxic', 'rating', 'created_at']
     search_fields = ['text', 'toxicity_score', 'user__email', 'excursion__title']
     inlines = [ReviewImageInline]
-
     readonly_fields = ['is_toxic', 'toxicity_score', 'created_at', 'updated_at', 'user', 'excursion']
+    
+    def get_created_at_formatted(self, obj):
+        """Дата создания в русском формате"""
+        return localize(obj.created_at, 'd.m.Y H:i')
+    get_created_at_formatted.short_description = _('Дата создания')
+    get_created_at_formatted.admin_order_field = 'created_at'
 
     fieldsets = (
         (None, {

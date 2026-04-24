@@ -27,48 +27,87 @@ class TourOrder(models.Model):
         null=True,
         blank=True,
         related_name='orders',
-        verbose_name='Пользователь'
+        verbose_name=_('Пользователь'),
+        help_text=_('Пользователь, сделавший заказ')
     )
     excursion = models.ForeignKey(
         Excursion,
         on_delete=models.PROTECT,
         related_name='orders',
-        verbose_name='Экскурсия'
+        verbose_name=_('Экскурсия'),
+        help_text=_('Экскурсия, на которую оформлен заказ')
     )
     slot = models.ForeignKey(
         Slot,
         on_delete=models.PROTECT,
         related_name='orders',
-        verbose_name='Слот'
+        verbose_name=_('Слот'),
+        help_text=_('Временной слот для проведения экскурсии')
     )
-    first_name = models.CharField('Имя', max_length=150)
-    last_name = models.CharField('Фамилия', max_length=150, blank=True)
-    phone = models.CharField('Телефон', max_length=20)
+    first_name = models.CharField(
+        _('Имя'), 
+        max_length=150,
+        help_text=_('Имя клиента')
+    )
+    last_name = models.CharField(
+        _('Фамилия'), 
+        max_length=150, 
+        blank=True,
+        help_text=_('Фамилия клиента')
+    )
+    phone = models.CharField(
+        _('Телефон'), 
+        max_length=20,
+        help_text=_('Контактный номер телефона клиента')
+    )
     contact_method = models.CharField(
-        'Предпочитаемый способ связи',
+        _('Предпочитаемый способ связи'),
         max_length=20,
         choices=ContactMethod.choices,
-        default=ContactMethod.CALL
+        default=ContactMethod.CALL,
+        help_text=_('Как с вами связаться для подтверждения заказа')
     )
-    email = models.EmailField('Email', blank=True, help_text='Укажите email, если предпочитаете связь по почте')
+    email = models.EmailField(
+        _('Email'), 
+        blank=True, 
+        help_text=_('Укажите email, если предпочитаете связь по почте')
+    )
 
     num_participants = models.PositiveIntegerField(
-        'Количество человек',
-        validators=[MinValueValidator(1)]
+        _('Количество человек'),
+        validators=[MinValueValidator(1)],
+        help_text=_('Количество участников экскурсии')
     )
-    comment = models.TextField('Комментарий клиента', blank=True)
+    comment = models.TextField(
+        _('Комментарий клиента'), 
+        blank=True,
+        help_text=_('Дополнительная информация от клиента')
+    )
 
     status = models.CharField(
-        'Статус',
+        _('Статус'),
         max_length=20,
         choices=OrderStatus.choices,
-        default=OrderStatus.NEW
+        default=OrderStatus.NEW,
+        help_text=_('Текущий статус заказа')
     )
 
-    manager_comment = models.TextField('Комментарий менеджера', blank=True)
+    manager_comment = models.TextField(
+        _('Комментарий менеджера'), 
+        blank=True,
+        help_text=_('Внутренний комментарий для менеджеров')
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(
+        _('Дата создания'),
+        auto_now_add=True,
+        help_text=_('Дата и время создания заказа')
+    )
+    updated_at = models.DateTimeField(
+        _('Дата обновления'),
+        auto_now=True,
+        help_text=_('Дата и время последнего обновления заказа')
+    )
 
     class Meta:
         verbose_name = 'Заказ на экскурсию'

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'excursions',
     'bookings',
     'reviews',
+    'wishlist',
 ]
 
 MIDDLEWARE = [
@@ -130,6 +131,18 @@ SPECTACULAR_SETTINGS = {
         'persistAuthorization': True,
         'displayRequestDuration': True,
         'tryItOutEnabled': True,
+    },
+
+    'REDOC_UI_SETTINGS': {
+        'hideHostname': True,
+        'hideDownloadButton': False,
+        'showExtensions': True,
+        'hideSingleRequestSampleTab': False,
+        'docExpansion': 'none',
+        'defaultModelRendering': 'example',
+        'defaultModelExpandDepth': 1,
+        'pathInMiddlePanel': False,
+        'payloadSampleIdx': 0,
     },
 
     'COMPONENT_SPLIT_REQUEST': True,

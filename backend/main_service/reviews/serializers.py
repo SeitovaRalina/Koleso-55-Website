@@ -1,16 +1,56 @@
+from typing import List, Optional, Dict, Any
+from decimal import Decimal
+
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema, extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from .models import Review, ReviewImage, ReviewStatus
 from .services.profanity_filter import toxicity_filter
 
 
 class ReviewImageSerializer(serializers.ModelSerializer):
+    """Сериализатор изображений к отзывам"""
+    
+    id = serializers.IntegerField(
+        label="ID",
+        help_text="Уникальный идентификатор изображения",
+        read_only=True
+    )
+    image = serializers.ImageField(
+        label="Изображение",
+        help_text="Фотография к отзыву"
+    )
+    
     class Meta:
         model = ReviewImage
         fields = ['id', 'image']
 
 
 class ReviewCreateSerializer(serializers.ModelSerializer):
-    images = ReviewImageSerializer(many=True, required=False)
+    """Сериализатор для создания отзыва"""
+    
+    excursion = serializers.IntegerField(
+        label="Экскурсия",
+        help_text="ID экскурсии, на которую оставляется отзыв"
+    )
+    rating = serializers.IntegerField(
+        label="Оценка",
+        help_text="Оценка экскурсии от 1 до 5 звезд",
+        min_value=1,
+        max_value=5
+    )
+    text = serializers.CharField(
+        label="Текст отзыва",
+        help_text="Текст отзыва (максимум 2000 символов)",
+        max_length=2000,
+        required=True
+    )
+    images = ReviewImageSerializer(
+        label="Изображения",
+        help_text="Фотографии к отзыву (необязательно)",
+        many=True,
+        required=False
+    )
 
     class Meta:
         model = Review
@@ -44,14 +84,69 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
 
 
 class ReviewListSerializer(serializers.ModelSerializer):
-    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
-    images = ReviewImageSerializer(many=True, read_only=True)
+    """Сериализатор списка отзывов"""
+    
+    id = serializers.IntegerField(
+        label="ID",
+        help_text="Уникальный идентификатор отзыва",
+        read_only=True
+    )
+    user_name = serializers.CharField(
+        label="Имя пользователя",
+        help_text="Полное имя пользователя, оставившего отзыв",
+        source='user.get_full_name',
+        read_only=True
+    )
+    rating = serializers.IntegerField(
+        label="Оценка",
+        help_text="Оценка экскурсии от 1 до 5 звезд",
+        read_only=True
+    )
+    text = serializers.CharField(
+        label="Текст отзыва",
+        help_text="Текст отзыва",
+        read_only=True
+    )
+    images = ReviewImageSerializer(
+        label="Изображения",
+        help_text="Фотографии к отзыву",
+        many=True,
+        read_only=True
+    )
+    created_at = serializers.DateTimeField(
+        label="Дата создания",
+        help_text="Дата и время создания отзыва",
+        read_only=True
+    )
 
     class Meta:
         model = Review
         fields = ['id', 'user_name', 'rating', 'text', 'images', 'created_at']
 
 class ReviewUpdateSerializer(serializers.ModelSerializer):
+    """Сериализатор для редактирования отзыва"""
+    
+    rating = serializers.IntegerField(
+        label="Оценка",
+        help_text="Оценка экскурсии от 1 до 5 звезд",
+        min_value=1,
+        max_value=5,
+        required=False
+    )
+    text = serializers.CharField(
+        label="Текст отзыва",
+        help_text="Текст отзыва (максимум 2000 символов)",
+        max_length=2000,
+        required=False,
+        allow_blank=True
+    )
+    images = ReviewImageSerializer(
+        label="Изображения",
+        help_text="Фотографии к отзыву (необязательно)",
+        many=True,
+        required=False
+    )
+    
     class Meta:
         model = Review
         fields = ['rating', 'text', 'images']

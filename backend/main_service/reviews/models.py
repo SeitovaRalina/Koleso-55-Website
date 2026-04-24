@@ -13,34 +13,76 @@ class ReviewStatus(models.TextChoices):
 
 
 class Review(models.Model):
+    """Модель отзыва на экскурсию"""
+    
     user = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, related_name='reviews'
+        CustomUser, 
+        on_delete=models.CASCADE, 
+        related_name='reviews',
+        verbose_name=_('Пользователь'),
+        help_text=_('Автор отзыва')
     )
     excursion = models.ForeignKey(
-        Excursion, on_delete=models.CASCADE, related_name='reviews'
+        Excursion, 
+        on_delete=models.CASCADE, 
+        related_name='reviews',
+        verbose_name=_('Экскурсия'),
+        help_text=_('Экскурсия, на которую оставлен отзыв')
     )
     order = models.ForeignKey(
-        TourOrder, on_delete=models.SET_NULL, null=True, blank=True
+        TourOrder, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        verbose_name=_('Заказ'),
+        help_text=_('Заказ, по которому оставлен отзыв')
     )
 
     rating = models.PositiveSmallIntegerField(
-        'Оценка', choices=[(i, str(i)) for i in range(1, 6)]
+        _('Оценка'), 
+        choices=[(i, str(i)) for i in range(1, 6)],
+        help_text=_('Оценка экскурсии от 1 до 5 звезд')
     )
-    text = models.TextField('Отзыв', max_length=2000)
+    text = models.TextField(
+        _('Отзыв'), 
+        max_length=2000,
+        help_text=_('Текст отзыва на экскурсию')
+    )
 
     status = models.CharField(
-        'Статус модерации',
+        _('Статус модерации'),
         max_length=20,
         choices=ReviewStatus.choices,
-        default=ReviewStatus.PENDING
+        default=ReviewStatus.PENDING,
+        help_text=_('Текущий статус модерации отзыва')
     )
-    is_toxic = models.BooleanField('Содержит нецензурную лексику', default=False)
-    toxicity_score = models.FloatField('Степень токсичности', default=0.0)
+    is_toxic = models.BooleanField(
+        _('Содержит нецензурную лексику'), 
+        default=False,
+        help_text=_('Определяет, содержит ли отзыв нецензурную лексику')
+    )
+    toxicity_score = models.FloatField(
+        _('Степень токсичности'), 
+        default=0.0,
+        help_text=_('Количественная оценка токсичности текста отзыва')
+    )
 
-    moderator_comment = models.TextField('Комментарий модератора', blank=True)
+    moderator_comment = models.TextField(
+        _('Комментарий модератора'), 
+        blank=True,
+        help_text=_('Комментарий оставленный модератором при обработке отзыва')
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(
+        _('Дата создания'),
+        auto_now_add=True,
+        help_text=_('Дата и время создания отзыва')
+    )
+    updated_at = models.DateTimeField(
+        _('Дата обновления'),
+        auto_now=True,
+        help_text=_('Дата и время последнего обновления отзыва')
+    )
 
     def can_be_edited(self):
         return self.status == ReviewStatus.PENDING
@@ -56,10 +98,27 @@ class Review(models.Model):
 
 
 class ReviewImage(models.Model):
-    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField('Фото', upload_to='reviews/%Y/%m/%d/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+    """Модель изображений к отзывам"""
+    
+    review = models.ForeignKey(
+        Review, 
+        on_delete=models.CASCADE, 
+        related_name='images',
+        verbose_name=_('Отзыв'),
+        help_text=_('Отзыв, к которому относится изображение')
+    )
+    image = models.ImageField(
+        _('Фото'), 
+        upload_to='reviews/%Y/%m/%d/',
+        help_text=_('Фотография к отзыву')
+    )
+    uploaded_at = models.DateTimeField(
+        _('Дата загрузки'),
+        auto_now_add=True,
+        help_text=_('Дата и время загрузки изображения')
+    )
 
     class Meta:
-        verbose_name = 'Фото к отзыву'
-        verbose_name_plural = 'Фото к отзывам'
+        verbose_name = _('Фото к отзыву')
+        verbose_name_plural = _('Фото к отзывам')
+        ordering = ['-uploaded_at']
