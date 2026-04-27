@@ -1,32 +1,28 @@
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from .validators import normalize_phone
 
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, identifier, first_name, last_name, password=None, **extra_fields):
-        if not identifier:
-            raise ValueError(_('Email или телефон обязателен'))
 
-        if '@' in identifier:
-            email = self.normalize_email(identifier)
-            phone = None
-        else:
-            email = None
-            phone = identifier
-
+    def create_user(self, email, password=None, phone=None, **extra_fields):
+        if not email:
+            raise ValueError(_('Email обязателен'))
+        
+        email = self.normalize_email(email)
+        phone = normalize_phone(phone) if phone else None
+        
         user = self.model(
             email=email,
             phone=phone,
-            first_name=first_name,
-            last_name=last_name,
             **extra_fields
         )
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, first_name, last_name, password=None, **extra_fields):
+    def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
 
@@ -35,15 +31,16 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError(_('Superuser must have is_superuser=True.'))
 
-        return self.create_user(email, first_name, last_name, password, **extra_fields)
+        return self.create_user(email, password, **extra_fields)
 
 
-class CustomUser(AbstractBaseUser, PermissionsMixin):
+class CustomUser(AbstractUser):
+    username = None  # Удаляем поле username
     email = models.EmailField(
         _('Электронная почта'), 
         unique=True, 
-        null=True, 
-        blank=True,
+        null=False,
+        blank=False,
     )
     phone = models.CharField(
         _('Номер телефона'), 
@@ -51,34 +48,35 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         unique=True, 
         null=True, 
         blank=True,
+        help_text=_('Формат: +7XXXXXXXXXX')
     )
+    is_email_verified = models.BooleanField(
+        _('Email подтвержден'),
+        default=False,
+        help_text=_('Проверено ли подтверждение email')
+    )
+    
+    # Поля имени оставляем опциональными, будут заполняться при бронировании
     first_name = models.CharField(
-        _('Имя пользователя'), 
+        _('Имя'), 
         max_length=150,
+        blank=True,
     )
     last_name = models.CharField(
-        _('Фамилия пользователя'), 
+        _('Фамилия'), 
         max_length=150,
+        blank=True,
     )
-
-    is_active = models.BooleanField(
-        _('Активен'),
-        default=True,
-    )
-    is_staff = models.BooleanField(
-        _('Сотрудник'),
-        default=False,
-        help_text=_('Имеет ли пользователь доступ к админ-панели')
-    )
-    date_joined = models.DateTimeField(
-        _('Дата регистрации'),
-        auto_now_add=True,
+    patronymic = models.CharField(
+        _('Отчество'), 
+        max_length=150,
+        blank=True,
     )
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    REQUIRED_FIELDS = []
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -88,7 +86,13 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
 
     def get_full_name(self):
-        return f"{self.first_name} {self.last_name}".strip()
+        return f"{self.last_name} {self.first_name} {self.patronymic}".strip()
 
     def get_short_name(self):
         return self.first_name
+
+    def save(self, *args, **kwargs):
+        # Нормализуем телефон перед сохранением
+        if self.phone:
+            self.phone = normalize_phone(self.phone)
+        super().save(*args, **kwargs)

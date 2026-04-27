@@ -15,11 +15,22 @@ from .serializers import (
 @extend_schema(
     summary="Создание заказа на экскурсию",
     description="Создает новый заказ на экскурсию. Доступно как для авторизованных, так и для неавторизованных пользователей. "
-                   "Проверяет доступность слота и корректность данных. Автоматически создает пользователя если указаны email/телефон.",
+                   "Проверяет доступность слота и корректность данных. Для авторизованных пользователей авто-заполняет данные из профиля.",
 )
 class TourOrderCreateView(generics.CreateAPIView):
     serializer_class = TourOrderCreateSerializer
     permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        
+        # Добавляем предупреждение о неподтвержденном email для авторизованных пользователей
+        if request.user.is_authenticated and not request.user.is_email_verified:
+            response.data['warnings'] = [
+                "Пожалуйста, подтвердите ваш email для получения ваучеров"
+            ]
+        
+        return response
 
 
 @extend_schema(

@@ -55,6 +55,12 @@ class TourOrder(models.Model):
         blank=True,
         help_text=_('Фамилия клиента')
     )
+    middle_name = models.CharField(
+        _('Отчество'), 
+        max_length=150, 
+        blank=True,
+        help_text=_('Отчество клиента')
+    )
     phone = models.CharField(
         _('Телефон'), 
         max_length=20,
@@ -113,6 +119,13 @@ class TourOrder(models.Model):
         verbose_name = 'Заказ на экскурсию'
         verbose_name_plural = 'Заказы на экскурсии'
         ordering = ['-created_at']
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(phone__isnull=False) | models.Q(email__isnull=False),
+                name='at_least_one_contact_field_filled',
+                violation_error_message='Хотя бы одно из полей (телефон или email) должно быть заполнено'
+            )
+        ]
 
     def __str__(self):
         return f'Заказ #{self.id} — {self.excursion.title} ({self.status})'
