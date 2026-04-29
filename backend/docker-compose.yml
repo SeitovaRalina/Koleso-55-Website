@@ -1,107 +1,123 @@
 services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: excursion_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - excursion_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    postgres:
+        image: postgres:15
+        environment:
+            POSTGRES_DB: ${DB_NAME}
+            POSTGRES_USER: ${DB_USER}
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
+        ports:
+            - "${DB_PORT}:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        networks:
+            - excursion_network
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
-  rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    networks:
-      - excursion_network
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+            - "${RABBITMQ_PORT}:5672"
+            - "15672:15672"
+        environment:
+            RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+            RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+        volumes:
+            - rabbitmq_data:/var/lib/rabbitmq
+        networks:
+            - excursion_network
+        healthcheck:
+            test: ["CMD", "rabbitmq-diagnostics", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
-  chromadb:
-    image: chromadb/chroma:0.4.24
-    ports:
-      - "8000:8000"
-    volumes:
-      - chromadb_data:/chroma/chroma
-    networks:
-      - excursion_network
-    environment:
-      - IS_PERSISTENT=TRUE
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    # chromadb:
+    #   image: chromadb/chroma:0.4.24
+    #   ports:
+    #     - "8000:8000"
+    #   volumes:
+    #     - chromadb_data:/chroma/chroma
+    #   networks:
+    #     - excursion_network
+    #   environment:
+    #     - IS_PERSISTENT=TRUE
+    #   healthcheck:
+    #     test:
+    #         ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+    #     interval: 30s
+    #     timeout: 10s
+    #     retries: 3
 
-  main_service:
-    build: ./main_service
-    ports:
-      - "8001:8000"
-    depends_on:
-      - postgres
-      - rabbitmq
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/excursion_db
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-    volumes:
-      - ./main_service:/app
-    networks:
-      - excursion_network
-    restart: unless-stopped
+    main_service:
+        build: ./main_service
+        ports:
+            - "8001:8000"
+        depends_on:
+            postgres:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
+        env_file:
+            - .env
+        volumes:
+            - ./main_service:/app
+        networks:
+            - excursion_network
+        restart: unless-stopped
 
-  worker:
-    build: ./worker
-    depends_on:
-      - rabbitmq
-      - chromadb
-    environment:
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-      - CHROMADB_URL=http://chromadb:8000
-    volumes:
-      - ./worker:/app
-    networks:
-      - excursion_network
-    restart: unless-stopped
+    celery_worker:
+        build: ./main_service
+        command: celery -A config worker --loglevel=info
+        depends_on:
+            - postgres
+            - rabbitmq
+        env_file:
+            - .env
+        volumes:
+            - ./main_service:/app
+        networks:
+            - excursion_network
+        restart: unless-stopped
 
-  recommendation_service:
-    build: ./recommendation_service
-    ports:
-      - "8002:8000"
-    depends_on:
-      - postgres
-      - chromadb
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/excursion_db
-      - CHROMADB_URL=http://chromadb:8000
-    volumes:
-      - ./recommendation_service:/app
-    networks:
-      - excursion_network
-    restart: unless-stopped
+    # worker:
+    #   build: ./worker
+    #   depends_on:
+    #     - rabbitmq
+    #     - chromadb
+    #   environment:
+    #     - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    #     - CHROMADB_URL=http://chromadb:8000
+    #   volumes:
+    #     - ./worker:/app
+    #   networks:
+    #     - excursion_network
+    #   restart: unless-stopped
+
+    # recommendation_service:
+    #   build: ./recommendation_service
+    #   ports:
+    #     - "8002:8000"
+    #   depends_on:
+    #     - postgres
+    #     - chromadb
+    #   environment:
+    #     - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/excursion_db
+    #     - CHROMADB_URL=http://chromadb:8000
+    #   volumes:
+    #     - ./recommendation_service:/app
+    #   networks:
+    #     - excursion_network
+    #   restart: unless-stopped
 
 volumes:
-  postgres_data:
-  rabbitmq_data:
-  chromadb_data:
+    postgres_data:
+    rabbitmq_data:
+    # chromadb_data:
 
 networks:
-  excursion_network:
-    driver: bridge
+    excursion_network:
+        driver: bridge

@@ -55,6 +55,12 @@ class CustomUser(AbstractUser):
         default=False,
         help_text=_('Проверено ли подтверждение email')
     )
+    email_verification_sent_at = models.DateTimeField(
+        _('Время отправки подтверждения email'),
+        null=True,
+        blank=True,
+        help_text=_('Когда было отправлено письмо подтверждения email')
+    )
     
     # Поля имени оставляем опциональными, будут заполняться при бронировании
     first_name = models.CharField(

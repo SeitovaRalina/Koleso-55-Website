@@ -1,12 +1,19 @@
+import os
 from pathlib import Path
+
+try:
+    from dotenv import load_dotenv, find_dotenv
+    load_dotenv(find_dotenv())
+except ImportError:
+    pass
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-27zzoez!lxe8wdjcp08ny^uow1ci)de)xga(&jo97pi8gaw&y1'
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
@@ -20,6 +27,7 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework.authtoken',
+    'rest_framework_simplejwt.token_blacklist',
     'debug_toolbar',
     'django_filters',
     'drf_spectacular',
@@ -80,11 +88,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'koleso_travel_dev',
-        'USER': 'postgres',
-        'PASSWORD': 'sql',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get('DB_NAME', 'koleso_travel_dev'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'sql'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -210,16 +218,16 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For development
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # For production
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
 
-# For production, uncomment and configure:
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'your-email@gmail.com'
-# EMAIL_HOST_PASSWORD = 'your-app-password'
-# DEFAULT_FROM_EMAIL = 'your-email@gmail.com'
+# # SMTP Configuration (for production)
+# EMAIL_HOST = os.environ.get('EMAIL_HOST')
+# EMAIL_PORT = int(os.environ.get('EMAIL_PORT'))
+# EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS').lower() == 'true'
+# EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+# DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
 
 # Custom email templates
 ACCOUNT_EMAIL_CONFIRMATION_SUBJECT = 'Подтверждение email - КОЛЕСО путешествий 55'
@@ -233,3 +241,22 @@ REST_AUTH = {
     'REGISTER_SERIALIZER': 'accounts.serializers.CustomRegisterSerializer',
     'USER_DETAILS_SERIALIZER': 'accounts.serializers.UserProfileSerializer'
 }
+
+# Celery Configuration
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://guest:guest@localhost:5672//')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Omsk'
+CELERY_ENABLE_UTC = True
+CELERY_TASK_DEFAULT_RETRY_DELAY = 60     # Пауза перед повтором: 60 секунд
+CELERY_TASK_MAX_RETRIES = 3              # Максимум попыток
+CELERY_TASK_ACKS_LATE = True             # Подтверждение ПОСЛЕ выполнения
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1    # Брать по 1 задаче за раз
+CELERY_TASK_IGNORE_RESULT = True         # Не хранить результаты задач
+# CELERY_TASK_ROUTES = {
+#     'accounts.tasks.send_verification_email_task': {'queue': 'email'},
+# }
+
+# Domain configuration for email links
+DOMAIN = os.environ.get('DOMAIN', 'localhost:8001')
+PROTOCOL = os.environ.get('PROTOCOL', 'http')

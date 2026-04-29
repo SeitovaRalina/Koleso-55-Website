@@ -20,6 +20,9 @@ from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.vk.views import VKOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from dj_rest_auth.registration.views import SocialLoginView
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 @extend_schema(
@@ -121,33 +124,95 @@ class PasswordResetConfirmView(generics.GenericAPIView):
     serializer_class = PasswordResetConfirmSerializer
     permission_classes = [permissions.AllowAny]
 
+    def get(self, request, uidb64, token):
+        """Проверка валидности ссылки сброса пароля"""
+        user = self._get_user(uidb64, token)
+        if not user:
+            return Response(
+                {'error': 'Ссылка недействительна или устарела'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response({
+            'message': 'Ссылка действительна. Введите новый пароль.',
+            'valid': True
+        })
+
     def post(self, request, uidb64, token):
-        serializer = self.get_serializer(data=request.data)
+        """Установка нового пароля"""
+        user = self._get_user(uidb64, token)
+        if not user:
+            return Response(
+                {'error': 'Ссылка недействительна или устарела. Запросите новую.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Передаём user в контекст сериализатора
+        serializer = self.get_serializer(
+            data=request.data,
+            context={'user': user}
+        )
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.save(), status=status.HTTP_200_OK)
+        result = serializer.save()
+
+        return Response(result, status=status.HTTP_200_OK)
+
+    def _get_user(self, uidb64, token):
+        """Проверяет uidb64 и token, возвращает пользователя или None"""
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return None
+
+        if not default_token_generator.check_token(user, token):
+            return None
+
+        return user
 
 
 @extend_schema(
     summary="Отправка подтверждения email",
     description="Отправляет письмо со ссылкой для подтверждения email. "
-                   "Доступно только для пользователей с неподтвержденным email.",
+                   "Доступно только для пользователей с неподтвержденным email. "
+                   "Rate limit: 1 запрос в 60 секунд.",
 )
 class VerifyEmailView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = VerifyEmailSerializer
 
     def post(self, request, *args, **kwargs):
+        from django.core.cache import cache
+        from .tasks import send_verification_email_task
+        from django.utils import timezone
+        
         if request.user.is_email_verified:
             return Response(
                 {"message": "Email уже подтвержден"}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # TODO: Отправка письма подтверждения email
-        # send_email_verification(request.user)
+        # Rate limiting: 1 запрос в 60 секунд на пользователя
+        cache_key = f"email_verification_{request.user.id}"
+        last_request_time = cache.get(cache_key)
+        
+        if last_request_time:
+            return Response(
+                {"error": "Пожалуйста, подождите 60 секунд перед повторной отправкой"}, 
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+        
+        # Устанавливаем rate limit
+        cache.set(cache_key, timezone.now(), 60)
+        
+        # Получаем домен и протокол
+        domain = request.get_host()
+        protocol = 'https' if request.is_secure() else 'http'
+        
+        # Отправляем письмо асинхронно
+        send_verification_email_task.delay(request.user.id, domain, protocol)
         
         return Response(
-            {"message": "Письмо с подтверждением отправлено на ваш email"}, 
+            {"message": "Письмо с подтверждением отправлено на ваш email"},
             status=status.HTTP_200_OK
         )
 
@@ -195,13 +260,17 @@ class VerifyEmailConfirmView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        user.is_email_verified = True
-        user.save()
+        if user.is_email_verified:
+            return Response(
+                {"message": "Email уже подтвержден"}, 
+                status=status.HTTP_200_OK
+            )
+
+        # Используем serializer для подтверждения email
+        serializer = self.get_serializer()
+        result = serializer.save(user=user)
         
-        return Response(
-            {"message": "Email успешно подтвержден"}, 
-            status=status.HTTP_200_OK
-        )
+        return Response(result, status=status.HTTP_200_OK)
 
 
 @extend_schema(

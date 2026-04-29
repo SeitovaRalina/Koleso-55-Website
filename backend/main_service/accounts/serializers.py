@@ -7,13 +7,16 @@ from django.utils.encoding import force_str
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from .validators import normalize_phone
+from django.conf import settings
 
 User = get_user_model()
 
 
 class CustomRegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True)
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password],
+                                     style={'input_type': 'password'}, min_length=8)
+    password2 = serializers.CharField(write_only=True, required=True,
+                                      style={'input_type': 'password'}, min_length=8)
 
     class Meta:
         model = User
@@ -40,6 +43,12 @@ class CustomRegisterSerializer(serializers.ModelSerializer):
 
             return normalized
         return value
+    
+    def validate_password(self, value):
+        """Проверка сложности пароля"""
+        if len(value) < 8:
+            raise serializers.ValidationError("Пароль должен быть не менее 8 символов")
+        return value
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
@@ -50,16 +59,30 @@ class CustomRegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)
         
-        # TODO: Отправка приветственного письма с ссылкой подтверждения email
-        # Это можно реализовать асинхронно через Celery
+        # Отправляем письмо подтверждения email асинхронно через Celery
+        from .tasks import send_verification_email_task
         
+        # Получаем домен и протокол из запроса
+        request = self.context.get('request')
+        if request:
+            domain = request.get_host()
+            protocol = 'https' if request.is_secure() else 'http'
+        else:
+            # Для тестов или консольных команд
+            domain = getattr(settings, 'DOMAIN', 'localhost:8000')
+            protocol = getattr(settings, 'PROTOCOL', 'http')
+        
+        # Запускаем задачу асинхронно
+        send_verification_email_task.delay(user.id, domain, protocol)
+        print(f"Задача отправки письма подтверждения email для пользователя {user.email} поставлена в очередь Celery")
         return user
 
 
 class LoginSerializer(serializers.Serializer):
     contact = serializers.CharField(required=True)
     contact_type = serializers.ChoiceField(choices=['email', 'phone'], required=False)
-    password = serializers.CharField(write_only=True, required=True)
+    password = serializers.CharField(write_only=True, required=True,
+                                     style={'input_type': 'password'})
 
     def validate(self, attrs):
         contact = attrs.get('contact')
@@ -149,8 +172,18 @@ class PasswordResetSerializer(serializers.Serializer):
 
     def save(self):
         user = self.validated_data['user']
-        # TODO: Отправка ссылки для сброса пароля на email пользователя
-        # Всегда отправляем на email, так как email обязателен
+        from .tasks import send_password_reset_email_task
+
+        request = self.context.get('request')
+        if request:
+            domain = request.get_host()
+            protocol = 'https' if request.is_secure() else 'http'
+        else:
+            domain = getattr(settings, 'DOMAIN', 'localhost:8000')
+            protocol = getattr(settings, 'PROTOCOL', 'http')
+
+        send_password_reset_email_task.delay(user.id, domain, protocol)
+
         return {
             'message': 'Ссылка для сброса пароля отправлена на ваш email',
             'fallback': 'Если вы не получили письмо, позвоните нашему менеджеру по телефону +7-XXX-XXX-XX-XX'
@@ -158,10 +191,10 @@ class PasswordResetSerializer(serializers.Serializer):
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
-    uidb64 = serializers.CharField()
-    token = serializers.CharField()
-    new_password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    new_password2 = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(write_only=True, required=True, validators=[validate_password],
+                                         style={'input_type': 'password'}, min_length=8)
+    new_password2 = serializers.CharField(write_only=True, required=True,
+                                          style={'input_type': 'password'}, min_length=8)
 
     def validate(self, attrs):
         new_password = attrs.get('new_password')
@@ -169,30 +202,33 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
         if new_password != new_password2:
             raise serializers.ValidationError({"new_password": "Пароли не совпадают"})
-
-        try:
-            uid = force_str(urlsafe_base64_decode(attrs['uidb64']))
-            user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            raise serializers.ValidationError("Недействительная ссылка")
-
-        if not default_token_generator.check_token(user, attrs['token']):
-            raise serializers.ValidationError("Недействительная или просроченная ссылка")
-
-        attrs['user'] = user
         return attrs
+
+    def validate_new_password(self, value):
+        """Проверка сложности нового пароля"""
+        if len(value) < 8:
+            raise serializers.ValidationError("Пароль должен быть не менее 8 символов")
+        if value.isdigit():
+            raise serializers.ValidationError("Пароль не должен состоять только из цифр")
+        return value
 
     def save(self):
         user = self.validated_data['user']
         user.set_password(self.validated_data['new_password'])
         user.save()
-        return {'message': 'Пароль успешно изменен'}
+        return {'message': 'Пароль успешно изменен. Теперь вы можете войти с новым паролем.'}
 
 class VerifyEmailSerializer(serializers.Serializer):
+    """Serializer для отправки письма подтверждения email"""
     pass
 
 class VerifyEmailConfirmSerializer(serializers.Serializer):
-    pass
+    """Serializer для подтверждения email по токену"""
+    def save(self, user):
+        """Подтверждает email пользователя"""
+        user.is_email_verified = True
+        user.save(update_fields=['is_email_verified'])
+        return {'message': 'Email успешно подтвержден'}
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
