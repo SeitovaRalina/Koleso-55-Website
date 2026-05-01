@@ -1,0 +1,22 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block submit_buttons_bottom %}
+    {% if show_approve_reject %}
+        <div style="margin-top: 15px;">
+            <input type="submit" 
+                   name="_approve_review" 
+                   class="default" 
+                   value="{% trans 'Принять отзыв' %}" 
+                   style="background: #198754; color: white; font-weight: bold;">
+            
+            <input type="submit" 
+                   name="_reject_review" 
+                   class="default" 
+                   value="{% trans 'Отклонить отзыв' %}" 
+                   style="background: #dc3545; color: white; font-weight: bold; margin-left: 8px;">
+        </div>
+    {% endif %}
+
+    {{ block.super }}
+{% endblock %}

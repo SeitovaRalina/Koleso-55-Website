@@ -1,0 +1,41 @@
+FROM python:3.13-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=config.settings
+
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql-client \
+        build-essential \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN pip install --no-cache-dir poetry==2.2.1
+
+# Set work directory
+WORKDIR /app
+
+# Copy Poetry files
+COPY pyproject.toml poetry.lock ./
+
+# Configure Poetry
+RUN poetry config virtualenvs.create false
+
+# Install dependencies
+RUN poetry install --no-root --no-interaction --no-ansi
+
+# Copy project
+COPY . .
+
+# Create media and static directories
+RUN mkdir -p media static
+
+# Expose port
+EXPOSE 8000
+
+# Default command: migrate + collectstatic + runserver
+CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"]

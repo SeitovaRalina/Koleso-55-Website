@@ -1,0 +1,23 @@
+:root {
+  --bs-primary: #0d6efd;
+  --bs-primary-rgb: 13, 110, 253;
+}
+
+/* Общие улучшения */
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+
+a {
+  text-decoration: none;
+}
+
+.min-vh-100 {
+  min-height: 100vh;
+}
