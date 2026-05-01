@@ -1,11 +1,14 @@
-from rest_framework import generics, status, permissions, serializers
-from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenRefreshView, TokenBlacklistView
-from rest_framework_simplejwt.tokens import RefreshToken
-from drf_spectacular.utils import OpenApiParameter, extend_schema, OpenApiTypes
+import logging
+from django.core.cache import cache
+from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
+from rest_framework import generics, status, permissions
+from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenRefreshView, TokenBlacklistView
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+
 from .serializers import (
     CustomRegisterSerializer,
     LoginSerializer,
@@ -13,22 +16,28 @@ from .serializers import (
     PasswordResetSerializer,
     PasswordResetConfirmSerializer,
     VerifyEmailSerializer,
-    VerifyEmailConfirmSerializer
+    VerifyEmailConfirmSerializer,
 )
-from .utils import link_guest_bookings
+from .utils import link_guest_bookings, generate_jwt_response, get_domain_and_protocol
+from .tasks import send_verification_email_task
+
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.vk.views import VKOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from dj_rest_auth.registration.views import SocialLoginView
-from django.contrib.auth import get_user_model
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+# ============================================================
+# REGISTRATION
+# ============================================================
+
 @extend_schema(
     summary="Регистрация пользователя",
-    description="Создает нового аккаунта пользователя с email (обязательно) и телефоном (опционально). "
-                   "Возвращает JWT токены для немедленного входа. Отправляет приветственное письмо.",
+    description="Создаёт аккаунт с email (обязательно) и телефоном (опционально). "
+                "Возвращает JWT токены, привязывает гостевые бронирования и отправляет приветственное письмо подтверждения.",
 )
 class RegisterView(generics.GenericAPIView):
     serializer_class = CustomRegisterSerializer
@@ -38,36 +47,24 @@ class RegisterView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        
-        # Генерируем JWT токены
-        refresh = RefreshToken.for_user(user)
-        
+
+        response = generate_jwt_response(user)
+
         # Привязываем гостевые бронирования
         linking_result = link_guest_bookings(user)
-        
-        response_data = {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'phone': user.phone,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'patronymic': user.patronymic,
-                'is_email_verified': user.is_email_verified,
-            },
-            'message': 'Пользователь успешно зарегистрирован',
-        }
-        
-        if linking_result['linked'] > 0:
-            response_data['linked_bookings'] = f"Привязано {linking_result['linked']} гостевых бронирований"
-        
-        if not user.is_email_verified:
-            response_data['warning'] = 'Email не подтвержден'
-        
-        return Response(response_data, status=status.HTTP_201_CREATED)
+        if linking_result.get('linked'):
+            response['linked_bookings'] = linking_result['linked']
 
+        if not user.is_email_verified:
+            response['hint'] = 'Email не подтверждён. Проверьте почту.'
+
+        logger.info(f"User registered: {user.email}")
+        return Response(response, status=status.HTTP_201_CREATED)
+
+
+# ============================================================
+# LOGIN
+# ============================================================
 
 @extend_schema(
     summary="Вход в систему",
@@ -81,8 +78,13 @@ class LoginView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.save(), status=status.HTTP_200_OK)
+        result = serializer.save()
+        return Response(result, status=status.HTTP_200_OK)
 
+
+# ============================================================
+# PASSWORD RESET
+# ============================================================
 
 @extend_schema(
     summary="Сброс пароля",
@@ -96,13 +98,15 @@ class PasswordResetView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.save(), status=status.HTTP_200_OK)
+        result = serializer.save()
+        return Response(result, status=status.HTTP_200_OK)
 
 
 @extend_schema(
     summary="Подтверждение сброса пароля",
     description="Устанавливает новый пароль по ссылке из письма. "
-                   "Требует uidb64 и token из ссылки сброса.",
+                "Требует uidb64 и token из ссылки для сброса."
+                "GET запрос проверяет валидность ссылки, POST устанавливает новый пароль.",
     parameters=[
         OpenApiParameter(
             name='uidb64',
@@ -125,7 +129,6 @@ class PasswordResetConfirmView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, uidb64, token):
-        """Проверка валидности ссылки сброса пароля"""
         user = self._get_user(uidb64, token)
         if not user:
             return Response(
@@ -138,7 +141,6 @@ class PasswordResetConfirmView(generics.GenericAPIView):
         })
 
     def post(self, request, uidb64, token):
-        """Установка нового пароля"""
         user = self._get_user(uidb64, token)
         if not user:
             return Response(
@@ -146,32 +148,28 @@ class PasswordResetConfirmView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Передаём user в контекст сериализатора
-        serializer = self.get_serializer(
-            data=request.data,
-            context={'user': user}
-        )
+        serializer = self.get_serializer(data=request.data, context={'user': user})
         serializer.is_valid(raise_exception=True)
         result = serializer.save()
-
         return Response(result, status=status.HTTP_200_OK)
 
     def _get_user(self, uidb64, token):
-        """Проверяет uidb64 и token, возвращает пользователя или None"""
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             return None
-
         if not default_token_generator.check_token(user, token):
             return None
-
         return user
 
 
+# ============================================================
+# EMAIL VERIFICATION
+# ============================================================
+
 @extend_schema(
-    summary="Отправка подтверждения email",
+    summary="Отправка письма подтверждения email",
     description="Отправляет письмо со ссылкой для подтверждения email. "
                    "Доступно только для пользователей с неподтвержденным email. "
                    "Rate limit: 1 запрос в 60 секунд.",
@@ -181,38 +179,33 @@ class VerifyEmailView(generics.GenericAPIView):
     serializer_class = VerifyEmailSerializer
 
     def post(self, request, *args, **kwargs):
-        from django.core.cache import cache
-        from .tasks import send_verification_email_task
-        from django.utils import timezone
+        user = request.user
         
-        if request.user.is_email_verified:
+        if user.is_email_verified:
             return Response(
-                {"message": "Email уже подтвержден"}, 
-                status=status.HTTP_400_BAD_REQUEST
+                {"message": "Email уже подтверждён"},
+                status=status.HTTP_200_OK
             )
-        
-        # Rate limiting: 1 запрос в 60 секунд на пользователя
-        cache_key = f"email_verification_{request.user.id}"
-        last_request_time = cache.get(cache_key)
-        
-        if last_request_time:
+
+        # Rate limiting
+        cache_key = f"email_verification:{user.id}"
+        if cache.get(cache_key):
+            ttl = cache.ttl(cache_key)
             return Response(
-                {"error": "Пожалуйста, подождите 60 секунд перед повторной отправкой"}, 
+                {
+                    "error": "Слишком много запросов",
+                    "retry_after_seconds": ttl
+                },
                 status=status.HTTP_429_TOO_MANY_REQUESTS
             )
+
+        cache.set(cache_key, True, 60)
         
-        # Устанавливаем rate limit
-        cache.set(cache_key, timezone.now(), 60)
-        
-        # Получаем домен и протокол
-        domain = request.get_host()
-        protocol = 'https' if request.is_secure() else 'http'
-        
-        # Отправляем письмо асинхронно
-        send_verification_email_task.delay(request.user.id, domain, protocol)
-        
+        domain, protocol = get_domain_and_protocol(request)
+        send_verification_email_task.delay(user.id, domain, protocol)
+
         return Response(
-            {"message": "Письмо с подтверждением отправлено на ваш email"},
+            {"message": "Письмо с подтверждением отправлено"},
             status=status.HTTP_200_OK
         )
 
@@ -243,41 +236,41 @@ class VerifyEmailConfirmView(generics.GenericAPIView):
     serializer_class = VerifyEmailConfirmSerializer
 
     def get(self, request, uidb64, token):
-        try:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = self._get_user(uidb64, token)
+        if not user:
             return Response(
-                {"error": "Недействительная ссылка"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if not default_token_generator.check_token(user, token):
-            return Response(
-                {"error": "Недействительная или просроченная ссылка"}, 
+                {"error": "Недействительная или просроченная ссылка"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         if user.is_email_verified:
             return Response(
-                {"message": "Email уже подтвержден"}, 
+                {"message": "Email уже подтверждён"},
                 status=status.HTTP_200_OK
             )
 
-        # Используем serializer для подтверждения email
-        serializer = self.get_serializer()
-        result = serializer.save(user=user)
-        
+        serializer = self.get_serializer(context={'user': user})
+        result = serializer.save()
         return Response(result, status=status.HTTP_200_OK)
 
+    def _get_user(self, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return None
+        if not default_token_generator.check_token(user, token):
+            return None
+        return user
+
+
+# ============================================================
+# PROFILE
+# ============================================================
 
 @extend_schema(
     summary="Профиль пользователя",
-    description="Получение и обновление данных профиля. "
-                   "Email можно только просматривать, телефон можно добавить/изменить. "
-                   "При изменении телефона автоматически привязываются гостевые бронирования.",
+    description="Просмотр и редактирование профиля. При смене телефона привязываются гостевые бронирования.",
 )
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
@@ -286,54 +279,49 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
 
+    def perform_update(self, serializer):
+        old_phone = self.request.user.phone
+        user = serializer.save()
+
+        if old_phone != user.phone and user.phone:
+            linking_result = link_guest_bookings(user)
+            if linking_result.get('linked'):
+                # Сохраняем в сериализатор для ответа
+                serializer._linked_bookings = linking_result['linked']
+
     def update(self, request, *args, **kwargs):
-        # Сохраняем старый телефон для сравнения
-        old_phone = request.user.phone
-        
         response = super().update(request, *args, **kwargs)
-        
-        # Если телефон изменился, запускаем привязку гостевых бронирований
-        new_phone = request.user.phone
-        if old_phone != new_phone and new_phone:
-            linking_result = link_guest_bookings(request.user)
-            
-            if linking_result['linked'] > 0:
-                response.data['linked_bookings'] = f"Привязано {linking_result['linked']} гостевых бронирований"
-        
+        linked = getattr(self.get_serializer(), '_linked_bookings', 0)
+        if linked:
+            response.data['linked_bookings'] = f"Привязано {linked} гостевых бронирований"
         return response
 
 
-@extend_schema(
-    summary="Вход через Google",
-    description="Аутентификация пользователя через аккаунт Google OAuth2. "
-                   "Автоматически создает аккаунт или привязывает к существующему по email.",
-)
+# ============================================================
+# SOCIAL AUTH
+# ============================================================
+
+@extend_schema(summary="Вход через Google")
 class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
     client_class = OAuth2Client
 
 
-@extend_schema(
-    summary="Вход через ВКонтакте",
-    description="Аутентификация пользователя через аккаунт ВКонтакте OAuth2. "
-                   "Автоматически создает аккаунт или привязывает к существующему по email.",
-)
+@extend_schema(summary="Вход через ВКонтакте")
 class VKLogin(SocialLoginView):
     adapter_class = VKOAuth2Adapter
     client_class = OAuth2Client
 
 
-@extend_schema(
-    summary="Обновление JWT токена",
-    description="Обновляет JWT токен доступа с помощью refresh токена.",
-)
+# ============================================================
+# JWT TOKENS
+# ============================================================
+
+@extend_schema(summary="Обновление JWT токена")
 class CustomTokenRefreshView(TokenRefreshView):
     pass
 
 
-@extend_schema(
-    summary="Выход из системы",
-    description="Разлогинивает пользователя, добавляя refresh токен в черный список.",
-)
+@extend_schema(summary="Выход из системы (blacklist refresh токена)")
 class CustomTokenBlacklistView(TokenBlacklistView):
     pass

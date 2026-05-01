@@ -1,264 +1,279 @@
+import logging
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
-from .validators import normalize_phone
-from django.conf import settings
-
+from .validators import normalize_phone, mask_email
+from .utils import get_domain_and_protocol, generate_jwt_response
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
 class CustomRegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password],
-                                     style={'input_type': 'password'}, min_length=8)
-    password2 = serializers.CharField(write_only=True, required=True,
-                                      style={'input_type': 'password'}, min_length=8)
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        min_length=8,
+        style={'input_type': 'password'}
+    )
+    password2 = serializers.CharField(
+        write_only=True,
+        required=True,
+        min_length=8,
+        style={'input_type': 'password'}
+    )
 
     class Meta:
         model = User
         fields = ['email', 'phone', 'password', 'password2']
         extra_kwargs = {
             'email': {'required': True},
+            'phone': {'required': False},
         }
 
     def validate_email(self, value):
-        """Проверка уникальности email"""
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Пользователь с таким email уже существует")
-        return value
+        return value.lower().strip()
 
     def validate_phone(self, value):
-        """Валидация и нормализация телефона"""
-        if value:
-            normalized = normalize_phone(value)
-            if not normalized:
-                raise serializers.ValidationError("Неверный формат телефона. Используйте формат 8XXXXXXXXXX, +7XXXXXXXXXX или 9XXXXXXXXX")
+        if not value:
+            return None
+        normalized = normalize_phone(value)
+        if not normalized:
+            raise serializers.ValidationError(
+                "Неверный формат телефона. Используйте формат 8XXXXXXXXXX, +7XXXXXXXXXX или 9XXXXXXXXX"
+            )
+        if User.objects.filter(phone=normalized).exists():
+            raise serializers.ValidationError("Пользователь с таким телефоном уже существует")
+        return normalized
 
-            if User.objects.filter(phone=normalized).exists():
-                raise serializers.ValidationError("Пользователь с таким телефоном уже существует")
-
-            return normalized
-        return value
-    
     def validate_password(self, value):
-        """Проверка сложности пароля"""
         if len(value) < 8:
             raise serializers.ValidationError("Пароль должен быть не менее 8 символов")
+        if value.isdigit():
+            raise serializers.ValidationError("Пароль не может состоять только из цифр")
         return value
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Пароли не совпадают"})
+        if attrs.get('password') != attrs.get('password2'):
+            raise serializers.ValidationError({"password2": "Пароли не совпадают"})
         return attrs
 
     def create(self, validated_data):
         validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)
-        
-        # Отправляем письмо подтверждения email асинхронно через Celery
+
         from .tasks import send_verification_email_task
-        
-        # Получаем домен и протокол из запроса
         request = self.context.get('request')
-        if request:
-            domain = request.get_host()
-            protocol = 'https' if request.is_secure() else 'http'
-        else:
-            # Для тестов или консольных команд
-            domain = getattr(settings, 'DOMAIN', 'localhost:8000')
-            protocol = getattr(settings, 'PROTOCOL', 'http')
-        
-        # Запускаем задачу асинхронно
+        domain, protocol = get_domain_and_protocol(request)
         send_verification_email_task.delay(user.id, domain, protocol)
-        print(f"Задача отправки письма подтверждения email для пользователя {user.email} поставлена в очередь Celery")
+        
+        logger.info(f"Verification email task queued for {user.email}")
         return user
 
 
 class LoginSerializer(serializers.Serializer):
     contact = serializers.CharField(required=True)
-    contact_type = serializers.ChoiceField(choices=['email', 'phone'], required=False)
-    password = serializers.CharField(write_only=True, required=True,
-                                     style={'input_type': 'password'})
+    contact_type = serializers.ChoiceField(
+        choices=['email', 'phone'],
+        required=False
+    )
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
 
     def validate(self, attrs):
-        contact = attrs.get('contact')
+        contact = attrs['contact'].strip()
         contact_type = attrs.get('contact_type')
-        password = attrs.get('password')
+        password = attrs['password']
 
+        # Автоопределение типа контакта
         if not contact_type:
             contact_type = 'email' if '@' in contact else 'phone'
 
-        if contact_type == 'email':
-            # Поиск по email
-            try:
-                user = User.objects.get(email=contact)
-            except User.DoesNotExist:
-                raise serializers.ValidationError("Аккаунт с таким email не найден. Попробуйте войти по телефону.")
-        else:
-            # Нормализуем телефон и ищем
-            normalized_phone = normalize_phone(contact)
-            if not normalized_phone:
-                raise serializers.ValidationError("Неверный формат телефона")
-
-            try:
-                user = User.objects.get(phone=normalized_phone)
-            except User.DoesNotExist:
-                raise serializers.ValidationError("Аккаунт с таким телефоном не найден. Попробуйте войти по email.")
-
-        # Проверяем пароль
-        if not user.check_password(password):
-            raise serializers.ValidationError("Неверный пароль")
-
-        if not user.is_active:
-            raise serializers.ValidationError("Аккаунт неактивен")
+        user = self._find_user(contact, contact_type)
+        self._validate_password(user, password)
+        self._validate_active(user)
 
         attrs['user'] = user
         return attrs
 
+    def _find_user(self, contact, contact_type):
+        """Поиск пользователя по email или телефону"""
+        if contact_type == 'email':
+            user = User.objects.filter(email__iexact=contact).first()
+            if not user:
+                raise serializers.ValidationError(
+                    "Аккаунт с таким email не найден. Попробуйте войти по телефону."
+                )
+        else:
+            normalized = normalize_phone(contact)
+            if not normalized:
+                raise serializers.ValidationError("Неверный формат телефона")
+            user = User.objects.filter(phone=normalized).first()
+            if not user:
+                raise serializers.ValidationError(
+                    "Аккаунт с таким телефоном не найден. Попробуйте войти по email."
+                )
+        return user
+
+    def _validate_password(self, user, password):
+        if not user.check_password(password):
+            raise serializers.ValidationError("Неверный пароль")
+
+    def _validate_active(self, user):
+        if not user.is_active:
+            raise serializers.ValidationError("Аккаунт деактивирован. Обратитесь к менеджеру.")
+
     def create(self, validated_data):
         user = validated_data['user']
+        response = generate_jwt_response(user)
+        if not user.is_email_verified:
+            response['hint'] = 'Рекомендуем подтвердить email для получения ваучеров'
 
-        # Генерируем JWT токены
-        refresh = RefreshToken.for_user(user)
-
-        return {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'phone': user.phone,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'patronymic': user.patronymic,
-                'is_email_verified': user.is_email_verified,
-            },
-            'message': 'Email не подтвержден' if not user.is_email_verified else None
-        }
+        return response 
 
 
 class PasswordResetSerializer(serializers.Serializer):
     contact = serializers.CharField(required=True)
-    contact_type = serializers.ChoiceField(choices=['email', 'phone'], required=False)
+    contact_type = serializers.ChoiceField(
+        choices=['email', 'phone'],
+        required=False
+    )
 
     def validate(self, attrs):
-        contact = attrs.get('contact')
-        сontact_type = attrs.get('contact_type')
+        contact = attrs['contact'].strip()
+        contact_type = attrs.get('contact_type')
 
-        if not сontact_type:
-            сontact_type = 'email' if '@' in contact else 'phone'
+        if not contact_type:
+            contact_type = 'email' if '@' in contact else 'phone'
 
-        if сontact_type == 'email':
-            try:
-                user = User.objects.get(email=contact)
-            except User.DoesNotExist:
-                raise serializers.ValidationError("Аккаунт с таким email не найден")
-        else:
-            normalized_phone = normalize_phone(contact)
-            if not normalized_phone:
-                raise serializers.ValidationError("Неверный формат телефона")
-
-            try:
-                user = User.objects.get(phone=normalized_phone)
-            except User.DoesNotExist:
-                raise serializers.ValidationError("Аккаунт с таким телефоном не найден")
-
+        user = self._find_user(contact, contact_type)
         attrs['user'] = user
         return attrs
 
+    def _find_user(self, contact, contact_type):
+        if contact_type == 'email':
+            user = User.objects.filter(email__iexact=contact).first()
+            if not user:
+                raise serializers.ValidationError("Аккаунт с таким email не найден")
+        else:
+            normalized = normalize_phone(contact)
+            if not normalized:
+                raise serializers.ValidationError("Неверный формат телефона")
+            user = User.objects.filter(phone=normalized).first()
+            if not user:
+                raise serializers.ValidationError("Аккаунт с таким телефоном не найден")
+        return user
+
     def save(self):
-        user = self.validated_data['user']
         from .tasks import send_password_reset_email_task
 
+        user = self.validated_data['user']
         request = self.context.get('request')
-        if request:
-            domain = request.get_host()
-            protocol = 'https' if request.is_secure() else 'http'
-        else:
-            domain = getattr(settings, 'DOMAIN', 'localhost:8000')
-            protocol = getattr(settings, 'PROTOCOL', 'http')
-
+        domain, protocol = get_domain_and_protocol(request)
+        
         send_password_reset_email_task.delay(user.id, domain, protocol)
-
-        return {
+        
+        response = {
             'message': 'Ссылка для сброса пароля отправлена на ваш email',
-            'fallback': 'Если вы не получили письмо, позвоните нашему менеджеру по телефону +7-XXX-XXX-XX-XX'
         }
+        
+        if user.email:
+            response['email_hint'] = mask_email(user.email)
+        
+        response['fallback'] = (
+            'Не получили письмо? Позвоните менеджеру: +7-XXX-XXX-XX-XX'
+        )
+        
+        logger.info(f"Password reset email queued for {user.email}")
+        return response
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
-    new_password = serializers.CharField(write_only=True, required=True, validators=[validate_password],
-                                         style={'input_type': 'password'}, min_length=8)
-    new_password2 = serializers.CharField(write_only=True, required=True,
-                                          style={'input_type': 'password'}, min_length=8)
-
-    def validate(self, attrs):
-        new_password = attrs.get('new_password')
-        new_password2 = attrs.get('new_password2')
-
-        if new_password != new_password2:
-            raise serializers.ValidationError({"new_password": "Пароли не совпадают"})
-        return attrs
+    new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        min_length=8,
+        style={'input_type': 'password'}
+    )
+    new_password2 = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
 
     def validate_new_password(self, value):
-        """Проверка сложности нового пароля"""
         if len(value) < 8:
             raise serializers.ValidationError("Пароль должен быть не менее 8 символов")
         if value.isdigit():
-            raise serializers.ValidationError("Пароль не должен состоять только из цифр")
+            raise serializers.ValidationError("Пароль не может состоять только из цифр")
         return value
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password2']:
+            raise serializers.ValidationError({
+                'new_password2': 'Пароли не совпадают'
+            })
+        return attrs
 
     def save(self):
-        user = self.validated_data['user']
+        user = self.context['user']
         user.set_password(self.validated_data['new_password'])
-        user.save()
-        return {'message': 'Пароль успешно изменен. Теперь вы можете войти с новым паролем.'}
+        user.save(update_fields=['password'])
+        return {
+            'message': 'Пароль успешно изменён. Теперь вы можете войти.',
+            'login_url': '/api/accounts/login/'
+        }
+
 
 class VerifyEmailSerializer(serializers.Serializer):
-    """Serializer для отправки письма подтверждения email"""
+    """Сериализатор для отправки письма подтверждения (данные не нужны)"""
     pass
 
+
 class VerifyEmailConfirmSerializer(serializers.Serializer):
-    """Serializer для подтверждения email по токену"""
-    def save(self, user):
-        """Подтверждает email пользователя"""
+    """Сериализатор для подтверждения email"""
+    def save(self):
+        user = self.context['user']
         user.is_email_verified = True
         user.save(update_fields=['is_email_verified'])
-        return {'message': 'Email успешно подтвержден'}
+        return {'message': 'Email успешно подтверждён'}
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = User
-        fields = ['id', 'email', 'phone', 'first_name', 'last_name', 'patronymic', 
-                 'date_joined', 'is_email_verified']
-        read_only_fields = ['id', 'email', 'date_joined', 'is_email_verified']
+        fields = [
+            'id', 'email', 'phone',
+            'first_name', 'last_name', 'patronymic', 'full_name',
+            'date_joined', 'is_email_verified'
+        ]
+        read_only_fields = ['id', 'email', 'date_joined', 'is_email_verified', 'full_name']
+
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name} {obj.patronymic}".strip()
 
     def validate_phone(self, value):
-        if value:
-            normalized = normalize_phone(value)
-            if not normalized:
-                raise serializers.ValidationError("Неверный формат телефона")
-            # Проверяем, что телефон не занят другим пользователем
-            if User.objects.filter(phone=normalized).exclude(pk=self.instance.pk).exists():
-                raise serializers.ValidationError("Этот телефон уже используется другим пользователем")
-            return normalized
-        return value
+        if not value:
+            return value
+        normalized = normalize_phone(value)
+        if not normalized:
+            raise serializers.ValidationError("Неверный формат телефона")
+        if User.objects.filter(phone=normalized).exclude(pk=self.instance.pk).exists():
+            raise serializers.ValidationError("Этот телефон уже используется")
+        return normalized
 
 
-
-
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """Кастомный serializer для JWT токенов"""
+class MyTokenObtainPairSerializer(serializers.Serializer):
+    """Кастомный сериализатор для JWT (используется с SimpleJWT)"""
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
         token['email'] = user.email
         token['phone'] = user.phone
-        token['first_name'] = user.first_name
-        token['last_name'] = user.last_name
         token['is_email_verified'] = user.is_email_verified
         return token
