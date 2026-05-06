@@ -66,9 +66,98 @@ services:
             - excursion_network
         restart: unless-stopped
 
+    # Recommendation Service Database with pgvector
+    recommender_postgres:
+        image: pgvector/pgvector:pg16
+        environment:
+            POSTGRES_DB: recommender
+            POSTGRES_USER: recommender_user
+            POSTGRES_PASSWORD: recommender_pass
+        ports:
+            - "5433:5432"
+        volumes:
+            - recommender_postgres_data:/var/lib/postgresql/data
+            - ./recommendation_service/init.sql:/docker-entrypoint-initdb.d/init.sql
+        networks:
+            - excursion_network
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U recommender_user -d recommender"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    # Recommendation Service Redis
+    recommender_redis:
+        image: redis:7-alpine
+        ports:
+            - "6380:6379"
+        volumes:
+            - recommender_redis_data:/data
+        networks:
+            - excursion_network
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    # Recommendation Service API
+    recommendation_service:
+        build: ./recommendation_service
+        environment:
+            DATABASE_URL: postgresql+asyncpg://recommender_user:recommender_pass@recommender_postgres:5432/recommender
+            RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+            REDIS_URL: redis://recommender_redis:6379/0
+            CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+            CELERY_RESULT_BACKEND: redis://recommender_redis:6379/1
+            DJANGO_BASE_URL: http://main_service:8000
+        ports:
+            - "8002:8000"
+        depends_on:
+            recommender_postgres:
+                condition: service_healthy
+            recommender_redis:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
+        volumes:
+            - ./recommendation_service:/app
+            - recommender_models:/app/models
+        networks:
+            - excursion_network
+        restart: unless-stopped
+
+    # Recommendation Service Celery Worker
+    recommender_celery_worker:
+        build: ./recommendation_service
+        command: celery -A app.celery_app worker --loglevel=info
+        environment:
+            DATABASE_URL: postgresql+asyncpg://recommender_user:recommender_pass@recommender_postgres:5432/recommender
+            RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+            REDIS_URL: redis://recommender_redis:6379/0
+            CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+            CELERY_RESULT_BACKEND: redis://recommender_redis:6379/1
+            DJANGO_BASE_URL: http://main_service:8000
+        depends_on:
+            recommender_postgres:
+                condition: service_healthy
+            recommender_redis:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
+        volumes:
+            - ./recommendation_service:/app
+            - recommender_models:/app/models
+        networks:
+            - excursion_network
+        restart: unless-stopped
+
 volumes:
     postgres_data:
     rabbitmq_data:
+    recommender_postgres_data:
+    recommender_redis_data:
+    recommender_models:
 
 networks:
     excursion_network:
