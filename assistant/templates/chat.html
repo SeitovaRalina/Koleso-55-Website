@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест ИИ-ассистента</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .chat-container { width: 100%; max-width: 500px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 20px; }
+        #chat-box { height: 400px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #fafafa; }
+        .message { margin-bottom: 15px; padding: 10px 15px; border-radius: 15px; width: fit-content; max-width: 80%; line-height: 1.4; }
+        .user-msg { background: #007bff; color: white; margin-left: auto; border-bottom-right-radius: 2px; }
+        .bot-msg { background: #e9ecef; color: black; margin-right: auto; border-bottom-left-radius: 2px; }
+        .input-group { display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; outline: none; }
+        button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #218838; }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <h3 style="margin-top: 0; text-align: center;">AI Турагент</h3>
+    <div id="chat-box">
+        <div class="message bot-msg">Здравствуйте! Я ИИ-помощник Путеводя. Куда бы Вы хотели отправиться?</div>
+    </div>
+    <div class="input-group">
+        <input type="text" id="user-input" placeholder="Введите сообщение..." onkeypress="if(event.key === 'Enter') sendMessage()">
+        <button onclick="sendMessage()">Отправить</button>
+    </div>
+</div>
+
+<script>
+    async function sendMessage() {
+        const inputField = document.getElementById('user-input');
+        const text = inputField.value.trim();
+        if (!text) return;
+
+        // Отображаем сообщение пользователя
+        appendMessage(text, 'user-msg');
+        inputField.value = '';
+
+        // Отображаем индикатор загрузки
+        const typingId = appendMessage('Печатает...', 'bot-msg');
+
+        try {
+            // Отправляем запрос на наш Django API
+            const response = await fetch('/api/assistant/v1/chat/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') // Защита Django
+                },
+                body: JSON.stringify({ message: text })
+            });
+
+            const data = await response.json();
+            
+            // Удаляем индикатор загрузки
+            document.getElementById(typingId).remove();
+
+            if (response.ok) {
+                appendMessage(data.reply, 'bot-msg');
+            } else {
+                appendMessage('Ошибка API: ' + JSON.stringify(data), 'bot-msg');
+            }
+        } catch (error) {
+            document.getElementById(typingId).remove();
+            appendMessage('Ошибка сети: ' + error.message, 'bot-msg');
+        }
+    }
+
+    function appendMessage(text, className) {
+        const chatBox = document.getElementById('chat-box');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${className}`;
+        msgDiv.innerHTML = text.replace(/\n/g, '<br>'); // Заодно делаем переносы
+        
+        // Генерируем уникальный ID с помощью случайного числа
+        const id = 'msg-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+        msgDiv.id = id;
+        
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return id;
+    }
+
+    // Функция для получения CSRF-токена Django
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+</body>
+</html>
