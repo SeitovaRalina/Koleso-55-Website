@@ -12,4 +12,7 @@ urlpatterns = [
     # Internal API endpoints
     path('internal/excursions/', views.internal_excursions, name='internal_excursions'),
     path('internal/popularity/', views.internal_popularity, name='internal_popularity'),
+
+    path('recommendations/user/<int:user_id>/', views.recommendations_for_user, name='recommendations_for_user'),
+    path('recommendations/similar/<int:excursion_id>/', views.similar_for_excursion, name='similar_for_excursion'),
 ]

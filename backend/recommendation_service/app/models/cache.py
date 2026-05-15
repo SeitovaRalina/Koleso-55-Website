@@ -1,29 +1,34 @@
-from sqlalchemy import Column, Integer, String, DateTime, JSON, Index
-from sqlalchemy.sql import func
-from app.core.database import Base
+from datetime import datetime
+
+from sqlalchemy import DateTime, Integer, JSON, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.models.base import Base
 
 
 class RecommendationCache(Base):
+    """Persistent snapshot of user recommendation cache."""
+
     __tablename__ = "recommendation_cache"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, unique=True, index=True)
-    excursion_ids = Column(JSON, nullable=False)  # List of ints
-    scores = Column(JSON, nullable=False)         # List of floats
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    def __repr__(self):
-        return f"<RecommendationCache(user_id={self.user_id}, items_count={len(self.excursion_ids)})>"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, unique=True, index=True)
+    excursion_ids: Mapped[list[int]] = mapped_column(JSON, default=list)
+    scores: Mapped[list[float]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+
+    __table_args__ = (UniqueConstraint("user_id", name="uq_recommendation_cache_user_id"),)
 
 
 class SimilarCache(Base):
+    """Persistent snapshot of similar excursion cache."""
+
     __tablename__ = "similar_cache"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    excursion_id = Column(Integer, unique=True, index=True)
-    similar_ids = Column(JSON, nullable=False)    # List of ints
-    scores = Column(JSON, nullable=False)          # List of floats
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    def __repr__(self):
-        return f"<SimilarCache(excursion_id={self.excursion_id}, similar_count={len(self.similar_ids)})>"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    excursion_id: Mapped[int] = mapped_column(Integer, unique=True, index=True)
+    similar_ids: Mapped[list[int]] = mapped_column(JSON, default=list)
+    scores: Mapped[list[float]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+
+    __table_args__ = (UniqueConstraint("excursion_id", name="uq_similar_cache_excursion_id"),)

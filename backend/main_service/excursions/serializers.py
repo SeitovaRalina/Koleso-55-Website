@@ -297,3 +297,65 @@ class ExcursionDetailSerializer(serializers.ModelSerializer):
     def get_review_count(self, obj):
         """Количество одобренных отзывов"""
         return obj.reviews.filter(status='approved').count()
+
+
+class ExcursionInternalSerializer(serializers.ModelSerializer):
+    """Сериализатор экскурсий для внутреннего API (микросервис рекомендаций)"""
+    
+    id = serializers.IntegerField(
+        label="ID",
+        help_text="Уникальный идентификатор экскурсии",
+        read_only=True
+    )
+    title = serializers.CharField(
+        label="Название",
+        help_text="Название экскурсии",
+        max_length=200
+    )
+    description = serializers.CharField(
+        label="Полное описание",
+        help_text="Подробное описание экскурсии"
+    )
+    short_description = serializers.CharField(
+        label="Краткое описание",
+        help_text="Краткое описание экскурсии для превью",
+        max_length=500
+    )
+    category = serializers.CharField(
+        label="Категория",
+        help_text="Название категории",
+        source='category.name',
+        read_only=True
+    )
+    location_type = serializers.CharField(
+        label="Тип локации",
+        help_text="Тип местоположения проведения экскурсии"
+    )
+    price = serializers.DecimalField(
+        label="Цена от",
+        help_text="Минимальная цена участия в экскурсии",
+        max_digits=10,
+        decimal_places=2
+    )
+    duration = serializers.IntegerField(
+        label="Длительность",
+        help_text="Продолжительность экскурсии в минутах"
+    )
+    created_at = serializers.DateTimeField(
+        label="Дата создания",
+        help_text="Дата и время создания экскурсии",
+        read_only=True
+    )
+    updated_at = serializers.DateTimeField(
+        label="Дата обновления",
+        help_text="Дата и время последнего обновления экскурсии",
+        read_only=True
+    )
+
+    class Meta:
+        model = Excursion
+        fields = [
+            'id', 'title', 'description', 'short_description',
+            'category', 'location_type', 'price', 'duration',
+            'created_at', 'updated_at'
+        ]

@@ -1,6 +1,7 @@
-from .excursion import Excursion
-from .user import UserInteraction, UserProfile
 from .cache import RecommendationCache, SimilarCache
+from .excursions import Excursion
+from .interaction import UserInteraction
+from .profile import UserProfile
 from .training import TrainingState
 
 __all__ = [
@@ -9,5 +10,5 @@ __all__ = [
     "UserProfile",
     "RecommendationCache",
     "SimilarCache",
-    "TrainingState"
+    "TrainingState",
 ]

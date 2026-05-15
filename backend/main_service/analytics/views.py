@@ -1,5 +1,6 @@
 from django.utils import timezone
 from django.db.models import Count, Sum
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -14,7 +15,7 @@ from .serializers import (
     ExcursionViewEndSerializer,
     ExcursionViewSerializer
 )
-from .tasks import publish_event
+from .services import get_similar_excursions, get_user_recommendations, publish_recommendation_event
 from excursions.models import Excursion
 from excursions.serializers import ExcursionInternalSerializer
 from bookings.models import TourOrder
@@ -114,18 +115,14 @@ def view_end(request):
             
             # Публикуем событие только если просмотр длился более 3 секунд
             if view.duration_seconds > 3:
-                event_data = {
-                    'event_type': 'excursion_view',
-                    'user_id': view.user.id if view.user else None,
-                    'session_id': view.session_id,
-                    'excursion_id': view.excursion.id,
-                    'duration_seconds': view.duration_seconds,
-                    'source': view.source,
-                    'timestamp': view.started_at.isoformat(),
-                }
-                
-                # Отправляем задачу в Celery для публикации в RabbitMQ
-                publish_event.delay(event_data)
+                publish_recommendation_event(
+                    event_type='view' if view.duration_seconds <= 40 else 'long_view',
+                    user_id=view.user.id if view.user else None,
+                    session_id=view.session_id,
+                    excursion_id=view.excursion.id,
+                    duration_seconds=view.duration_seconds,
+                    source=view.source,
+                )
                 
                 # Помечаем как обработанное
                 view.processed_for_recommendations = True
@@ -141,7 +138,7 @@ def view_end(request):
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+@csrf_exempt
 @extend_schema(
     summary="Получить все экскурсии для микросервиса",
     description="Внутренний API endpoint для микросервиса рекомендаций",
@@ -158,7 +155,7 @@ def internal_excursions(request):
     serializer = ExcursionInternalSerializer(excursions, many=True)
     return Response(serializer.data)
 
-
+@csrf_exempt
 @extend_schema(
     summary="Получить популярность экскурсий",
     description="Возвращает количество заказов для каждой экскурсии (исключая отмененные)",
@@ -194,3 +191,17 @@ def internal_popularity(request):
         popularity[item['excursion_id']] = item['bookings_count']
 
     return Response(popularity)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def recommendations_for_user(request, user_id):
+    top_k = int(request.query_params.get('top_k', 20))
+    return Response({"recommendations": get_user_recommendations(user_id, top_k=top_k)})
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def similar_for_excursion(request, excursion_id):
+    top_k = int(request.query_params.get('top_k', 10))
+    return Response({"similar_excursions": get_similar_excursions(excursion_id, top_k=top_k)})

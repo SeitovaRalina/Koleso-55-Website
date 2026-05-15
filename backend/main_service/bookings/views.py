@@ -10,6 +10,7 @@ from .serializers import (
     TourOrderDetailSerializer,
     TourOrderListSerializer,
 )
+from analytics.services import publish_recommendation_event
 
 
 @extend_schema(
@@ -21,8 +22,22 @@ class TourOrderCreateView(generics.CreateAPIView):
     serializer_class = TourOrderCreateSerializer
     permission_classes = [permissions.AllowAny]
 
+    def perform_create(self, serializer):
+        self.created_order = serializer.save()
+
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
+        order = getattr(self, "created_order", None)
+        if order:
+            if not request.session.session_key:
+                request.session.create()
+            publish_recommendation_event(
+                event_type="booking",
+                user_id=request.user.id if request.user.is_authenticated else None,
+                session_id=request.session.session_key,
+                excursion_id=order.excursion_id,
+                source="direct",
+            )
         
         # Добавляем предупреждение о неподтвержденном email для авторизованных пользователей
         if request.user.is_authenticated and not request.user.is_email_verified:

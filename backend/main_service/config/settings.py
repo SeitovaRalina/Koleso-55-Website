@@ -13,7 +13,16 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,main-service,recommender_api,recommender_worker').split(',')
+
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'main-service',  # имя сервиса в docker-compose
+    'recommender_api',
+    'recommender_worker',
+    '*',  # временно для тестирования
+]
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
@@ -254,6 +263,9 @@ CELERY_TASK_MAX_RETRIES = 3              # Максимум попыток
 CELERY_TASK_ACKS_LATE = True             # Подтверждение ПОСЛЕ выполнения
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1    # Брать по 1 задаче за раз
 CELERY_TASK_IGNORE_RESULT = True         # Не хранить результаты задач
+CELERY_TASK_DEFAULT_QUEUE = 'django'
+CELERY_TASK_DEFAULT_EXCHANGE = 'django'
+CELERY_TASK_DEFAULT_ROUTING_KEY = 'django'
 # CELERY_TASK_ROUTES = {
 #     'accounts.tasks.send_verification_email_task': {'queue': 'email'},
 # }
@@ -261,3 +273,4 @@ CELERY_TASK_IGNORE_RESULT = True         # Не хранить результа�
 # Domain configuration for email links
 DOMAIN = os.environ.get('DOMAIN', 'localhost:8001')
 PROTOCOL = os.environ.get('PROTOCOL', 'http')
+RECOMMENDER_BASE_URL = os.environ.get('RECOMMENDER_BASE_URL', 'http://recommender_api:8000')

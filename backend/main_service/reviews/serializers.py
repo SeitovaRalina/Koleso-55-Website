@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from .models import Review, ReviewImage, ReviewStatus
 from .services.profanity_filter import toxicity_filter
+from excursions.models import Excursion
 
 
 class ReviewImageSerializer(serializers.ModelSerializer):
@@ -58,7 +59,11 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         request = self.context['request']
-        excursion = attrs['excursion']
+        excursion_id = attrs['excursion']
+        try:
+            excursion = Excursion.objects.get(id=excursion_id, is_active=True)
+        except Excursion.DoesNotExist:
+            raise serializers.ValidationError({"excursion": "Экскурсия не найдена или неактивна"})
 
         has_completed_order = request.user.orders.filter(
             excursion=excursion,
@@ -79,6 +84,8 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
             attrs['status'] = ReviewStatus.REJECTED
         else:
             attrs['status'] = ReviewStatus.PENDING
+
+        attrs['excursion'] = excursion
 
         return attrs
 

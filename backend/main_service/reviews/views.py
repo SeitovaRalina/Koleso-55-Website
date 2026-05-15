@@ -6,6 +6,7 @@ from django.db import models
 from .models import Review, ReviewStatus
 from .serializers import ReviewCreateSerializer, ReviewListSerializer, ReviewUpdateSerializer
 from drf_spectacular.utils import extend_schema
+from analytics.services import publish_recommendation_event
 
 @extend_schema(
     summary="Создание отзыва на экскурсию",
@@ -17,7 +18,13 @@ class ReviewCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user, status='pending')
+        review = serializer.save(user=self.request.user)
+        publish_recommendation_event(
+            event_type="review",
+            user_id=self.request.user.id,
+            excursion_id=review.excursion_id,
+            source="direct",
+        )
 
 @extend_schema(
     summary="Список отзывов на экскурсию",
