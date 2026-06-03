@@ -1,33 +1,128 @@
-import { Navbar, Container, Nav } from 'react-bootstrap'
-import { NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, NavLink } from 'react-router-dom'
 
 export default function Header() {
+    const [isMenuOpen, setIsMenuOpen] = useState(false)
+
     return (
-        <Navbar bg='dark' variant='dark' expand='lg' sticky='top'>
-            <Container>
-                <Navbar.Brand as={NavLink} to='/'>
-                    КОЛЕСО путешествий 55
-                </Navbar.Brand>
+        <header className='bg-white shadow-sm sticky top-0 z-50'>
+            <div className='max-w-6xl mx-auto px-4'>
+                <div className='flex items-center justify-between h-16'>
+                    <Link to='/' className='flex items-center gap-3'>
+                        <img
+                            src='/logo.png'
+                            alt='КОЛЕСО путешествий 55'
+                            className='h-10 w-auto'
+                        />
+                    </Link>
 
-                <Navbar.Toggle aria-controls='basic-navbar-nav' />
-
-                <Navbar.Collapse id='basic-navbar-nav'>
-                    <Nav className='ms-auto'>
-                        <Nav.Link as={NavLink} to='/' end>
+                    <nav className='hidden md:flex items-center gap-6'>
+                        <NavLink
+                            to='/'
+                            end
+                            className={({ isActive }) =>
+                                `text-gray-700 hover:text-primary transition-colors ${isActive ? 'text-primary font-semibold' : ''}`
+                            }
+                        >
                             Главная
-                        </Nav.Link>
-                        <Nav.Link as={NavLink} to='/catalog'>
+                        </NavLink>
+                        <NavLink
+                            to='/catalog'
+                            className={({ isActive }) =>
+                                `text-gray-700 hover:text-primary transition-colors ${isActive ? 'text-primary font-semibold' : ''}`
+                            }
+                        >
                             Экскурсии
-                        </Nav.Link>
-                        <Nav.Link as={NavLink} to='/cart'>
-                            Корзина
-                        </Nav.Link>
-                        <Nav.Link as={NavLink} to='/login'>
-                            Войти
-                        </Nav.Link>
-                    </Nav>
-                </Navbar.Collapse>
-            </Container>
-        </Navbar>
+                        </NavLink>
+                        <NavLink
+                            to='/certificates'
+                            className={({ isActive }) =>
+                                `text-gray-700 hover:text-primary transition-colors ${isActive ? 'text-primary font-semibold' : ''}`
+                            }
+                        >
+                            Сертификаты
+                        </NavLink>
+                        <NavLink
+                            to='/account'
+                            className={({ isActive }) =>
+                                `text-gray-700 hover:text-primary transition-colors ${isActive ? 'text-primary font-semibold' : ''}`
+                            }
+                        >
+                            Личный кабинет
+                        </NavLink>
+                    </nav>
+
+                    <button
+                        className='md:hidden p-2'
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    >
+                        <svg
+                            className='w-6 h-6'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                        >
+                            {isMenuOpen ? (
+                                <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M6 18L18 6M6 6l12 12'
+                                />
+                            ) : (
+                                <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M4 6h16M4 12h16M4 18h16'
+                                />
+                            )}
+                        </svg>
+                    </button>
+                </div>
+
+                {isMenuOpen && (
+                    <nav className='md:hidden py-4 border-t'>
+                        <NavLink
+                            to='/'
+                            end
+                            className={({ isActive }) =>
+                                `block py-2 text-gray-700 hover:text-primary transition-colors ${isActive ? 'text-primary font-semibold' : ''}`
+                            }
+                            onClick={() => setIsMenuOpen(false)}
+                        >
+                            Главная
+                        </NavLink>
+                        <NavLink
+                            to='/catalog'
+                            className={({ isActive }) =>
+                                `block py-2 text-gray-700 hover:text-primary transition-colors ${isActive ? 'text-primary font-semibold' : ''}`
+                            }
+                            onClick={() => setIsMenuOpen(false)}
+                        >
+                            Экскурсии
+                        </NavLink>
+                        <NavLink
+                            to='/certificates'
+                            className={({ isActive }) =>
+                                `block py-2 text-gray-700 hover:text-primary transition-colors ${isActive ? 'text-primary font-semibold' : ''}`
+                            }
+                            onClick={() => setIsMenuOpen(false)}
+                        >
+                            Сертификаты
+                        </NavLink>
+                        <NavLink
+                            to='/account'
+                            className={({ isActive }) =>
+                                `block py-2 text-gray-700 hover:text-primary transition-colors ${isActive ? 'text-primary font-semibold' : ''}`
+                            }
+                            onClick={() => setIsMenuOpen(false)}
+                        >
+                            Личный кабинет
+                        </NavLink>
+                    </nav>
+                )}
+            </div>
+        </header>
     )
 }
