@@ -37,8 +37,8 @@ def view_start(request):
     serializer = ExcursionViewStartSerializer(data=request.data)
     if serializer.is_valid():
         excursion_id = serializer.validated_data['excursion_id']
-        session_id = serializer.validated_data['session_id']
-        source = serializer.validated_data['source']
+        session_id = serializer.validated_data.get('session_id')
+        source = serializer.validated_data.get('source', 'direct')
         
         # Получаем пользователя из запроса (если аутентифицирован)
         user = request.user if request.user.is_authenticated else None

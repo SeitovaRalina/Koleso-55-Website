@@ -5,5 +5,5 @@ app_name = 'excursions'
 
 urlpatterns = [
     path('', ExcursionListView.as_view(), name='excursion-list'),
-    path('<slug:slug>/', ExcursionDetailView.as_view(), name='excursion-detail'),
+    path('<int:pk>/', ExcursionDetailView.as_view(), name='excursion-detail'),
 ]

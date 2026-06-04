@@ -30,7 +30,7 @@ export const router = createBrowserRouter([
                 element: <Catalog />,
             },
             {
-                path: 'excursion/:slug',
+                path: 'excursion/:excursionId',
                 element: <ExcursionDetail />,
             },
             {

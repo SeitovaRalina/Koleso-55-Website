@@ -3,14 +3,15 @@ import type { Excursion } from '../types'
 
 interface ExcursionCardProps {
   excursion: Excursion
+  source?: 'search' | 'catalog' | 'recommendation' | 'similar' | 'direct'
 }
 
-export default function ExcursionCard({ excursion }: ExcursionCardProps) {
+export default function ExcursionCard({ excursion, source = 'direct' }: ExcursionCardProps) {
   const imageUrl = excursion.main_image || '/placeholder.jpg'
   const categoryName = excursion.category?.name || 'Экскурсия'
 
   return (
-    <Link to={`/excursion/${excursion.slug}`} className='group block'>
+    <Link to={`/excursion/${excursion.id}`} state={{ source }} className='group block'>
       <div className='bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-shadow'>
         <div className='relative aspect-[3/4] overflow-hidden'>
           <img

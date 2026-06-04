@@ -19,11 +19,46 @@ export default function Login() {
     setIsLoading(true)
 
     try {
-      const response = await authApi.login(formData)
-      login(response, response.user)
+      // Преобразуем email_or_phone в contact и определяем тип
+      const contact = formData.email_or_phone.trim()
+      const contactType = contact.includes('@') ? 'email' : 'phone'
+      
+      const response = await authApi.login({
+        contact,
+        contact_type: contactType as 'email' | 'phone',
+        password: formData.password,
+      })
+      
+      // Парсим ответ от бэкенда (tokens содержит access и refresh)
+      login({
+        access: response.tokens.access,
+        refresh: response.tokens.refresh,
+      }, response.user)
       navigate('/')
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Ошибка входа')
+      // Обработка различных типов ошибок
+      if (err.response?.data) {
+        const errorData = err.response.data
+        
+        // Если есть сообщение об ошибке в поле contact
+        if (errorData.contact && Array.isArray(errorData.contact)) {
+          setError(errorData.contact[0])
+        } 
+        // Если есть сообщение об ошибке в поле password
+        else if (errorData.password && Array.isArray(errorData.password)) {
+          setError(errorData.password[0])
+        }
+        // Если есть общее сообщение detail
+        else if (errorData.detail) {
+          setError(errorData.detail)
+        } 
+        // Если это другая ошибка
+        else {
+          setError('Ошибка входа. Проверьте email/телефон и пароль.')
+        }
+      } else {
+        setError('Ошибка сети. Убедитесь, что сервер запущен.')
+      }
     } finally {
       setIsLoading(false)
     }

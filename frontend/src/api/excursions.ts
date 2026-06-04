@@ -19,14 +19,19 @@ export const excursionsApi = {
     return response.data
   },
 
+  getExcursionById: async (id: number): Promise<Excursion> => {
+    const response = await api.get(`/excursions/${id}/`)
+    return response.data
+  },
+
   getExcursionBySlug: async (slug: string): Promise<Excursion> => {
     const response = await api.get(`/excursions/${slug}/`)
     return response.data
   },
 
-  getSlots: async (slug: string, date?: string): Promise<ExcursionSlot[]> => {
+  getSlots: async (excursionId: number, date?: string): Promise<ExcursionSlot[]> => {
     const params = date ? { date } : {}
-    const response = await api.get(`/excursions/${slug}/slots/`, { params })
+    const response = await api.get(`/excursions/${excursionId}/slots/`, { params })
     return response.data
   },
 }

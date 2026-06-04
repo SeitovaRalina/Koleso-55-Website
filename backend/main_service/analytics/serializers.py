@@ -5,6 +5,8 @@ from excursions.models import Excursion
 
 class ExcursionViewStartSerializer(serializers.ModelSerializer):
     excursion_id = serializers.IntegerField(write_only=True)
+    session_id = serializers.CharField(required=False, allow_blank=True)
+    source = serializers.CharField(required=False, allow_blank=True)
     
     class Meta:
         model = ExcursionView

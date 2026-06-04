@@ -40,10 +40,32 @@ export default function Register() {
         password: formData.password,
         password2: formData.password2,
       })
-      login(response, response.user)
+      
+      // Парсим ответ от бэкенда (tokens содержит access и refresh)
+      login({
+        access: response.tokens.access,
+        refresh: response.tokens.refresh,
+      }, response.user)
       navigate('/')
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Ошибка регистрации')
+      // Обработка различных типов ошибок
+      if (err.response?.data) {
+        const errorData = err.response.data
+        
+        // Если это объект с полями ошибок (как от DRF)
+        if (typeof errorData === 'object' && !errorData.detail) {
+          const firstError = Object.values(errorData)[0]
+          if (Array.isArray(firstError)) {
+            setError(firstError[0])
+          } else {
+            setError(firstError as string)
+          }
+        } else {
+          setError(errorData.detail || 'Ошибка регистрации')
+        }
+      } else {
+        setError('Ошибка сети. Убедитесь, что сервер запущен.')
+      }
     } finally {
       setIsLoading(false)
     }

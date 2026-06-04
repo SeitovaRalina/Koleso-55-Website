@@ -1,5 +1,5 @@
 import api from './axios'
-import type { PaginatedResponse } from '../types'
+import type { PaginatedResponse, Wishlist } from '../types'
 
 export const wishlistApi = {
   getWishlist: async (params?: { page?: number }): Promise<PaginatedResponse<Wishlist>> => {

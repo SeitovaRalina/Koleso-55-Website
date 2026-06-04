@@ -40,5 +40,17 @@ export const reviewsApi = {
     return response.data
   },
 
-  // TODO: нет возможности редактировать отзыв!!!
+  updateReview: async (
+    id: number,
+    data: {
+      rating?: number
+      text?: string
+      images?: {
+        image: File
+      }[]
+    },
+  ) => {
+    const response = await api.patch(`/reviews/${id}/`, data)
+    return response.data
+  },
 }

@@ -26,7 +26,7 @@ export default function Booking() {
 
   const { data: excursion, isLoading: isLoadingExcursion } = useQuery({
     queryKey: ['excursion', excursionId],
-    queryFn: () => excursionsApi.getExcursionBySlug(excursionId!),
+    queryFn: () => excursionsApi.getExcursionById(Number(excursionId!)),
     enabled: !!excursionId,
   })
 
@@ -44,11 +44,11 @@ export default function Booking() {
     if (user) {
       setFormData(prev => ({
         ...prev,
-        first_name: user.first_name,
-        last_name: user.last_name,
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
         patronymic: user.patronymic || '',
-        phone: user.phone,
-        email: user.email,
+        phone: user.phone || '',
+        email: user.email || '',
       }))
     }
   }, [user])
@@ -71,19 +71,38 @@ export default function Booking() {
 
     try {
       const order = await bookingsApi.createOrder({
-        excursion_id: Number(excursionId),
-        slot_id: Number(slotId),
-        participants_count: formData.participants_count,
+        excursion: Number(excursionId),
+        slot: Number(slotId),
+        num_participants: formData.participants_count,
         first_name: formData.first_name,
         last_name: formData.last_name,
-        patronymic: formData.patronymic,
+        middle_name: formData.patronymic,
         phone: formData.phone,
         email: formData.email,
         contact_method: formData.contact_method,
       })
-      navigate(`/account/bookings/${order.id}`)
+      navigate('/')
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Ошибка создания заказа')
+      // Parse field-specific errors from API
+      if (err.response?.data) {
+        const data = err.response.data
+        if (typeof data === 'object') {
+          const errorMessages = []
+          for (const [field, messages] of Object.entries(data)) {
+            if (Array.isArray(messages)) {
+              errorMessages.push(`${field}: ${messages.join(', ')}`)
+            } else if (typeof messages === 'string') {
+              errorMessages.push(`${field}: ${messages}`)
+            }
+          }
+          setError(errorMessages.join(' | ') || 'Ошибка создания заказа')
+        } else {
+          setError(data.detail || 'Ошибка создания заказа')
+        }
+      } else {
+        setError('Ошибка создания заказа')
+      }
+      console.error('Booking error:', err)
     } finally {
       setIsLoading(false)
     }

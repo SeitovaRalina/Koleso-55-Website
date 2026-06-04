@@ -69,6 +69,11 @@ export const authApi = {
     return response.data
   },
 
+  verifyEmailConfirm: async (uidb64: string, token: string) => {
+    const response = await api.get(`/accounts/verify-email/${uidb64}/${token}/`)
+    return response.data
+  },
+
   socialLogin: async (
     provider: 'google' | 'vk',
     data: { access_token?: string; code?: string; id_token?: string },

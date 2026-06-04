@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { excursionsApi } from '../api/excursions'
 import { analyticsApi } from '../api/analytics'
@@ -10,17 +10,18 @@ import { useAuth } from '../contexts/AuthContext'
 import type { Excursion, ExcursionSlot, Review } from '../types'
 
 export default function ExcursionDetail() {
-  const { slug } = useParams<{ slug: string }>()
+  const { excursionId } = useParams<{ excursionId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, isAuthenticated } = useAuth()
   const [selectedSlot, setSelectedSlot] = useState<ExcursionSlot | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
   const [viewId, setViewId] = useState<number | null>(null)
 
   const { data: excursion, isLoading, error } = useQuery({
-    queryKey: ['excursion', slug],
-    queryFn: () => excursionsApi.getExcursionBySlug(slug!),
-    enabled: !!slug,
+    queryKey: ['excursion', excursionId],
+    queryFn: () => excursionsApi.getExcursionById(Number(excursionId!)),
+    enabled: !!excursionId,
   })
 
   const { data: similarExcursions } = useQuery({
@@ -31,11 +32,42 @@ export default function ExcursionDetail() {
 
   useEffect(() => {
     if (excursion) {
+      // Generate or get session_id for all users
+      let sessionId = localStorage.getItem('session_id')
+      if (!sessionId) {
+        sessionId = crypto.randomUUID()
+        localStorage.setItem('session_id', sessionId)
+      }
+
+      // Determine source based on location.state or previous path (only on initial load)
+      const stateSource = location.state?.source as 'search' | 'catalog' | 'recommendation' | 'similar' | 'direct' | undefined
+      const fromPath = location.state?.from as string | undefined
+      
+      let source: 'search' | 'catalog' | 'recommendation' | 'similar' | 'direct' = 'direct'
+      
+      if (stateSource) {
+        source = stateSource
+      } else if (fromPath) {
+        if (fromPath.includes('/catalog')) {
+          source = 'catalog'
+        } else if (fromPath.includes('/search')) {
+          source = 'search'
+        } else if (fromPath.includes('/recommendations')) {
+          source = 'recommendation'
+        } else if (fromPath.includes('/excursion')) {
+          source = 'similar'
+        }
+      }
+
       analyticsApi.startView({
         excursion_id: excursion.id,
-        session_id: localStorage.getItem('session_id') || undefined,
+        session_id: sessionId,
+        source,
       }).then((response) => {
-        setViewId(response.id)
+        console.log('View started:', response)
+        setViewId(response.view_id)
+      }).catch(error => {
+        console.error('Failed to start view tracking:', error)
       })
 
       if (isAuthenticated) {
@@ -50,12 +82,15 @@ export default function ExcursionDetail() {
         analyticsApi.endView({ view_id: viewId })
       }
     }
-  }, [excursion, isAuthenticated, viewId])
+  }, [excursion, isAuthenticated])
 
   useEffect(() => {
     const heartbeat = setInterval(() => {
       if (viewId) {
-        analyticsApi.heartbeatView({ view_id: viewId })
+        console.log('Sending heartbeat for view:', viewId)
+        analyticsApi.heartbeatView({ view_id: viewId, elapsed_seconds: 5 })
+          .then(() => console.log('Heartbeat sent successfully'))
+          .catch(err => console.error('Heartbeat failed:', err))
       }
     }, 5000)
 
@@ -259,6 +294,7 @@ export default function ExcursionDetail() {
                     <Link
                       key={rec.excursion_id}
                       to={`/excursion/${rec.excursion?.slug}`}
+                      state={{ source: 'similar' }}
                       className="block group"
                     >
                       <div className="flex gap-3">

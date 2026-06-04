@@ -12,13 +12,13 @@ RUN apt-get update \
         postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir poetry==2.2.1
+RUN pip install --no-cache-dir --upgrade pip
 
 WORKDIR /app
 
-COPY pyproject.toml poetry.lock ./
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-root --no-interaction --no-ansi
+# Copy requirements and install (use PyTorch CPU index for torch wheels)
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
 COPY . .
 

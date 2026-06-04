@@ -100,4 +100,4 @@ class ExcursionListView(generics.ListAPIView):
 class ExcursionDetailView(generics.RetrieveAPIView):
     queryset = Excursion.objects.filter(is_active=True).prefetch_related("images", "slots")
     serializer_class = ExcursionDetailSerializer
-    lookup_field = "slug"
+    lookup_field = "pk"

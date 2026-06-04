@@ -115,7 +115,7 @@ export default function Catalog() {
             <>
               <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8'>
                 {excursions.map((excursion: Excursion) => (
-                  <ExcursionCard key={excursion.id} excursion={excursion} />
+                  <ExcursionCard key={excursion.id} excursion={excursion} source='catalog' />
                 ))}
               </div>
 
