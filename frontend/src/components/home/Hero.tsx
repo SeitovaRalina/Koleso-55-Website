@@ -1,16 +1,25 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 export default function Hero() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [destination, setDestination] = useState('')
-  const [date, setDate] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+
+  useEffect(() => {
+    setDestination(searchParams.get('search') || '')
+    setDateFrom(searchParams.get('date_from') || '')
+    setDateTo(searchParams.get('date_to') || '')
+  }, [searchParams])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     const params = new URLSearchParams()
     if (destination) params.append('search', destination)
-    if (date) params.append('date', date)
+    if (dateFrom) params.append('date_from', dateFrom)
+    if (dateTo) params.append('date_to', dateTo)
     navigate(`/catalog?${params.toString()}`)
   }
 
@@ -44,16 +53,29 @@ export default function Hero() {
                   />
                 </div>
 
-                <div>
-                  <label className='block text-gray-700 text-sm font-medium mb-2'>
-                    Дата
-                  </label>
-                  <input
-                    type='date'
-                    value={date}
-                    onChange={e => setDate(e.target.value)}
-                    className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary text-gray-900'
-                  />
+                <div className='flex gap-4'>
+                  <div className='flex-1'>
+                    <label className='block text-gray-700 text-sm font-medium mb-2'>
+                      Дата от
+                    </label>
+                    <input
+                      type='date'
+                      value={dateFrom}
+                      onChange={e => setDateFrom(e.target.value)}
+                      className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary text-gray-900'
+                    />
+                  </div>
+                  <div className='flex-1'>
+                    <label className='block text-gray-700 text-sm font-medium mb-2'>
+                      Дата до
+                    </label>
+                    <input
+                      type='date'
+                      value={dateTo}
+                      onChange={e => setDateTo(e.target.value)}
+                      className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary text-gray-900'
+                    />
+                  </div>
                 </div>
 
                 <button

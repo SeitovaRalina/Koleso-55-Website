@@ -8,13 +8,26 @@ import { excursionsApi } from '../../api/excursions'
 import type { Excursion } from '../../types'
 
 export default function WeeklyEvents() {
+  // Вычисляем даты: сегодня + 7 дней
+  const today = new Date()
+  const nextWeek = new Date()
+  nextWeek.setDate(today.getDate() + 7)
+
+  const formatDate = (date: Date) => {
+    return date.toISOString().split('T')[0]
+  }
+
   const {
     data: excursionsData,
     isLoading,
     error,
   } = useQuery({
     queryKey: ['weekly-excursions'],
-    queryFn: () => excursionsApi.getExcursions({ page: 1 }),
+    queryFn: () => excursionsApi.getExcursions({
+      page: 1,
+      date_from: formatDate(today),
+      date_to: formatDate(nextWeek),
+    }),
     staleTime: 5 * 60 * 1000,
   })
 

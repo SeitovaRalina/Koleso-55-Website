@@ -1,11 +1,11 @@
 import api from './axios'
-import type { Excursion, ExcursionSlot, PaginatedResponse } from '../types'
+import type { Excursion, ExcursionSlot, PaginatedResponse, Category } from '../types'
 
 export const excursionsApi = {
   getExcursions: async (params?: {
-    category?: string
-    date_from?: string // Corrected type
-    date_to?: string // Corrected type
+    category?: string | string[]
+    date_from?: string
+    date_to?: string
     location_type?: string
     min_duration?: number
     max_duration?: number
@@ -15,8 +15,28 @@ export const excursionsApi = {
     page?: number
     search?: string
   }): Promise<PaginatedResponse<Excursion>> => {
-    const response = await api.get('/excursions/', { params })
+    // Ручная сериализация параметров для правильной отправки массивов
+    const searchParams = new URLSearchParams()
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (Array.isArray(value)) {
+            value.forEach(v => searchParams.append(key, v))
+          } else {
+            searchParams.append(key, String(value))
+          }
+        }
+      })
+    }
+
+    const response = await api.get(`/excursions/?${searchParams.toString()}`)
     return response.data
+  },
+
+  getMaxPrice: async (): Promise<number> => {
+    // Получаем максимальную цену из всех экскурсий
+    const maxPriceResponse = await api.get('/excursions/max-price/')
+    return maxPriceResponse.data.max_price || 10000
   },
 
   getExcursionById: async (id: number): Promise<Excursion> => {
@@ -33,5 +53,11 @@ export const excursionsApi = {
     const params = date ? { date } : {}
     const response = await api.get(`/excursions/${excursionId}/slots/`, { params })
     return response.data
+  },
+
+  getCategories: async (): Promise<Category[]> => {
+    const response = await api.get('/excursions/categories/')
+    // API возвращает пагинированный ответ, извлекаем results
+    return (response.data as any).results || response.data || []
   },
 }

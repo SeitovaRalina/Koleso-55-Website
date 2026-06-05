@@ -1,36 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { excursionsApi } from '../../api/excursions';
+import type { Category } from '../../types';
 
 interface FilterSidebarProps {
   onFiltersChange: (filters: FilterState) => void;
+  filters: FilterState;
 }
 
 export interface FilterState {
-  category: string;
+  categories: string[];
   minPrice: number;
   maxPrice: number;
   location: string;
   duration: string;
-  date: string;
+  dateFrom: string;
+  dateTo: string;
 }
 
-const categories = ['Обзорные', 'Активные', 'Мастер-классы', 'Дегустации', 'Авторские'];
-const locations = ['Омск', 'Омская область', 'Россия'];
+const locations = [
+  { value: 'city', label: 'Городские экскурсии' },
+  { value: 'suburban', label: 'Загородные экскурсии' },
+  { value: 'russia', label: 'Туры по России' },
+];
 const durations = ['до 2ч', '2-4ч', 'более 4ч'];
 
-export default function FilterSidebar({ onFiltersChange }: FilterSidebarProps) {
-  const [filters, setFilters] = useState<FilterState>({
-    category: '',
-    minPrice: 0,
-    maxPrice: 10000,
-    location: '',
-    duration: '',
-    date: '',
+export default function FilterSidebar({ onFiltersChange, filters }: FilterSidebarProps) {
+  const [localFilters, setLocalFilters] = useState<FilterState>(filters)
+
+  // Синхронизируем локальное состояние с props
+  useEffect(() => {
+    setLocalFilters(filters)
+  }, [filters])
+
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => excursionsApi.getCategories(),
+    staleTime: 10 * 60 * 1000, // 10 минут
   });
 
-  const handleFilterChange = (key: keyof FilterState, value: string | number) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
+  const handleFilterChange = (key: keyof FilterState, value: string | number | string[]) => {
+    const newFilters = { ...localFilters, [key]: value };
+    setLocalFilters(newFilters);
     onFiltersChange(newFilters);
+  };
+
+  const handleCategoryToggle = (categorySlug: string) => {
+    const newCategories = localFilters.categories.includes(categorySlug)
+      ? localFilters.categories.filter(c => c !== categorySlug)
+      : [...localFilters.categories, categorySlug];
+    handleFilterChange('categories', newCategories);
   };
 
   return (
@@ -40,31 +59,25 @@ export default function FilterSidebar({ onFiltersChange }: FilterSidebarProps) {
 
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Категория</label>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => handleFilterChange('category', '')}
-                className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                  !filters.category
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Все
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => handleFilterChange('category', cat)}
-                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                    filters.category === cat
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+            <label className="block text-sm font-medium text-gray-700 mb-3">Категории</label>
+            <div className="space-y-2">
+              {categoriesLoading ? (
+                <span className="text-sm text-gray-500">Загрузка...</span>
+              ) : categories.length > 0 ? (
+                categories.map((cat: Category) => (
+                  <label key={cat.slug} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={localFilters.categories.includes(cat.slug)}
+                      onChange={() => handleCategoryToggle(cat.slug)}
+                      className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                    />
+                    <span className="text-sm text-gray-700">{cat.name}</span>
+                  </label>
+                ))
+              ) : (
+                <span className="text-sm text-gray-500">Нет категорий</span>
+              )}
             </div>
           </div>
 
@@ -73,7 +86,7 @@ export default function FilterSidebar({ onFiltersChange }: FilterSidebarProps) {
             <div className="flex items-center gap-2">
               <input
                 type="number"
-                value={filters.minPrice}
+                value={localFilters.minPrice}
                 onChange={(e) => handleFilterChange('minPrice', Number(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="От"
@@ -81,7 +94,7 @@ export default function FilterSidebar({ onFiltersChange }: FilterSidebarProps) {
               <span className="text-gray-500">—</span>
               <input
                 type="number"
-                value={filters.maxPrice}
+                value={localFilters.maxPrice}
                 onChange={(e) => handleFilterChange('maxPrice', Number(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="До"
@@ -92,14 +105,14 @@ export default function FilterSidebar({ onFiltersChange }: FilterSidebarProps) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">Локация</label>
             <select
-              value={filters.location}
+              value={localFilters.location}
               onChange={(e) => handleFilterChange('location', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Все локации</option>
               {locations.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
+                <option key={loc.value} value={loc.value}>
+                  {loc.label}
                 </option>
               ))}
             </select>
@@ -108,7 +121,7 @@ export default function FilterSidebar({ onFiltersChange }: FilterSidebarProps) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">Длительность</label>
             <select
-              value={filters.duration}
+              value={localFilters.duration}
               onChange={(e) => handleFilterChange('duration', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             >
@@ -122,11 +135,18 @@ export default function FilterSidebar({ onFiltersChange }: FilterSidebarProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Дата</label>
+            <label className="block text-sm font-medium text-gray-700 mb-3">Дата от</label>
             <input
               type="date"
-              value={filters.date}
-              onChange={(e) => handleFilterChange('date', e.target.value)}
+              value={localFilters.dateFrom}
+              onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary mb-2"
+            />
+            <label className="block text-sm font-medium text-gray-700 mb-3">Дата до</label>
+            <input
+              type="date"
+              value={localFilters.dateTo}
+              onChange={(e) => handleFilterChange('dateTo', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>

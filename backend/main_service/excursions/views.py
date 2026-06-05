@@ -4,8 +4,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiExample, extend_schema
 
 from .filters import ExcursionFilter
-from .models import Excursion
-from .serializers import ExcursionDetailSerializer, ExcursionListSerializer
+from .models import Excursion, Category
+from .serializers import ExcursionDetailSerializer, ExcursionListSerializer, CategorySerializer
 
 
 @extend_schema(
@@ -101,3 +101,27 @@ class ExcursionDetailView(generics.RetrieveAPIView):
     queryset = Excursion.objects.filter(is_active=True).prefetch_related("images", "slots")
     serializer_class = ExcursionDetailSerializer
     lookup_field = "pk"
+
+
+@extend_schema(
+    summary="Список категорий",
+    description="Возвращает список всех категорий экскурсий.",
+)
+class CategoryListView(generics.ListAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+
+@extend_schema(
+    summary="Максимальная цена",
+    description="Возвращает максимальную цену среди всех экскурсий.",
+)
+class MaxPriceView(generics.ListAPIView):
+    queryset = Excursion.objects.all()
+    serializer_class = ExcursionListSerializer
+
+    def list(self, request, *args, **kwargs):
+        from django.db.models import Max
+        max_price = self.queryset.aggregate(max_price=Max('price'))['max_price'] or 10000
+        from rest_framework.response import Response
+        return Response({'max_price': max_price})
