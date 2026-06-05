@@ -13,6 +13,7 @@ import Account from '../pages/Account'
 import Certificates from '../pages/Certificates'
 import News from '../pages/News'
 import RecommendationInfo from '../pages/RecommendationInfo'
+import GoogleCallback from '../pages/GoogleCallback'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 
 export const router = createBrowserRouter([
@@ -78,5 +79,9 @@ export const router = createBrowserRouter([
     {
         path: '/password-reset/:uidb64/:token',
         element: <PasswordResetConfirm />,
+    },
+    {
+        path: '/google-callback',
+        element: <GoogleCallback />,
     },
 ])

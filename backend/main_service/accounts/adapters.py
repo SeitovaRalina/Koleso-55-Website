@@ -58,7 +58,13 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
             user.last_name = last_name
             
         # Email из социальных сетей считаем подтвержденным
-        if sociallogin.account.email and not user.is_email_verified:
+        email = None
+        if hasattr(sociallogin, 'email_addresses') and sociallogin.email_addresses:
+            email = sociallogin.email_addresses[0].email
+        elif hasattr(sociallogin.account, 'extra_data'):
+            email = sociallogin.account.extra_data.get('email')
+
+        if email and not user.is_email_verified:
             user.is_email_verified = True
             
         user.save()
@@ -74,7 +80,12 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         Обрабатывает предварительный вход через социальную сеть.
         Если пользователь с таким email уже существует, привязываем социальный аккаунт.
         """
-        email = sociallogin.account.email
+        email = None
+        if hasattr(sociallogin, 'email_addresses') and sociallogin.email_addresses:
+            email = sociallogin.email_addresses[0].email
+        elif hasattr(sociallogin.account, 'extra_data'):
+            email = sociallogin.account.extra_data.get('email')
+
         if email:
             try:
                 existing_user = User.objects.get(email=email)
@@ -88,13 +99,19 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         """
         Создает нового пользователя для социального входа.
         """
-        email = sociallogin.account.email
+        # Получаем email из данных социальной сети
+        email = None
+        if hasattr(sociallogin, 'email_addresses') and sociallogin.email_addresses:
+            email = sociallogin.email_addresses[0].email
+        elif hasattr(sociallogin.account, 'extra_data'):
+            email = sociallogin.account.extra_data.get('email')
+
         if not email:
             # Если email не предоставлен, используем временный
             email = f"social_{sociallogin.account.uid}@social.local"
-        
+
         user = User(
             email=email,
-            is_email_verified=bool(sociallogin.account.email),
+            is_email_verified=bool(email),
         )
         return user

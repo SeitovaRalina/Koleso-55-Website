@@ -13,6 +13,48 @@ export default function Login() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  const handleGoogleLogin = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    const redirectUri = encodeURIComponent(window.location.origin + '/google-callback')
+    const scope = encodeURIComponent('profile email')
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}`
+
+    const popup = window.open(authUrl, 'googleAuth', 'width=500,height=600')
+
+    // Слушаем сообщение от popup
+    const messageHandler = (event: MessageEvent) => {
+      if (event.data.type === 'google_token') {
+        window.removeEventListener('message', messageHandler)
+
+        const accessToken = event.data.token
+        if (accessToken) {
+          authApi.socialLogin('google', { access_token: accessToken })
+            .then((response) => {
+              console.log('Google login response:', response)
+              login(
+                {
+                  access: response.access,
+                  refresh: response.refresh,
+                },
+                response.user,
+              )
+              navigate('/')
+              // Закрываем popup после успешного входа
+              if (popup && !popup.closed) {
+                popup.close()
+              }
+            })
+            .catch((err) => {
+              console.error('Google login error:', err)
+              setError('Ошибка входа через Google')
+            })
+        }
+      }
+    }
+
+    window.addEventListener('message', messageHandler)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -151,7 +193,7 @@ export default function Login() {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => console.log('Google OAuth')}
+                onClick={handleGoogleLogin}
                 className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
               >
                 Google

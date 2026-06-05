@@ -17,6 +17,46 @@ export default function Register() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  const handleGoogleLogin = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    const redirectUri = encodeURIComponent(window.location.origin + '/google-callback')
+    const scope = encodeURIComponent('profile email')
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}`
+
+    const popup = window.open(authUrl, 'googleAuth', 'width=500,height=600')
+
+    // Слушаем сообщение от popup
+    const messageHandler = (event: MessageEvent) => {
+      if (event.data.type === 'google_token') {
+        window.removeEventListener('message', messageHandler)
+
+        const accessToken = event.data.token
+        if (accessToken) {
+          authApi.socialLogin('google', { access_token: accessToken })
+            .then((response) => {
+              login(
+                {
+                  access: response.access,
+                  refresh: response.refresh,
+                },
+                response.user,
+              )
+              navigate('/')
+              // Закрываем popup после успешной регистрации
+              if (popup && !popup.closed) {
+                popup.close()
+              }
+            })
+            .catch(() => {
+              setError('Ошибка регистрации через Google')
+            })
+        }
+      }
+    }
+
+    window.addEventListener('message', messageHandler)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -202,6 +242,27 @@ export default function Register() {
             >
               {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
             </button>
+          </div>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-gray-50 text-gray-500">Или зарегистрируйтесь через</span>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+              >
+                Зарегистрироваться через Google
+              </button>
+            </div>
           </div>
         </form>
       </div>
