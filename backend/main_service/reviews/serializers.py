@@ -130,6 +130,45 @@ class ReviewListSerializer(serializers.ModelSerializer):
         model = Review
         fields = ['id', 'user_name', 'rating', 'text', 'images', 'created_at']
 
+
+class HomepageReviewSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+    main_photo = serializers.SerializerMethodField()
+    excursion_id = serializers.IntegerField(source='excursion.id', read_only=True)
+    excursion_title = serializers.CharField(source='excursion.title', read_only=True)
+
+    class Meta:
+        model = Review
+        fields = [
+            'id',
+            'author_name',
+            'rating',
+            'text',
+            'main_photo',
+            'excursion_id',
+            'excursion_title',
+            'created_at',
+        ]
+
+    def get_author_name(self, obj):
+        return obj.homepage_author_name or obj.user.get_full_name() or obj.user.email
+
+    def get_main_photo(self, obj):
+        selected_image = obj.images.filter(is_homepage_main=True).order_by('homepage_order', 'uploaded_at').first()
+        if selected_image:
+            return selected_image.image.url
+
+        first_image = obj.images.order_by('homepage_order', 'uploaded_at').first()
+        if first_image:
+            return first_image.image.url
+
+        if obj.homepage_main_photo:
+            return obj.homepage_main_photo.url
+
+        main_excursion_image = obj.excursion.images.filter(is_main=True).first()
+        return main_excursion_image.image.url if main_excursion_image else None
+
+
 class ReviewUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для редактирования отзыва"""
     

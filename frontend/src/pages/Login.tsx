@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import { authApi } from '../api/auth'
+import { getApiErrorData } from '../utils/apiError'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -77,18 +78,18 @@ export default function Login() {
         refresh: response.tokens.refresh,
       }, response.user)
       navigate('/')
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Обработка различных типов ошибок
-      if (err.response?.data) {
-        const errorData = err.response.data
+      const errorData = getApiErrorData(err)
+      if (errorData && typeof errorData !== 'string') {
         
         // Если есть сообщение об ошибке в поле contact
         if (errorData.contact && Array.isArray(errorData.contact)) {
-          setError(errorData.contact[0])
+          setError(String(errorData.contact[0]))
         } 
         // Если есть сообщение об ошибке в поле password
         else if (errorData.password && Array.isArray(errorData.password)) {
-          setError(errorData.password[0])
+          setError(String(errorData.password[0]))
         }
         // Если есть общее сообщение detail
         else if (errorData.detail) {

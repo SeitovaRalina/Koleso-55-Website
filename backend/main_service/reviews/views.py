@@ -4,7 +4,12 @@ from rest_framework.response import Response
 from django.db import models
 
 from .models import Review, ReviewStatus
-from .serializers import ReviewCreateSerializer, ReviewListSerializer, ReviewUpdateSerializer
+from .serializers import (
+    HomepageReviewSerializer,
+    ReviewCreateSerializer,
+    ReviewListSerializer,
+    ReviewUpdateSerializer,
+)
 from drf_spectacular.utils import extend_schema
 from analytics.services import publish_recommendation_event
 
@@ -59,6 +64,26 @@ class ReviewListView(generics.ListAPIView):
             queryset = queryset.order_by('-created_at')
             
         return queryset
+
+
+@extend_schema(
+    summary="Отзывы для главной страницы",
+    description="Возвращает одобренные отзывы, отмеченные администратором для показа на главной.",
+)
+class HomepageReviewListView(generics.ListAPIView):
+    serializer_class = HomepageReviewSerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = None
+
+    def get_queryset(self):
+        return (
+            Review.objects
+            .filter(status=ReviewStatus.APPROVED, show_on_homepage=True)
+            .select_related('user', 'excursion')
+            .prefetch_related('images', 'excursion__images')
+            .order_by('homepage_order', '-created_at')[:8]
+        )
+
 
 @extend_schema(
     summary="Редактирование отзыва",

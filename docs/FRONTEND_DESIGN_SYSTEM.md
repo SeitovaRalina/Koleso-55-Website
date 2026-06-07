@@ -76,16 +76,44 @@ Must exist as reusable patterns:
 UI Kit:
 
 - Create a dedicated UI kit page.
-- Public route: `/ui-kit`.
+- Dev-only route: `/ui-kit`, available only when `import.meta.env.DEV` is true.
 - UI kit must show colors, typography, buttons, badges, cards, forms, alerts, tabs, skeletons, booking panel states.
 - UI kit should use custom Tailwind components, not shadcn/ui.
 
 Homepage:
 
 - Hero may use `hero-bg.jpg`, but text/search must be legible.
-- Show real next section above fold where possible.
-- Include weekly events, how it works, reviews, certificates, custom request.
-- Style direction: closer to premium editorial `travelsnob.ru`.
+- Header: logo and search on the left, catalog/certificates/news/account icon on the right.
+- Header search is shown only on homepage.
+- Structure follows the approved reference layout:
+  - hero info first;
+  - search block below info;
+  - nearest events;
+  - how it works;
+  - reviews on the left and organization info on the right;
+  - certificate teaser with short why/how bullets;
+  - contacts/review links section;
+  - footer with logo, copy, client/company/contact columns, VK, Telegram, Max.
+- Hero search fields:
+  - location options come from `Excursion.LocationType` in `backend/main_service/excursions/models.py`;
+  - selected location submits as `location_type=city|suburban|russia`;
+  - date UI is one field; it can set `date_from` only or `date_from` + `date_to`.
+- Search submits to `/catalog` with URL params.
+- Nearest events block shows 8 cards on desktop: 2 rows x 4 cards.
+- Event cards use shared catalog `ExcursionCard`. `ExcursionCard` shows favorite action and slot overlay when API provides `nearest_slots`.
+- Homepage reviews come from excursion reviews selected by admin, not hardcoded content.
+- Style direction: closer to the provided landing reference plus project tokens.
+
+Contacts:
+
+- Contact/social URLs live in `frontend/src/config/contacts.ts`.
+- VK: `https://vk.com/kolesoputeshestvij55`
+- Telegram: `https://t.me/kolesoputeshestvii55`
+- MAX: `https://max.ru/join/u-FXfXDSTC9MfSzTMc8PdTbuZKvptCTabRcy13l5Sfg`
+- External review links:
+  - VK reviews: `https://vk.com/reviews-182407585`
+  - 2GIS: `https://2gis.ru/omsk/firm/70000001099778128/tab/reviews`
+  - Yandex: `https://yandex.ru/sprav/165694307604/p/edit/reviews/`
 
 Catalog:
 

@@ -65,8 +65,8 @@
 - Деплой: один сервис/VPS для backend + frontend.
 - YooKassa: только test mode.
 - Frontend: нужна новая дизайн-система.
-- Визуальные референсы: `travelsnob.ru`, `manawa.com`, палитра из `frontend/public/hero-bg.jpg`.
-- Frontend style: closer to premium editorial `travelsnob.ru`.
+- Визуальные референсы: current Koleso design system, `manawa.com`, палитра из `frontend/public/hero-bg.jpg`.
+- Frontend style: closer to premium editorial current Koleso design system.
 - UI kit: create custom UI kit; do not use shadcn/ui for now.
 - Booking: public for guests; auth optional.
 - Payment: YooKassa test mode, 100% prepayment, slot occupied only after payment.

@@ -1,7 +1,12 @@
 import api from './axios'
-import type { PaginatedResponse, Review } from '../types'
+import type { HomepageReview, PaginatedResponse, Review } from '../types'
 
 export const reviewsApi = {
+  getHomepageReviews: async (): Promise<HomepageReview[]> => {
+    const response = await api.get('/reviews/homepage/')
+    return response.data
+  },
+
   getExcursionReviews: async (
     excursionId: number,
   ): Promise<PaginatedResponse<Review>> => {

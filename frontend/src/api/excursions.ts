@@ -58,6 +58,7 @@ export const excursionsApi = {
   getCategories: async (): Promise<Category[]> => {
     const response = await api.get('/excursions/categories/')
     // API возвращает пагинированный ответ, извлекаем results
-    return (response.data as any).results || response.data || []
+    const data = response.data as PaginatedResponse<Category> | Category[]
+    return Array.isArray(data) ? data : data.results
   },
 }

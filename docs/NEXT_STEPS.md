@@ -11,7 +11,7 @@ Goal: create custom design system before redesigning production pages.
 Tasks:
 
 1. Add Tailwind tokens from `docs/FRONTEND_DESIGN_SYSTEM.md`.
-2. Create public `/ui-kit` route.
+2. Create dev-only `/ui-kit` route.
 3. Build custom reusable components:
    - Button;
    - Badge;
@@ -36,6 +36,8 @@ Tasks:
    - legal consent checkboxes.
 5. Verify desktop and mobile layout.
 
+Update 2026-06-07: `/ui-kit` must be dev-only, not public production UI.
+
 Why first: homepage and booking page need stable components, tokens, states, and responsive rules.
 
 ## Phase 2: Production Homepage
@@ -45,19 +47,39 @@ Goal: redesign homepage as premium editorial travel page with real product entry
 Tasks:
 
 1. Use `hero-bg.jpg` and design-system colors.
-2. Keep first screen useful: search/catalog entry, not only marketing copy.
+2. Keep first screen useful: hero info first, then search/catalog entry.
 3. Add/upgrade sections:
    - hero;
-   - weekly events;
-   - editorial destination/story block;
-   - popular excursions;
+   - nearest events: 8 cards, desktop 2 rows x 4;
    - how booking works;
-   - reviews;
-   - certificates teaser;
-   - custom request;
-   - blog/weekly summary teaser.
+   - reviews + organization info;
+   - certificates teaser with short bullet points;
+   - contacts section with phone/email/review links;
+   - footer with logo, VK, Telegram, Max.
 4. Add loading/error/empty states where API-driven.
 5. Verify mobile and desktop with browser screenshots.
+
+Homepage search contract:
+
+- Location options come from `Excursion.LocationType`;
+- Search submits `location_type=city|suburban|russia`;
+- `date_from=YYYY-MM-DD`;
+- optional `date_to=YYYY-MM-DD`.
+- Date control is visually one field, but can set one date or range.
+
+Homepage nearest events contract:
+
+- `GET /api/excursions/?date_from=<today>`;
+- frontend displays first 8 results;
+- list response should include `nearest_slots` so shared `ExcursionCard` can show slot overlay and remaining seats.
+
+Homepage reviews contract:
+
+- Django admin marks approved excursion reviews with `show_on_homepage`.
+- Review photo priority is managed in the review photo inline:
+  - `is_homepage_main`;
+  - `homepage_order`.
+- Public frontend reads `GET /api/reviews/homepage/`.
 
 ## Phase 3: Production Booking And Order Flow
 

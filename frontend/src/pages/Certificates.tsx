@@ -24,7 +24,7 @@ export default function Certificates() {
     try {
       console.log('Certificate purchase:', formData)
       setSuccess(true)
-    } catch (err) {
+    } catch {
       setError('Ошибка покупки сертификата')
     } finally {
       setIsLoading(false)

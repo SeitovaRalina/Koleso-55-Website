@@ -30,12 +30,6 @@ export default function Catalog() {
   })
 
   // Обновляем maxPrice после загрузки
-  useEffect(() => {
-    if (maxPrice && !searchParams.get('max_price')) {
-      setFilters(prev => ({ ...prev, maxPrice }))
-    }
-  }, [maxPrice, searchParams])
-
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1)
   const [sortUiValue, setSortUiValue] = useState('popular')
 
@@ -83,10 +77,6 @@ export default function Catalog() {
     }
     setSearchParams(params)
   }, [filters, page, sortUiValue, setSearchParams, searchParams])
-
-  useEffect(() => {
-    setSearchQuery(searchParams.get('search') || '')
-  }, [searchParams.get('search')])
 
   const {
     data: excursionsData,

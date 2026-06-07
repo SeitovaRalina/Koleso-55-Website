@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import MainLayout from '../components/layout/MainLayout'
 import Home from '../pages/Home'
 import Catalog from '../pages/Catalog'
@@ -15,6 +16,8 @@ import News from '../pages/News'
 import RecommendationInfo from '../pages/RecommendationInfo'
 import GoogleCallback from '../pages/GoogleCallback'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
+
+const UiKit = import.meta.env.DEV ? lazy(() => import('../pages/UiKit')) : null
 
 export const router = createBrowserRouter([
     {
@@ -62,6 +65,14 @@ export const router = createBrowserRouter([
                 path: 'recommendations',
                 element: <RecommendationInfo />,
             },
+            ...(import.meta.env.DEV ? [{
+                path: 'ui-kit',
+                element: UiKit ? (
+                    <Suspense fallback={null}>
+                        <UiKit />
+                    </Suspense>
+                ) : null,
+            }] : []),
         ],
     },
     {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { authApi } from '../api/auth'
+import { getApiErrorMessage } from '../utils/apiError'
 
 export default function PasswordResetConfirm() {
   const { uidb64, token } = useParams<{ uidb64: string; token: string }>()
@@ -29,14 +30,13 @@ export default function PasswordResetConfirm() {
     setIsLoading(true)
 
     try {
-      await authApi.passwordResetConfirm({
-        uidb64,
-        token,
+      await authApi.passwordResetConfirm(uidb64, token, {
         new_password: formData.new_password,
+        new_password2: formData.confirm_password,
       })
       setSuccess(true)
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Ошибка сброса пароля')
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Ошибка сброса пароля'))
     } finally {
       setIsLoading(false)
     }

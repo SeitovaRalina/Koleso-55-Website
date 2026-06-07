@@ -87,7 +87,7 @@ Implementation note:
 Current implementation priority:
 
 1. Bring frontend to production-ready quality first.
-2. Build custom UI kit at `/ui-kit`.
+2. Build custom UI kit at dev-only `/ui-kit`.
 3. Redesign homepage.
 4. Redesign booking/order flow.
 5. Add legal pages and consent UI.
@@ -110,11 +110,20 @@ Next priority:
 
 ## Frontend Style
 
-- Direction: premium editorial, closer to `travelsnob.ru`.
+- Direction: premium editorial, closer to current Koleso design system.
 - Use `manawa.com` mainly for catalog usability and activity-card clarity.
 - Build custom UI kit; do not adopt shadcn/ui as dependency for now.
-- UI kit route is public: `/ui-kit`.
+- UI kit route is dev-only: `/ui-kit`.
 - Use palette from `frontend/public/hero-bg.jpg`.
+- Homepage follows the approved reference order: hero info, search, nearest events, how it works, reviews + organization, certificate, contacts, footer.
+- Header search appears only on the homepage.
+- Hero location options come from `Excursion.LocationType` and submit to catalog as `location_type=city|suburban|russia`.
+- Date control is one visual field and submits `date_from` or `date_from` + optional `date_to`.
+- Nearest events block shows up to 8 shared catalog cards and uses `nearest_slots` for slot overlay.
+- Homepage reviews are selected in Django admin from excursion reviews with `show_on_homepage`.
+- Homepage review photo is selected from review images via `is_homepage_main` and `homepage_order`.
+- Footer includes VK, Telegram, Max, logo, and brand copy.
+- Contact/social/review URLs live in `frontend/src/config/contacts.ts`.
 
 ## Deployment
 

@@ -1,18 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 export default function Hero() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [destination, setDestination] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
-
-  useEffect(() => {
-    setDestination(searchParams.get('search') || '')
-    setDateFrom(searchParams.get('date_from') || '')
-    setDateTo(searchParams.get('date_to') || '')
-  }, [searchParams])
+  const [destination, setDestination] = useState(() => searchParams.get('search') || '')
+  const [dateFrom, setDateFrom] = useState(() => searchParams.get('date_from') || '')
+  const [dateTo, setDateTo] = useState(() => searchParams.get('date_to') || '')
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()

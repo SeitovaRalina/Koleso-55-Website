@@ -25,10 +25,19 @@ Current answered decisions live in `docs/PRODUCT_DECISIONS.md`.
 - Legal DOCX files are in `frontend/public/documents/`.
 - Frontend MVP: homepage and booking/order page.
 - Later pages: QA/FAQ, certificates, recommendation info, about, blog.
-- Visual direction: closer to premium editorial `travelsnob.ru`.
+- Visual direction: closer to premium editorial current Koleso design system.
 - UI kit page is needed.
-- UI kit route is public: `/ui-kit`.
+- UI kit route is dev-only: `/ui-kit` is available only in Vite dev mode.
 - Build custom UI kit, no shadcn/ui for now.
+- Homepage layout follows the approved reference: hero info, search, nearest events, how it works, reviews + organization, certificate, contacts, footer.
+- Header search appears only on the homepage.
+- Homepage search location options come from `Excursion.LocationType` and submit as `location_type=city|suburban|russia`.
+- Homepage date control is one visual field that can submit one date or a range via `date_from`, optional `date_to`.
+- Homepage nearest events show up to 8 shared catalog cards and use `nearest_slots` for slot overlay.
+- Homepage reviews come from excursion reviews selected in Django admin with `show_on_homepage`.
+- Homepage review photo is selected from review photos: `is_homepage_main` and `homepage_order`.
+- Footer must include logo, VK, Telegram, Max, and brand copy.
+- Contact/social URLs are fixed in `frontend/src/config/contacts.ts`.
 - Domain is not ready.
 
 ## Open Product Questions

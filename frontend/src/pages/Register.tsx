@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import { authApi } from '../api/auth'
+import { getApiErrorData } from '../utils/apiError'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -87,10 +88,10 @@ export default function Register() {
         refresh: response.tokens.refresh,
       }, response.user)
       navigate('/')
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Обработка различных типов ошибок
-      if (err.response?.data) {
-        const errorData = err.response.data
+      const errorData = getApiErrorData(err)
+      if (errorData && typeof errorData !== 'string') {
         
         // Если это объект с полями ошибок (как от DRF)
         if (typeof errorData === 'object' && !errorData.detail) {

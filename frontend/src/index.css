@@ -4,6 +4,57 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-neutral-surface text-neutral-ink antialiased;
+  }
+}
+
+@layer components {
+  .magic-ai-button {
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(255, 255, 255, 0.48);
+    background:
+      linear-gradient(115deg, rgba(11, 142, 216, 0.98), rgba(255, 206, 84, 0.96), rgba(10, 63, 154, 0.98)),
+      linear-gradient(90deg, #0b8ed8, #ffce54);
+    background-size: 220% 220%;
+    color: white;
+    box-shadow: 0 16px 35px rgba(10, 63, 154, 0.26);
+    animation: magic-shift 5s ease-in-out infinite;
+  }
+
+  .magic-ai-button::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.42), transparent 70%);
+    transform: translateX(-70%) rotate(12deg);
+    animation: magic-sheen 3.8s ease-in-out infinite;
+  }
+
+  .magic-ai-button > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .quiet-link-button {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-card border border-transparent bg-transparent px-5 text-sm font-semibold text-neutral-ink transition-colors hover:bg-brand-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-offset-2;
+  }
+}
+
+@keyframes magic-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes magic-sheen {
+  0%, 35% {
+    transform: translateX(-70%) rotate(12deg);
+  }
+  70%, 100% {
+    transform: translateX(70%) rotate(12deg);
   }
 }

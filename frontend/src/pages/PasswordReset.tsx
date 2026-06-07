@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { authApi } from '../api/auth'
+import { getApiErrorMessage } from '../utils/apiError'
 
 export default function PasswordReset() {
   const [email, setEmail] = useState('')
@@ -14,10 +15,13 @@ export default function PasswordReset() {
     setIsLoading(true)
 
     try {
-      await authApi.passwordReset({ email_or_phone: email })
+      await authApi.passwordReset({
+        contact: email,
+        contact_type: email.includes('@') ? 'email' : 'phone',
+      })
       setSuccess(true)
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Ошибка отправки ссылки')
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Ошибка отправки ссылки'))
     } finally {
       setIsLoading(false)
     }

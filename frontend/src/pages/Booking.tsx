@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { excursionsApi } from '../api/excursions'
 import { bookingsApi } from '../api/bookings'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
+import { formatApiFieldErrors } from '../utils/apiError'
 
 export default function Booking() {
   const { excursionId, slotId } = useParams<{
@@ -70,7 +71,7 @@ export default function Booking() {
     setIsLoading(true)
 
     try {
-      const order = await bookingsApi.createOrder({
+      await bookingsApi.createOrder({
         excursion: Number(excursionId),
         slot: Number(slotId),
         num_participants: formData.participants_count,
@@ -82,26 +83,8 @@ export default function Booking() {
         contact_method: formData.contact_method,
       })
       navigate('/')
-    } catch (err: any) {
-      // Parse field-specific errors from API
-      if (err.response?.data) {
-        const data = err.response.data
-        if (typeof data === 'object') {
-          const errorMessages = []
-          for (const [field, messages] of Object.entries(data)) {
-            if (Array.isArray(messages)) {
-              errorMessages.push(`${field}: ${messages.join(', ')}`)
-            } else if (typeof messages === 'string') {
-              errorMessages.push(`${field}: ${messages}`)
-            }
-          }
-          setError(errorMessages.join(' | ') || 'Ошибка создания заказа')
-        } else {
-          setError(data.detail || 'Ошибка создания заказа')
-        }
-      } else {
-        setError('Ошибка создания заказа')
-      }
+    } catch (err: unknown) {
+      setError(formatApiFieldErrors(err, 'Ошибка создания заказа'))
       console.error('Booking error:', err)
     } finally {
       setIsLoading(false)

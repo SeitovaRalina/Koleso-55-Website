@@ -4,16 +4,15 @@ import { useQuery } from '@tanstack/react-query'
 import { excursionsApi } from '../api/excursions'
 import { analyticsApi } from '../api/analytics'
 import { wishlistApi } from '../api/wishlist'
-import { reviewsApi } from '../api/reviews'
 import { recommendationsApi } from '../api/recommendations'
-import { useAuth } from '../contexts/AuthContext'
-import type { Excursion, ExcursionSlot, Review } from '../types'
+import { useAuth } from '../contexts/useAuth'
+import type { ExcursionSlot, Review } from '../types'
 
 export default function ExcursionDetail() {
   const { excursionId } = useParams<{ excursionId: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth()
   const [selectedSlot, setSelectedSlot] = useState<ExcursionSlot | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
   const [viewId, setViewId] = useState<number | null>(null)
@@ -31,6 +30,9 @@ export default function ExcursionDetail() {
   })
 
   useEffect(() => {
+    const stateSource = location.state?.source as 'search' | 'catalog' | 'recommendation' | 'similar' | 'direct' | undefined
+    const fromPath = location.state?.from as string | undefined
+
     if (excursion) {
       // Generate or get session_id for all users
       let sessionId = localStorage.getItem('session_id')
@@ -40,9 +42,6 @@ export default function ExcursionDetail() {
       }
 
       // Determine source based on location.state or previous path (only on initial load)
-      const stateSource = location.state?.source as 'search' | 'catalog' | 'recommendation' | 'similar' | 'direct' | undefined
-      const fromPath = location.state?.from as string | undefined
-      
       let source: 'search' | 'catalog' | 'recommendation' | 'similar' | 'direct' = 'direct'
       
       if (stateSource) {
@@ -82,7 +81,7 @@ export default function ExcursionDetail() {
         analyticsApi.endView({ view_id: viewId })
       }
     }
-  }, [excursion, isAuthenticated])
+  }, [excursion, isAuthenticated, location.state?.from, location.state?.source, viewId])
 
   useEffect(() => {
     const heartbeat = setInterval(() => {
@@ -270,11 +269,11 @@ export default function ExcursionDetail() {
                           ))}
                         </div>
                       </div>
-                      <p className="text-gray-700">{review.comment}</p>
-                      {review.photos && review.photos.length > 0 && (
+                      <p className="text-gray-700">{review.text}</p>
+                      {review.images && review.images.length > 0 && (
                         <div className="mt-2 flex gap-2">
-                          {review.photos.map((photo, idx) => (
-                            <img key={idx} src={photo} alt="" className="w-20 h-20 object-cover rounded" />
+                          {review.images.map((photo) => (
+                            <img key={photo.id} src={photo.image} alt="" className="w-20 h-20 object-cover rounded" />
                           ))}
                         </div>
                       )}

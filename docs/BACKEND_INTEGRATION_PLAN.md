@@ -4,6 +4,20 @@
 
 Current priority note: frontend production-ready work goes first. Backend pricing, YooKassa, and deploy remain planned later phases.
 
+Update 2026-06-07:
+
+- Local `python manage.py check` in `backend/main_service` currently fails before Django setup because Python cannot import `celery`.
+- Cause: backend dependencies are not installed in the active local Python environment, or checks must be run inside the Docker service/venv.
+- Demo seed command added for Django:
+
+```powershell
+cd backend/main_service
+python manage.py migrate
+python manage.py seed_demo_data
+```
+
+- VK market data was requested as a seed source, but `https://vk.com/market-182407585?screen=group` was not accessible from the current environment. Seed data is synthetic and project-themed.
+
 ## Текущее состояние
 
 - Django API: `backend/main_service`.
@@ -144,3 +158,36 @@ Business rules:
 - Webhook idempotent.
 - Order becomes `paid` only after trusted payment success.
 - nginx starts through compose profile `proxy`.
+
+## Homepage Reviews API
+
+- Admin controls homepage inclusion on `Review`:
+  - `show_on_homepage`;
+  - `homepage_author_name`;
+  - `homepage_order`.
+- Admin controls review photos in `ReviewImage` inline:
+  - `is_homepage_main`;
+  - `homepage_order`.
+- Main homepage photo priority:
+  1. `ReviewImage` with `is_homepage_main=True`, ordered by `homepage_order`;
+  2. first review image by `homepage_order`;
+  3. legacy `homepage_main_photo`, if present;
+  4. main excursion image.
+- Public endpoint: `GET /api/reviews/homepage/`.
+- Response item:
+  - `id`;
+  - `author_name`;
+  - `rating`;
+  - `text`;
+  - `main_photo`;
+  - `excursion_id`;
+  - `excursion_title`;
+  - `created_at`.
+- Only approved reviews with `show_on_homepage=True` are returned.
+
+## Excursion List API Additions
+
+- `GET /api/excursions/` list items include `nearest_slots`.
+- `nearest_slots` contains up to 3 upcoming slots from today, ordered by date/time.
+- Homepage event cards use `nearest_slots[0]` for nearest date/time and remaining seats.
+- Homepage location search uses `Excursion.LocationType` values and submits `location_type=city|suburban|russia` to catalog.

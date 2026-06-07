@@ -2,6 +2,7 @@ from typing import List, Optional
 from decimal import Decimal
 from datetime import date, time
 
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from .models import Excursion, Category, ExcursionImage, Slot
@@ -27,7 +28,6 @@ class CategorySerializer(serializers.ModelSerializer):
         max_length=120,
         read_only=True
     )
-    
     class Meta:
         model = Category
         fields = ['id', 'name', 'slug']
@@ -168,12 +168,14 @@ class ExcursionListSerializer(serializers.ModelSerializer):
         help_text="Количество одобренных отзывов"
     )
 
+    nearest_slots = serializers.SerializerMethodField()
+
     class Meta:
         model = Excursion
         fields = [
             'id', 'title', 'slug', 'short_description',
             'location_type_display', 'price', 'duration', 'category', 'main_image',
-            'average_rating', 'review_count'
+            'average_rating', 'review_count', 'nearest_slots'
         ]
 
     @extend_schema_field(serializers.URLField())
@@ -192,6 +194,11 @@ class ExcursionListSerializer(serializers.ModelSerializer):
     def get_review_count(self, obj):
         """Количество одобренных отзывов"""
         return obj.reviews.filter(status='approved').count()
+
+    @extend_schema_field(SlotSerializer(many=True))
+    def get_nearest_slots(self, obj):
+        slots = obj.slots.filter(date__gte=timezone.localdate()).order_by('date', 'time')[:3]
+        return SlotSerializer(slots, many=True).data
 
 
 class ExcursionDetailSerializer(serializers.ModelSerializer):

@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import { authApi } from '../api/auth'
 import { bookingsApi } from '../api/bookings'
 import { wishlistApi } from '../api/wishlist'
 import { recommendationsApi } from '../api/recommendations'
-import type { Excursion, Booking } from '../types'
+import type { Booking } from '../types'
+import { getApiErrorMessage } from '../utils/apiError'
 
 export default function Account() {
   const { user, updateUser, logout } = useAuth()
@@ -58,8 +59,8 @@ export default function Account() {
     try {
       const updatedUser = await authApi.updateProfile(profileForm)
       updateUser(updatedUser)
-    } catch (err: any) {
-      setProfileError(err.response?.data?.detail || 'Ошибка обновления профиля')
+    } catch (err: unknown) {
+      setProfileError(getApiErrorMessage(err, 'Ошибка обновления профиля'))
     } finally {
       setIsSavingProfile(false)
     }
@@ -227,10 +228,10 @@ export default function Account() {
                           {getStatusBadge(booking.status)}
                         </div>
                         <div className="text-sm text-gray-600 space-y-1">
-                          <p>Дата: {new Date(booking.slot_date).toLocaleDateString('ru-RU')}</p>
+                          <p>Дата: {new Date(booking.slot_date || booking.slot_datetime).toLocaleDateString('ru-RU')}</p>
                           <p>Время: {booking.slot_time}</p>
-                          <p>Участников: {booking.participants_count}</p>
-                          <p>Сумма: {booking.total_price} ₽</p>
+                          <p>Участников: {booking.participants_count || booking.num_participants}</p>
+                          {booking.total_price && <p>Сумма: {booking.total_price} ₽</p>}
                         </div>
                         {(booking.status === 'new' || booking.status === 'confirmed') && (
                           <button
@@ -259,8 +260,10 @@ export default function Account() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {wishlist?.results.map((excursion: Excursion) => (
-                      <div key={excursion.id} className="border rounded-lg overflow-hidden">
+                    {wishlist?.results.map((item) => {
+                      const excursion = item.excursion
+                      return (
+                      <div key={item.id} className="border rounded-lg overflow-hidden">
                         {excursion.main_image && (
                           <img
                             src={excursion.main_image}
@@ -279,7 +282,7 @@ export default function Account() {
                           </button>
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 )}
               </div>

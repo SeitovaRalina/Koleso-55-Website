@@ -19,6 +19,7 @@ export interface Excursion {
   main_image: string | null
   images?: ExcursionImage[]
   slots?: ExcursionSlot[]
+  nearest_slots?: ExcursionSlot[]
   is_active?: boolean
   approved_reviews?: Review[]
 }
@@ -38,6 +39,8 @@ export interface ReviewImage {
 export interface ExcursionSlot {
   id: number
   date: string
+  date_to?: string
+  end_date?: string
   time: string
   max_participants: number
   available_seats: number
@@ -58,16 +61,33 @@ export interface Review {
   user_name: string
   rating: number
   text: string
+  comment?: string
   images?: ReviewImage[]
+  photos?: string[]
   created_at: string
   status?: 'pending' | 'approved' | 'rejected'
+}
+
+export interface HomepageReview {
+  id: number
+  author_name: string
+  rating: number
+  text: string
+  main_photo: string | null
+  excursion_id: number
+  excursion_title: string
+  created_at: string
 }
 
 export interface Booking {
   id: number
   excursion_title: string
   slot_datetime: string
+  slot_date?: string
+  slot_time?: string
   num_participants: number
+  participants_count?: number
+  total_price?: string
   status: 'new' | 'confirmed' | 'paid' | 'cancelled' | 'completed'
   status_display: string
   created_at: string
