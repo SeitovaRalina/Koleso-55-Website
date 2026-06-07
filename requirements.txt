@@ -6,3 +6,4 @@ requests
 redis
 django-redis
 chromadb==0.5.23
+psycopg2-binary

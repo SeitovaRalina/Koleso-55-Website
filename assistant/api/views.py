@@ -12,21 +12,18 @@ class ChatView(APIView):
         if not user_message:
             return Response({"error": "Empty message"}, status=status.HTTP_400_BAD_REQUEST)
 
-        #ИДЕНТИФИКАЦИЯ (через Session)
         if not request.session.session_key:
             request.session.create()
         session_id = request.session.session_key
         
         #поиск клиента/создаем "теневой" профиль для этого чата
         client, created = Client.objects.get_or_create(
-            session_id=session_id,
+            external_id=session_id,
             defaults={'first_name': 'Гость'}
         )
-        #БД И REDIS
-        #достаем историю
+        
         history = ChatStorageService.get_history(client)
         
-        #сохраняем вопрос пользователя
         ChatStorageService.add_message(client, "user", user_message)
 
         #ответ
