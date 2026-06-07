@@ -4,7 +4,7 @@ from django.conf import settings
 
 class VectorStore:
     def __init__(self):
-        self.persist_directory = "/tmp/chroma_data"
+        self.persist_directory = "/app/chroma_data"
         
         self.client = chromadb.PersistentClient(path=self.persist_directory) #cоздаем клиента базы данных
         

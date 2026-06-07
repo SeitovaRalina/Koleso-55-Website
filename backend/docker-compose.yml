@@ -182,7 +182,7 @@ services:
             - DB_HOST=postgres
             - DB_PORT=5432
             - PYTHONUNBUFFERED=1
-
+            
         volumes:
             - ../:/app
             - chroma_data:/app/chroma_data
