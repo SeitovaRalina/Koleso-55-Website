@@ -97,7 +97,8 @@ class RAGPipeline:
         #ВЕКТОРИЗАЦИЯ И ПОИСК
         try:
             query_vector = self.embeddings_client.get_embedding(standalone_query)
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as e:
+            print(f"[EMBEDDING ERROR] {e}")
             return {"text": "Прошу прощения, у меня пропала связь с сетью. Пожалуйста, отправьте сообщение еще раз.", "chips": []}
         except Exception as e:
             print(f"[EMBEDDING ERROR] {e}")

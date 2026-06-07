@@ -1,94 +1,87 @@
+import os
+import psycopg2
 from django.core.management.base import BaseCommand
 from assistant.services.chroma_db import VectorStore
 from assistant.services.embeddings import EmbeddingsClient
 
+
 class Command(BaseCommand):
-    help = 'Индексация тестовых туров в векторную базу ChromaDB'
+    help = 'Индексация реальных экскурсий из базы данных в векторную базу ChromaDB'
+
+    def get_db_connection(self):
+        """Получаем подключение к базе данных"""
+        return psycopg2.connect(
+            dbname=os.environ.get('DB_NAME', 'excursions'),
+            user=os.environ.get('DB_USER', 'postgres'),
+            password=os.environ.get('DB_PASSWORD', 'postgres'),
+            host=os.environ.get('DB_HOST', 'localhost'),
+            port=os.environ.get('DB_PORT', '5432')
+        )
 
     def handle(self, *args, **options):
         vector_store = VectorStore()
         embedding_service = EmbeddingsClient()
 
-        # Очищенные и дополненные тестовые данные
-        tours = [
-            {
-                "id": "1",
-                "title": "Релакс в Чернолучье: SPA и сосновый бор",
-                "description": "Отдых премиум-класса в курортной зоне Чернолучье. В стоимость включено трёхразовое питание «шведский стол», безлимитное посещение термального бассейна под открытым небом, кедровая сауна и прогулки по хвойному лесу. Ближайшие даты: 15-17 июня, 22-24 июня. Размер группы: до 12 человек.",
-                "price": 22000,
-                "metadata": {"category": "релакс", "region": "Омская область"}
-            },
-            {
-                "id": "2",
-                "title": "Загадки Окунево: край пяти озер",
-                "description": "Трёхдневный тур в Муромцевский район, село Окунево — самое мистическое место области. Тур включает поездки к озерам Линево и Данилово, баню и экскурсию по местам силы. Даты проведения: 5-7 июня, 19-21 июня. Размер группы: до 15 человек.",
-                "price": 14000,
-                "metadata": {"category": "природа", "region": "Омская область"}
-            },
-            {
-                "id": "3",
-                "title": "Сибирская старина: выходные в Большеречье",
-                "description": "Погружение в быт сибирских крестьян XIX века в комплексе 'Старина Сибирская'. Мастер-классы по ремеслам, традиционное чаепитие из самовара и посещение единственного сельского зоопарка в России. Ближайшие выезды: 12-13 июня, 26-27 июня. Размер группы: до 20 человек.",
-                "price": 9500,
-                "metadata": {"category": "история", "region": "Омская область"}
-            },
-            {
-                "id": "4",
-                "title": "Семейные выходные в комплексе «Сказка»",
-                "description": "Идеальный тур для поездки с семьей и детьми. В стоимость входит проживание в комфортных семейных номерах, безлимитный аквапарк, анимация, веревочный парк и трехразовое питание. Даты: каждые выходные лета. Размер группы: не ограничен (индивидуальное размещение).",
-                "price": 28000,
-                "metadata": {"category": "семья", "region": "Омская область"}
-            },
-            {
-                "id": "5",
-                "title": "Экстрим-сплав по реке Тара",
-                "description": "Активный отдых для любителей адреналина. Пятидневный сплав на катамаранах по таежной реке. Включена аренда снаряжения, палатки, полевая кухня и инструктор. Даты сплавов: 1-5 июля, 15-19 июля. Размер группы: до 10 человек.",
-                "price": 16000,
-                "metadata": {"category": "активный", "region": "Омская область"}
-            },
-            {
-                "id": "6",
-                "title": "Романтика под звездами: глэмпинг «Иртышская Ривьера»",
-                "description": "Тур для двоих в комфортабельных шатрах на берегу реки. Включает романтический ужин, прогулку на сапбордах и проектор для фильмов. Доступно в любые дни. Размер группы: индивидуально (2 человека).",
-                "price": 18000,
-                "metadata": {"category": "романтика", "region": "Омская область"}
-            },
-            {
-                "id": "7",
-                "title": "Оздоровительный тур в санаторий «Колос»",
-                "description": "Путевка на 7 дней с полным комплексом медицинских и SPA-процедур. Грязелечение, массаж, минеральные воды. Направлен на восстановление здоровья. Заезды: каждый понедельник. Размер группы: до 30 человек.",
-                "price": 35000,
-                "metadata": {"category": "здоровье", "region": "Омская область"}
-            },
-            {
-                "id": "8",
-                "title": "Гастрономический тур «Вкус Сибири»",
-                "description": "Двухдневное путешествие с дегустацией фермерских продуктов. Посещение сыроварни, мастер-класс по лепке пельменей и ужин из дичи. Даты: 22-23 июня, 5-6 июля. Размер группы: до 15 человек.",
-                "price": 12000,
-                "metadata": {"category": "гастрономия", "region": "Омская область"}
-            },
-            {
-                "id": "9",
-                "title": "Зимняя сказка: катание на хаски",
-                "description": "Однодневный тур в питомник хаски. Включает катание на упряжках по лесу, фотосессию и горячий обед в чуме. Ближайшие зимние даты: 10 января, 15 февраля. Размер группы: до 25 человек.",
-                "price": 6000,
-                "metadata": {"category": "семья", "region": "Омская область"}
-            },
-            {
-                "id": "10",
-                "title": "Тайны купеческого Омска: пешеходная экскурсия",
-                "description": "Увлекательная трехчасовая прогулка по историческому центру с гидом. Секреты подземных ходов, архитектура Любинского проспекта и истории известных купцов. Проводится ежедневно по предварительной записи. Размер группы: до 15 человек.",
-                "price": 1500,
-                "metadata": {"category": "экскурсия", "region": "Омск"}
-            },
-            {
-                "id": "11",
-                "title": "Звезды над Иртышом: визит в обсерваторию",
-                "description": "Вечерняя экскурсия в городской планетарий и наблюдение в телескоп за планетами Солнечной системы. Включает лекцию по астрономии. Проводится по пятницам в ясную погоду.",
-                "price": 800,
-                "metadata": {"category": "познавательный", "region": "Омск"}
+        # Получаем реальные экскурсии из базы данных
+        try:
+            conn = self.get_db_connection()
+            cursor = conn.cursor()
+
+            # SQL запрос для получения экскурсий с категориями
+            query = """
+                SELECT 
+                    e.id,
+                    e.title,
+                    COALESCE(e.description, e.short_description) as description,
+                    e.price,
+                    e.duration,
+                    e.location_type,
+                    c.name as category_name
+                FROM excursions_excursion e
+                LEFT JOIN excursions_category c ON e.category_id = c.id
+                WHERE e.is_active = TRUE
+                ORDER BY e.id
+            """
+            
+            cursor.execute(query)
+            excursions = cursor.fetchall()
+            total_count = len(excursions)
+            
+            if total_count == 0:
+                self.stdout.write(self.style.WARNING('В базе данных нет активных экскурсий для индексации'))
+                cursor.close()
+                conn.close()
+                return
+            
+            self.stdout.write(f'Найдено {total_count} активных экскурсий в базе данных')
+            
+            tours = []
+            location_type_map = {
+                'city': 'Городские экскурсии',
+                'suburban': 'Загородные экскурсии', 
+                'russia': 'Туры по России'
             }
-        ]
+            
+            for excursion in excursions:
+                (excursion_id, title, description, price, duration, location_type, category_name) = excursion
+                tours.append({
+                    "id": str(excursion_id),
+                    "title": title,
+                    "description": description or "",
+                    "price": float(price),
+                    "metadata": {
+                        "category": category_name or "Без категории",
+                        "location_type": location_type_map.get(location_type, location_type),
+                        "duration": duration
+                    }
+                })
+            
+            cursor.close()
+            conn.close()
+                
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'Ошибка при получении данных из базы данных: {str(e)}'))
+            return
         
         self.stdout.write('--- СТАРТ ИНДЕКСАЦИИ ---')
         
@@ -108,12 +101,17 @@ class Command(BaseCommand):
             ids.append(tour['id'])
             documents.append(text_chunk)
             embeddings.append(embedding)
-            
-            # Добавляем не только название, но и категорию в метаданные
-            category = tour.get("metadata", {}).get("category", "разное")
-            metadatas.append({"title": tour['title'], "category": category})
+            metadatas.append(tour['metadata'])
 
-        # Пакетно записываем в ChromaDB
-        vector_store.add_tours(ids, embeddings, documents, metadatas)
-
-        self.stdout.write(self.style.SUCCESS('--- ИНДЕКСАЦИЯ УСПЕШНО ЗАВЕРШЕНА! ---'))
+        self.stdout.write('--- СОХРАНЕНИЕ В CHROMADB ---')
+        
+        try:
+            vector_store.add_tours(
+                ids=ids,
+                embeddings=embeddings,
+                documents=documents,
+                metadatas=metadatas
+            )
+            self.stdout.write(self.style.SUCCESS(f'Успешно проиндексировано {len(ids)} экскурсий'))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'Ошибка при сохранении в ChromaDB: {str(e)}'))

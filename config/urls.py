@@ -1,7 +1,6 @@
-from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('admin/', admin.site.urls), 
-    path('api/assistant/', include('assistant.api.urls')), 
+    # Включаем assistant API напрямую без префикса, так как в assistant.api.urls уже есть пути
+    path('', include('assistant.api.urls')),
 ]

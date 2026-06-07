@@ -14,8 +14,10 @@ SECRET_KEY = 'django-insecure-super-secret-key-for-dev' #обязт переме
 DEBUG = True
 ALLOWED_HOSTS = ['*']
 
+# Убрали AUTH_USER_MODEL, так как assistant-service - отдельный проект без accounts app
+
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    # Убрали django.contrib.admin, так как assistant-service не нуждается в админке
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -40,7 +42,6 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'config.urls'
 WSGI_APPLICATION = 'config.wsgi.application'
 
-#обязт для админки
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -57,10 +58,14 @@ TEMPLATES = [
     },
 ]
 
-DATABASES = { #локальный SQLite
+DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', 'koleso_travel_dev'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'sql'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
