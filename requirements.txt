@@ -1,0 +1,8 @@
+django>=5.0
+djangorestframework
+django-cors-headers
+python-dotenv
+requests
+redis
+django-redis
+chromadb==0.5.23
