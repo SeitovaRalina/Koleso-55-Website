@@ -1,0 +1,4 @@
+interface:
+  display_name: "Koleso React Frontend"
+  short_description: "Build and maintain the Koleso 55 React frontend."
+  default_prompt: "Use this skill to implement or review Koleso 55 React frontend pages, components, design system, and API integration."
