@@ -164,6 +164,58 @@ services:
             - excursion_network
         restart: unless-stopped
 
+    assistant_service:
+        build: ../
+        container_name: assistant-service
+        ports:
+            - "${ASSISTANT_PORT:-8000}:8000"
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        environment:
+            - DJANGO_SETTINGS_MODULE=config.settings
+            - DB_NAME=${DB_NAME:-excursions}
+            - DB_USER=${DB_USER:-postgres}
+            - DB_PASSWORD=${DB_PASSWORD:-postgres}
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - PYTHONUNBUFFERED=1
+        volumes:
+            - ../:/app
+            - chroma_data:/app/chroma_data
+        networks:
+            - excursion_network
+        restart: unless-stopped
+
+    vectorizer_worker:
+        build: ./vectorizer
+        container_name: vectorizer-worker
+        command: celery -A celery_app worker --loglevel=info -Q vectorizer
+        depends_on:
+            postgres:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        env_file:
+            - .env
+        environment:
+            - DB_NAME=${DB_NAME:-excursions}
+            - DB_USER=${DB_USER:-postgres}
+            - DB_PASSWORD=${DB_PASSWORD:-postgres}
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - PYTHONUNBUFFERED=1
+        volumes:
+            - ./vectorizer:/app
+            - chroma_data:/app/chroma_data
+        networks:
+            - excursion_network
+        restart: unless-stopped
+
     nginx:
         image: nginx:alpine
         profiles:
@@ -177,6 +229,7 @@ services:
         depends_on:
             - main_service
             - recommender_api
+            - assistant_service
         networks:
             - excursion_network
         restart: unless-stopped
@@ -185,6 +238,7 @@ volumes:
     postgres_data:
     redis_data:
     rabbitmq_data:
+    chroma_data:
 
 networks:
     excursion_network:
