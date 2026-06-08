@@ -12,7 +12,7 @@ class VectorStore:
         self.collection = self.client.get_or_create_collection(name=self.collection_name)
 
     def add_tours(self, ids, embeddings, documents, metadatas): #Метод для добавления данных в базу(вызывается в ingest_tours)
-        self.collection.add(
+        self.collection.upsert(
             ids=ids,
             embeddings=embeddings,
             documents=documents,

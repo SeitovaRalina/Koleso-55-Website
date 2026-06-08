@@ -1,5 +1,7 @@
+import os
 import re
 import requests
+import psycopg2
 from django.conf import settings
 from .chroma_db import VectorStore
 from .embeddings import EmbeddingsClient
@@ -20,6 +22,117 @@ class RAGPipeline:
             "x-folder-id": self.folder_id,
             "Content-Type": "application/json"
         }
+
+    def _get_live_db_context(self) -> str:
+        try:
+            conn = psycopg2.connect(
+                dbname=os.environ.get("DB_NAME", "excursions"),
+                user=os.environ.get("DB_USER", "postgres"),
+                password=os.environ.get("DB_PASSWORD", "postgres"),
+                host=os.environ.get("DB_HOST", "localhost"),
+                port=os.environ.get("DB_PORT", "5432"),
+            )
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT
+                    e.id,
+                    e.title,
+                    e.price,
+                    e.duration,
+                    e.location_type,
+                    e.tour_format,
+                    e.group_size,
+                    e.short_description,
+                    e.description,
+                    e.included_in_price,
+                    e.not_included_in_price,
+                    e.what_to_bring,
+                    e.meeting_point,
+                    c.name,
+                    COALESCE((
+                        SELECT string_agg(s.date::text || ' ' || s.time::text, '; ' ORDER BY s.date, s.time)
+                        FROM excursions_slot s
+                        WHERE s.excursion_id = e.id
+                    ), ''),
+                    COALESCE((
+                        SELECT string_agg(tt.name || ': ' || tt.price::text || ' руб.', '; ' ORDER BY tt.id)
+                        FROM excursions_tickettype tt
+                        WHERE tt.excursion_id = e.id AND tt.is_active = TRUE
+                    ), ''),
+                    COALESCE((
+                        SELECT string_agg('День ' || pd.day_number::text || '. ' || pd.title || ': ' || pd.description, E'\n' ORDER BY pd.day_number)
+                        FROM excursions_excursionprogramday pd
+                        WHERE pd.excursion_id = e.id
+                    ), ''),
+                    COALESCE((
+                        SELECT string_agg(r.rating::text || '/5: ' || r.text, E'\n' ORDER BY r.created_at DESC)
+                        FROM (
+                            SELECT rating, text, created_at
+                            FROM reviews_review
+                            WHERE excursion_id = e.id AND status = 'approved'
+                            ORDER BY created_at DESC
+                            LIMIT 5
+                        ) r
+                    ), '')
+                FROM excursions_excursion e
+                LEFT JOIN excursions_category c ON e.category_id = c.id
+                WHERE e.is_active = TRUE
+                ORDER BY e.id
+                LIMIT 50
+                """
+            )
+            rows = cursor.fetchall()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"[DB CONTEXT ERROR] {e}")
+            return ""
+
+        blocks = []
+        for row in rows:
+            (
+                excursion_id,
+                title,
+                price,
+                duration,
+                location_type,
+                tour_format,
+                group_size,
+                short_description,
+                description,
+                included,
+                not_included,
+                bring,
+                meeting,
+                category,
+                slots,
+                tickets,
+                program,
+                reviews,
+            ) = row
+            blocks.append(
+                "\n".join(
+                    [
+                        f"ID: {excursion_id}",
+                        f"Экскурсия: {title}",
+                        f"Цена от: {price} руб.",
+                        f"Категория: {category or 'Без категории'}",
+                        f"Тип: {location_type}; формат: {tour_format}; группа до {group_size}; длительность {duration} минут.",
+                        f"Место встречи: {meeting or 'уточняется после бронирования'}.",
+                        f"Кратко: {short_description or ''}",
+                        f"Описание: {description or ''}",
+                        f"Входит: {included or 'уточняется у менеджера'}",
+                        f"Не входит: {not_included or 'личные расходы'}",
+                        f"Что взять: {bring or 'уточняется у менеджера'}",
+                        f"Даты: {slots or 'уточняются у менеджера'}",
+                        f"Билеты: {tickets or 'базовый билет по цене экскурсии'}",
+                        f"Программа: {program or 'уточняется у менеджера'}",
+                        f"Отзывы: {reviews or 'пока нет отзывов'}",
+                    ]
+                )
+            )
+        return "\n\n".join(blocks)
 
     def _rewrite_query(self, user_question: str, history: list) -> str:
         if not history:
@@ -94,18 +207,18 @@ class RAGPipeline:
         print(f"[DEBUG] Оригинальный запрос: {user_question}")
         print(f"[DEBUG] Переписанный запрос: {standalone_query}")
 
-        #ВЕКТОРИЗАЦИЯ И ПОИСК
+        db_context = self._get_live_db_context()
+        vector_context = ""
         try:
             query_vector = self.embeddings_client.get_embedding(standalone_query)
+            results = self.vector_store.search(query_vector, top_k=2)
+            vector_context = "\n\n".join(results) if results else ""
         except requests.exceptions.ConnectionError as e:
             print(f"[EMBEDDING ERROR] {e}")
-            return {"text": "Прошу прощения, у меня пропала связь с сетью. Пожалуйста, отправьте сообщение еще раз.", "chips": []}
         except Exception as e:
             print(f"[EMBEDDING ERROR] {e}")
-            return {"text": "Произошла внутренняя ошибка. Попробуйте немного позже.", "chips": []}
 
-        results = self.vector_store.search(query_vector, top_k=2)
-        current_context = "\n\n".join(results) if results else ""
+        current_context = "\n\n".join(part for part in [db_context, vector_context] if part)
 
         #ГЕНЕРАЦИЯ ОТВЕТА
         payload = self._build_prompt(current_context, standalone_query, history) 
