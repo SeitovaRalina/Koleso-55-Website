@@ -37,6 +37,8 @@ const sampleExcursion: Excursion = {
     slug: 'city',
   },
   location_type_display: 'Омск',
+  tour_format_display: 'Групповая',
+  group_size: 12,
   price: '1800',
   duration: 150,
   average_rating: 4.9,

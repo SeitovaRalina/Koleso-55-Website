@@ -50,7 +50,7 @@ Tasks:
 2. Keep first screen useful: hero info first, then search/catalog entry.
 3. Add/upgrade sections:
    - hero;
-   - nearest events: 8 cards, desktop 2 rows x 4;
+   - nearest events: 8 cards, desktop 2 rows x 3;
    - how booking works;
    - reviews + organization info;
    - certificates teaser with short bullet points;

@@ -1,8 +1,14 @@
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<mask id="mask0_509_309" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="1" y="3" width="22" height="20">
-<path d="M7.5 4C4.4625 4 2 6.4625 2 9.5C2 15 8.5 20 12 21.163C15.5 20 22 15 22 9.5C22 6.4625 19.5375 4 16.5 4C14.64 4 12.995 4.9235 12 6.337C11.4928 5.61469 10.819 5.0252 10.0357 4.61841C9.25238 4.21162 8.38263 3.9995 7.5 4Z" fill="#555555" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</mask>
-<g mask="url(#mask0_509_309)">
-<path d="M0 0H24V24H0V0Z" fill="#9B4A31"/>
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
+ "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+ width="72.000000pt" height="72.000000pt" viewBox="0 0 72.000000 72.000000"
+ preserveAspectRatio="xMidYMid meet">
+
+<g transform="translate(0.000000,72.000000) scale(0.100000,-0.100000)"
+fill="#0A3F9A" stroke="none">
+<path d="M144 607 c-142 -68 -147 -246 -11 -395 56 -61 150 -129 197 -143 35
+-11 44 -9 96 17 84 42 187 143 224 217 44 90 48 142 17 209 -29 65 -67 95
+-140 110 -49 10 -57 9 -110 -15 l-58 -26 -37 19 c-62 33 -119 35 -178 7z"/>
 </g>
 </svg>

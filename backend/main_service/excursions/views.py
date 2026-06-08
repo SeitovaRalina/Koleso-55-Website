@@ -1,4 +1,5 @@
 from rest_framework import generics, filters as drf_filters
+from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
 from drf_spectacular.utils import OpenApiExample, extend_schema
@@ -52,6 +53,14 @@ class ExcursionListView(generics.ListAPIView):
     search_fields = ["title", "short_description"]
     ordering_fields = ["price", "duration", "created_at"]
     ordering = ["-created_at"]
+
+    def list(self, request, *args, **kwargs):
+        if request.query_params.getlist("ids"):
+            queryset = self.filter_queryset(self.get_queryset())
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+
+        return super().list(request, *args, **kwargs)
 
 
 @extend_schema(

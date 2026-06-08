@@ -14,6 +14,7 @@ export const excursionsApi = {
     ordering?: string
     page?: number
     search?: string
+    ids?: number[]
   }): Promise<PaginatedResponse<Excursion>> => {
     // Ручная сериализация параметров для правильной отправки массивов
     const searchParams = new URLSearchParams()
@@ -21,7 +22,7 @@ export const excursionsApi = {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           if (Array.isArray(value)) {
-            value.forEach(v => searchParams.append(key, v))
+            value.forEach((v) => searchParams.append(key, String(v)))
           } else {
             searchParams.append(key, String(value))
           }
@@ -31,6 +32,20 @@ export const excursionsApi = {
 
     const response = await api.get(`/excursions/?${searchParams.toString()}`)
     return response.data
+  },
+
+  getExcursionsByIds: async (ids: number[]): Promise<Excursion[]> => {
+    if (!ids.length) {
+      return []
+    }
+
+    const searchParams = new URLSearchParams()
+    ids.forEach((id) => searchParams.append('ids', String(id)))
+
+    const response = await api.get(`/excursions/?${searchParams.toString()}`)
+    const data = response.data
+
+    return Array.isArray(data) ? data : data.results
   },
 
   getMaxPrice: async (): Promise<number> => {

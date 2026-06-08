@@ -10,7 +10,7 @@ export interface TourOrderCreateRequest {
   phone?: string
   email?: string
   num_participants: number
-  contact_method: 'call' | 'whatsapp' | 'telegram' | 'email'
+  contact_method: 'call' | 'whatsapp' | 'telegram' | 'max' | 'email'
   comment?: string
   save_to_profile?: boolean
 }

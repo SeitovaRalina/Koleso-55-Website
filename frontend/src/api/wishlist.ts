@@ -8,7 +8,7 @@ export const wishlistApi = {
   },
 
   addToWishlist: async (excursionId: number) => {
-    const response = await api.post('/wishlist/add/', { excursion_id: excursionId })
+    const response = await api.post('/wishlist/add/', { excursion: excursionId })
     return response.data
   },
 

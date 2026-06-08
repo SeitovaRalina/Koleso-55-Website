@@ -1,12 +1,16 @@
-import { useMutation } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
 import { wishlistApi } from '../../api/wishlist'
+import { getMediaUrl } from '../../utils/media'
 import type { Excursion, ExcursionSlot } from '../../types'
 import { Badge } from './Badge'
+import { FavoriteIcon } from './FavoriteIcon'
+import { ImagePlaceholder } from './ImagePlaceholder'
+import { useAuth } from '../../contexts/useAuth'
 
 interface ExcursionCardProps {
   excursion: Excursion
-  source?: 'search' | 'catalog' | 'recommendation' | 'similar' | 'direct'
+  source?: 'search' | 'catalog' | 'recommendation' | 'similar' | 'direct' | 'wishlist'
   compact?: boolean
 }
 
@@ -39,42 +43,86 @@ function getSlotBadge(slots?: ExcursionSlot[]) {
 }
 
 export function ExcursionCard({ excursion, source = 'direct' }: ExcursionCardProps) {
-  const imageUrl = excursion.main_image || '/hero-bg.jpg'
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { isAuthenticated } = useAuth()
+  const imageUrl = getMediaUrl(excursion.main_image)
   const categoryName = excursion.category?.name || 'Экскурсия'
   const slotBadge = getSlotBadge(excursion.nearest_slots)
-  const favoriteMutation = useMutation({
-    mutationFn: () => wishlistApi.addToWishlist(excursion.id),
+  
+  // Check initial wishlist status
+  const { data: wishlistCheck } = useQuery({
+    queryKey: ['wishlist-check', excursion.id],
+    queryFn: () => wishlistApi.checkInWishlist(excursion.id),
+    enabled: isAuthenticated,
   })
+
+  const isFavorite = wishlistCheck?.is_in_wishlist ?? false
+
+  const favoriteMutation = useMutation({
+    mutationFn: () =>
+      isFavorite
+        ? wishlistApi.removeFromWishlist(excursion.id)
+        : wishlistApi.addToWishlist(excursion.id),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['wishlist-check', excursion.id] })
+      const previous = queryClient.getQueryData<{ is_in_wishlist: boolean }>([
+        'wishlist-check',
+        excursion.id,
+      ])
+      queryClient.setQueryData(['wishlist-check', excursion.id], {
+        is_in_wishlist: !isFavorite,
+      })
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['wishlist-check', excursion.id], context.previous)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] })
+      queryClient.invalidateQueries({ queryKey: ['wishlist-check', excursion.id] })
+    },
+  })
+
+  const handleFavoriteClick = (event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    
+    if (!isAuthenticated) {
+      navigate('/login')
+      return
+    }
+    
+    favoriteMutation.mutate()
+  }
 
   return (
     <article className='group overflow-hidden rounded-card border border-neutral-line bg-white shadow-sm transition hover:shadow-editorial'>
       <Link to={`/excursion/${excursion.id}`} state={{ source }} className='block'>
         <div className='relative aspect-[3/4] overflow-hidden bg-brand-mist'>
-          <img
-            src={imageUrl}
-            alt={excursion.title}
-            className='h-full w-full object-cover transition duration-500 group-hover:scale-105'
-          />
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={excursion.title}
+              className='h-full w-full object-cover transition duration-500 group-hover:scale-105'
+            />
+          ) : (
+            <ImagePlaceholder className='h-full w-full' />
+          )}
           <div className='absolute left-3 top-3'>
             <Badge variant='category'>{categoryName}</Badge>
           </div>
           <div className='absolute right-3 top-3'>
             <button
               type='button'
-              aria-label='Добавить в избранное'
-              className='flex h-10 w-10 items-center justify-center rounded-full bg-transparent text-brand-deep transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-deep disabled:cursor-not-allowed disabled:opacity-60'
+              aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+              className='flex h-10 w-10 items-center justify-center rounded-full bg-transparent transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-deep disabled:cursor-not-allowed disabled:opacity-60'
               disabled={favoriteMutation.isPending}
-              onClick={event => {
-                event.preventDefault()
-                event.stopPropagation()
-                favoriteMutation.mutate()
-              }}
+              onClick={handleFavoriteClick}
             >
-              <img
-                src={favoriteMutation.isSuccess ? '/icons/like-active-icon.svg' : '/icons/like-icon.svg'}
-                alt=''
-                className='h-7 w-7 drop-shadow'
-              />
+              <FavoriteIcon active={isFavorite} className='h-7 w-7 drop-shadow' />
             </button>
           </div>
           {slotBadge && (

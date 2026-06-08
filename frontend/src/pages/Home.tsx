@@ -19,6 +19,7 @@ import {
   EmptyState,
   ErrorState,
   ExcursionCard,
+  ImagePlaceholder,
   Input,
   Select,
   Skeleton,
@@ -343,11 +344,7 @@ function ReviewsPanel({
   if (query.isError || !review) {
     return (
       <article className='p-6'>
-        <img
-          src='/hero-bg.jpg'
-          alt='Команда на экскурсии'
-          className='h-72 w-full rounded-card object-cover md:h-80'
-        />
+        <ImagePlaceholder className='h-72 w-full rounded-card md:h-80' />
         <div className='mt-5 flex items-center justify-between gap-4'>
           <h3 className='font-bold'>Наталья Климон</h3>
           <span className='text-[#f5b400]'>★★★★★</span>
@@ -362,11 +359,15 @@ function ReviewsPanel({
 
   return (
     <article className='p-6'>
-      <img
-        src={review.main_photo || '/hero-bg.jpg'}
-        alt={review.author_name}
-        className='h-72 w-full rounded-card object-cover md:h-80'
-      />
+      {review.main_photo ? (
+        <img
+          src={review.main_photo}
+          alt={review.author_name}
+          className='h-72 w-full rounded-card object-cover md:h-80'
+        />
+      ) : (
+        <ImagePlaceholder className='h-72 w-full rounded-card md:h-80' />
+      )}
       <div className='mt-5 flex items-center justify-between gap-4'>
         <div>
           <h3 className='font-bold'>{review.author_name}</h3>

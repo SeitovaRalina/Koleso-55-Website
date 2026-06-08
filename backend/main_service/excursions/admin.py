@@ -6,7 +6,7 @@ from django.conf import settings
 
 from reviews.admin import ReviewInline
 from analytics.services import publish_recommendation_event
-from .models import Category, Excursion, ExcursionImage, Slot
+from .models import Category, Excursion, ExcursionImage, ExcursionProgramDay, Slot, TicketType
 
 
 class ExcursionImageInline(admin.TabularInline):
@@ -16,6 +16,16 @@ class ExcursionImageInline(admin.TabularInline):
 
 class SlotInline(admin.TabularInline):
     model = Slot
+    extra = 1
+
+
+class ExcursionProgramDayInline(admin.TabularInline):
+    model = ExcursionProgramDay
+    extra = 1
+
+
+class TicketTypeInline(admin.TabularInline):
+    model = TicketType
     extra = 1
 
 
@@ -45,17 +55,23 @@ class ExcursionAdmin(admin.ModelAdmin):
     list_filter = ['category', 'is_active', 'location_type', 'created_at']
     search_fields = ['title', 'description', 'short_description']
     prepopulated_fields = {'slug': ('title',)}
-    inlines = [ExcursionImageInline, SlotInline, ReviewInline]
+    inlines = [ExcursionImageInline, SlotInline, TicketTypeInline, ExcursionProgramDayInline, ReviewInline]
     
     # Массовые действия
     actions = ['activate_excursions', 'deactivate_excursions', 'retrain_recommendation_model', 'show_recommendation_stats']
     
     fieldsets = (
         (None, {
-            'fields': ('title', 'slug', 'category', 'location_type')
+            'fields': ('title', 'slug', 'category', 'location_type', 'tour_format')
         }),
         (_('Описание'), {
             'fields': ('short_description', 'description')
+        }),
+        (_('Детали экскурсии'), {
+            'fields': (
+                'group_size', 'included_in_price', 'not_included_in_price',
+                'what_to_bring', 'meeting_point'
+            )
         }),
         (_('Параметры'), {
             'fields': ('price', 'duration', 'is_active')

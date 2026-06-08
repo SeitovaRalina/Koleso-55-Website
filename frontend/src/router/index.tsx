@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
+import RootLayout from '../components/layout/RootLayout'
 import MainLayout from '../components/layout/MainLayout'
 import Home from '../pages/Home'
 import Catalog from '../pages/Catalog'
@@ -21,10 +22,13 @@ const UiKit = import.meta.env.DEV ? lazy(() => import('../pages/UiKit')) : null
 
 export const router = createBrowserRouter([
     {
-        path: '/',
-        element: <MainLayout />,
-        errorElement: <NotFound />,
+        element: <RootLayout />,
         children: [
+            {
+                path: '/',
+                element: <MainLayout />,
+                errorElement: <NotFound />,
+                children: [
             {
                 index: true,
                 element: <Home />,
@@ -73,26 +77,28 @@ export const router = createBrowserRouter([
                     </Suspense>
                 ) : null,
             }] : []),
+                ],
+            },
+            {
+                path: '/login',
+                element: <Login />,
+            },
+            {
+                path: '/register',
+                element: <Register />,
+            },
+            {
+                path: '/password-reset',
+                element: <PasswordReset />,
+            },
+            {
+                path: '/password-reset/:uidb64/:token',
+                element: <PasswordResetConfirm />,
+            },
+            {
+                path: '/google-callback',
+                element: <GoogleCallback />,
+            },
         ],
-    },
-    {
-        path: '/login',
-        element: <Login />,
-    },
-    {
-        path: '/register',
-        element: <Register />,
-    },
-    {
-        path: '/password-reset',
-        element: <PasswordReset />,
-    },
-    {
-        path: '/password-reset/:uidb64/:token',
-        element: <PasswordResetConfirm />,
-    },
-    {
-        path: '/google-callback',
-        element: <GoogleCallback />,
     },
 ])

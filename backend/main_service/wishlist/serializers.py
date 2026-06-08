@@ -4,8 +4,9 @@ from datetime import datetime
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema, extend_schema_field
 from drf_spectacular.types import OpenApiTypes
-from .models import Wishlist
+from excursions.models import Excursion
 from excursions.serializers import ExcursionListSerializer
+from .models import Wishlist
 
 
 class WishlistSerializer(serializers.ModelSerializer):
@@ -62,26 +63,16 @@ class WishlistListSerializer(serializers.ModelSerializer):
 
 class WishlistCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для добавления экскурсии в избранное"""
-    
-    excursion = serializers.IntegerField(
+
+    excursion = serializers.PrimaryKeyRelatedField(
         label="Экскурсия",
-        help_text="ID экскурсии для добавления в избранное"
+        help_text="ID экскурсии для добавления в избранное",
+        queryset=Excursion.objects.filter(is_active=True),
     )
 
     class Meta:
         model = Wishlist
         fields = ['excursion']
-
-    def validate_excursion(self, value):
-        """Проверка существования и активности экскурсии"""
-        from excursions.models import Excursion
-        try:
-            excursion = Excursion.objects.get(id=value, is_active=True)
-            return excursion
-        except Excursion.DoesNotExist:
-            raise serializers.ValidationError(
-                "Экскурсия не найдена или неактивна"
-            )
 
 
 class WishlistCheckSerializer(serializers.Serializer):

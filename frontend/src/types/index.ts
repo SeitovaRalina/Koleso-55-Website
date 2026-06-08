@@ -12,16 +12,39 @@ export interface Excursion {
   description?: string
   category: Category
   location_type_display: string
+  tour_format_display: string
+  group_size: number
+  included_in_price?: string
+  not_included_in_price?: string
+  what_to_bring?: string
+  meeting_point?: string
   price: string
   duration: number
   average_rating: number | null
   review_count: number
+  rating_distribution?: { 1: number; 2: number; 3: number; 4: number; 5: number }
   main_image: string | null
   images?: ExcursionImage[]
   slots?: ExcursionSlot[]
   nearest_slots?: ExcursionSlot[]
+  program_days?: ExcursionProgramDay[]
+  ticket_types?: TicketType[]
   is_active?: boolean
   approved_reviews?: Review[]
+}
+
+export interface ExcursionProgramDay {
+  id: number
+  day_number: number
+  title: string
+  description: string
+}
+
+export interface TicketType {
+  id: number
+  name: string
+  price: string
+  is_active: boolean
 }
 
 export interface ExcursionImage {
@@ -81,6 +104,8 @@ export interface HomepageReview {
 
 export interface Booking {
   id: number
+  excursion_id?: number
+  excursion_slug?: string
   excursion_title: string
   slot_datetime: string
   slot_date?: string

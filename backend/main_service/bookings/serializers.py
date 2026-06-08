@@ -92,7 +92,9 @@ class TourOrderCreateSerializer(serializers.ModelSerializer):
         return order
 
 class TourOrderListSerializer(serializers.ModelSerializer):
+    excursion_id = serializers.IntegerField(source='excursion.id', read_only=True)
     excursion_title = serializers.CharField(source='excursion.title', read_only=True)
+    excursion_slug = serializers.CharField(source='excursion.slug', read_only=True)
     slot_datetime = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     contact_method_display = serializers.CharField(source='get_contact_method_display', read_only=True)
@@ -100,7 +102,7 @@ class TourOrderListSerializer(serializers.ModelSerializer):
     class Meta:
         model = TourOrder
         fields = [
-            'id', 'excursion_title', 'slot_datetime', 'num_participants',
+            'id', 'excursion_id', 'excursion_title', 'excursion_slug', 'slot_datetime', 'num_participants',
             'status', 'status_display', 'created_at', 'contact_method_display'
         ]
 

@@ -47,6 +47,13 @@ class ExcursionFilter(django_filters.FilterSet):
         label="Дата до",
     )
 
+    ids = django_filters.BaseInFilter(
+        field_name="id",
+        lookup_expr="in",
+        label="ID экскурсий",
+        help_text="Фильтр по списку ID экскурсий.",
+    )
+
     class Meta:
         model = Excursion
         fields = []

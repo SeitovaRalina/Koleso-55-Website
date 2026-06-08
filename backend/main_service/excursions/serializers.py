@@ -5,7 +5,7 @@ from datetime import date, time
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from .models import Excursion, Category, ExcursionImage, Slot
+from .models import Excursion, Category, ExcursionImage, Slot, ExcursionProgramDay, TicketType
 from reviews.serializers import ReviewListSerializer
 
 
@@ -43,7 +43,8 @@ class ExcursionImageSerializer(serializers.ModelSerializer):
     )
     image = serializers.ImageField(
         label="Изображение",
-        help_text="Фотография экскурсии"
+        help_text="Фотография экскурсии",
+        use_url=True
     )
     alt_text = serializers.CharField(
         label="Alt-текст",
@@ -108,6 +109,62 @@ class SlotSerializer(serializers.ModelSerializer):
             'id', 'date', 'time', 'max_participants',
             'available_seats', 'is_available', 'price_override'
         ]
+
+
+class ExcursionProgramDaySerializer(serializers.ModelSerializer):
+    """Сериализатор дней программы для многодневных туров"""
+    
+    id = serializers.IntegerField(
+        label="ID",
+        help_text="Уникальный идентификатор дня программы",
+        read_only=True
+    )
+    day_number = serializers.IntegerField(
+        label="Номер дня",
+        help_text="Порядковый номер дня в туре"
+    )
+    title = serializers.CharField(
+        label="Заголовок дня",
+        help_text="Название или тема дня",
+        max_length=200
+    )
+    description = serializers.CharField(
+        label="Описание программы дня",
+        help_text="Подробное описание программы на этот день"
+    )
+
+    class Meta:
+        model = ExcursionProgramDay
+        fields = ['id', 'day_number', 'title', 'description']
+
+
+class TicketTypeSerializer(serializers.ModelSerializer):
+    """Сериализатор типов билетов"""
+    
+    id = serializers.IntegerField(
+        label="ID",
+        help_text="Уникальный идентификатор типа билета",
+        read_only=True
+    )
+    name = serializers.CharField(
+        label="Название типа",
+        help_text="Например: Взрослый, Детский, Студенческий",
+        max_length=50
+    )
+    price = serializers.DecimalField(
+        label="Цена",
+        help_text="Цена билета данного типа",
+        max_digits=10,
+        decimal_places=2
+    )
+    is_active = serializers.BooleanField(
+        label="Активен",
+        help_text="Доступен ли данный тип билета для бронирования"
+    )
+
+    class Meta:
+        model = TicketType
+        fields = ['id', 'name', 'price', 'is_active']
 
 
 class ExcursionListSerializer(serializers.ModelSerializer):
@@ -250,6 +307,51 @@ class ExcursionDetailSerializer(serializers.ModelSerializer):
         source='get_location_type_display',
         read_only=True
     )
+    tour_format_display = serializers.CharField(
+        label="Формат поездки",
+        help_text="Отображаемое название формата поездки",
+        source='get_tour_format_display',
+        read_only=True
+    )
+    group_size = serializers.IntegerField(
+        label="Размер группы",
+        help_text="Максимальное количество человек в группе"
+    )
+    is_multi_day = serializers.BooleanField(
+        label="Многодневный тур",
+        help_text="Является ли экскурсия многодневным туром"
+    )
+    included_in_price = serializers.CharField(
+        label="Что входит в стоимость",
+        help_text="Перечень услуг, включенных в стоимость",
+        allow_blank=True,
+        required=False
+    )
+    not_included_in_price = serializers.CharField(
+        label="Что не входит в стоимость",
+        help_text="Перечень услуг, не включенных в стоимость",
+        allow_blank=True,
+        required=False
+    )
+    what_to_bring = serializers.CharField(
+        label="Что взять с собой",
+        help_text="Рекомендации по вещам и экипировке",
+        allow_blank=True,
+        required=False
+    )
+    meeting_point = serializers.CharField(
+        label="Место встречи",
+        help_text="Место сбора группы",
+        allow_blank=True,
+        required=False,
+        max_length=500
+    )
+    departure_time = serializers.TimeField(
+        label="Время отправления",
+        help_text="Время начала экскурсии",
+        allow_null=True,
+        required=False
+    )
     images = ExcursionImageSerializer(
         label="Изображения",
         help_text="Все изображения экскурсии",
@@ -278,13 +380,32 @@ class ExcursionDetailSerializer(serializers.ModelSerializer):
         label="Количество отзывов",
         help_text="Количество одобренных отзывов"
     )
+    rating_distribution = serializers.SerializerMethodField(
+        label="Распределение оценок",
+        help_text="Распределение отзывов по звёздам"
+    )
+    program_days = ExcursionProgramDaySerializer(
+        label="Программа по дням",
+        help_text="Программа для многодневных туров",
+        many=True,
+        read_only=True
+    )
+    ticket_types = TicketTypeSerializer(
+        label="Типы билетов",
+        help_text="Доступные типы билетов",
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = Excursion
         fields = [
             'id', 'title', 'slug', 'description', 'short_description',
-            'price', 'duration', 'category', 'location_type_display', 'images', 'slots', 'is_active',
-            'approved_reviews', 'average_rating', 'review_count'
+            'price', 'duration', 'category', 'location_type_display', 'tour_format_display',
+            'group_size', 'is_multi_day', 'included_in_price', 'not_included_in_price',
+            'what_to_bring', 'meeting_point', 'departure_time', 'images', 'slots', 'is_active',
+            'approved_reviews', 'average_rating', 'review_count', 'rating_distribution',
+            'program_days', 'ticket_types'
         ]
 
     @extend_schema_field(ReviewListSerializer(many=True))
@@ -304,6 +425,20 @@ class ExcursionDetailSerializer(serializers.ModelSerializer):
     def get_review_count(self, obj):
         """Количество одобренных отзывов"""
         return obj.reviews.filter(status='approved').count()
+
+    @extend_schema_field(serializers.DictField())
+    def get_rating_distribution(self, obj):
+        """Распределение отзывов по звёздам"""
+        from django.db.models import Count
+        distribution = obj.reviews.filter(status='approved').values('rating').annotate(
+            count=Count('id')
+        ).order_by('rating')
+        
+        result = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        for item in distribution:
+            result[item['rating']] = item['count']
+        
+        return result
 
 
 class ExcursionInternalSerializer(serializers.ModelSerializer):

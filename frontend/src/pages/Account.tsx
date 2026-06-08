@@ -1,17 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../contexts/useAuth'
 import { authApi } from '../api/auth'
 import { bookingsApi } from '../api/bookings'
 import { wishlistApi } from '../api/wishlist'
 import { recommendationsApi } from '../api/recommendations'
+import { ExcursionCard } from '../components/ui/ExcursionCard'
+import { useHydratedExcursions } from '../hooks/useHydratedExcursions'
 import type { Booking } from '../types'
 import { getApiErrorMessage } from '../utils/apiError'
+
+const accountTabs = ['profile', 'bookings', 'favorites', 'recommendations'] as const
+type AccountTab = typeof accountTabs[number]
+
+function getAccountTab(value: string | null): AccountTab {
+  return accountTabs.includes(value as AccountTab) ? (value as AccountTab) : 'profile'
+}
 
 export default function Account() {
   const { user, updateUser, logout } = useAuth()
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState('profile')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [activeTab, setActiveTab] = useState<AccountTab>(() => getAccountTab(searchParams.get('tab')))
   const [profileForm, setProfileForm] = useState({
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
@@ -20,6 +31,10 @@ export default function Account() {
   })
   const [profileError, setProfileError] = useState('')
   const [isSavingProfile, setIsSavingProfile] = useState(false)
+
+  useEffect(() => {
+    setActiveTab(getAccountTab(searchParams.get('tab')))
+  }, [searchParams])
 
   const { data: bookings, isLoading: isLoadingBookings } = useQuery({
     queryKey: ['my-orders'],
@@ -31,23 +46,25 @@ export default function Account() {
     queryFn: () => wishlistApi.getWishlist(),
   })
 
-  const { data: recommendations } = useQuery({
+  const { data: recommendations, isLoading: isLoadingRecommendations } = useQuery({
     queryKey: ['recommendations', user?.id],
     queryFn: () => recommendationsApi.getUserRecommendations(user!.id),
     enabled: !!user?.id,
   })
 
+  const recommendationIds = useMemo(
+    () => recommendations?.map((item) => item.excursion_id) ?? [],
+    [recommendations],
+  )
+
+  const { data: recommendedExcursions = [], isLoading: isLoadingRecommended } = useHydratedExcursions(
+    recommendationIds,
+  )
+
   const cancelOrderMutation = useMutation({
     mutationFn: (orderId: number) => bookingsApi.cancelOrder(orderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-orders'] })
-    },
-  })
-
-  const removeFromWishlistMutation = useMutation({
-    mutationFn: (excursionId: number) => wishlistApi.removeFromWishlist(excursionId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wishlist'] })
     },
   })
 
@@ -73,14 +90,6 @@ export default function Account() {
       } catch (error) {
         console.error('Failed to cancel order:', error)
       }
-    }
-  }
-
-  const handleRemoveFromWishlist = async (excursionId: number) => {
-    try {
-      await removeFromWishlistMutation.mutateAsync(excursionId)
-    } catch (error) {
-      console.error('Failed to remove from wishlist:', error)
     }
   }
 
@@ -114,10 +123,13 @@ export default function Account() {
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="border-b">
             <nav className="flex -mb-px">
-              {['profile', 'bookings', 'favorites', 'recommendations'].map((tab) => (
+              {accountTabs.map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => {
+                    setActiveTab(tab)
+                    setSearchParams(tab === 'profile' ? {} : { tab })
+                  }}
                   className={`px-6 py-4 text-sm font-medium ${
                     activeTab === tab
                       ? 'border-b-2 border-blue-500 text-blue-600'
@@ -224,7 +236,16 @@ export default function Account() {
                     {bookings?.results.map((booking: Booking) => (
                       <div key={booking.id} className="border rounded-lg p-4">
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-medium">{booking.excursion_title}</h3>
+                          {booking.excursion_id ? (
+                            <Link
+                              to={`/excursion/${booking.excursion_id}`}
+                              className="font-medium text-gray-900 hover:text-blue-600 hover:underline"
+                            >
+                              {booking.excursion_title}
+                            </Link>
+                          ) : (
+                            <h3 className="font-medium">{booking.excursion_title}</h3>
+                          )}
                           {getStatusBadge(booking.status)}
                         </div>
                         <div className="text-sm text-gray-600 space-y-1">
@@ -259,30 +280,10 @@ export default function Account() {
                     У вас пока нет избранных экскурсий
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {wishlist?.results.map((item) => {
-                      const excursion = item.excursion
-                      return (
-                      <div key={item.id} className="border rounded-lg overflow-hidden">
-                        {excursion.main_image && (
-                          <img
-                            src={excursion.main_image}
-                            alt={excursion.title}
-                            className="w-full h-48 object-cover"
-                          />
-                        )}
-                        <div className="p-4">
-                          <h3 className="font-medium mb-2">{excursion.title}</h3>
-                          <p className="text-blue-600 font-medium">{excursion.price} ₽</p>
-                          <button
-                            onClick={() => handleRemoveFromWishlist(excursion.id)}
-                            className="mt-2 text-sm text-red-600 hover:text-red-700"
-                          >
-                            Удалить из избранного
-                          </button>
-                        </div>
-                      </div>
-                    )})}
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                    {wishlist?.results.map((item) => (
+                      <ExcursionCard key={item.id} excursion={item.excursion} source="wishlist" />
+                    ))}
                   </div>
                 )}
               </div>
@@ -290,25 +291,18 @@ export default function Account() {
 
             {activeTab === 'recommendations' && (
               <div>
-                {recommendations && recommendations.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {recommendations.map((rec) => (
-                      <div key={rec.excursion_id} className="border rounded-lg overflow-hidden">
-                        {rec.excursion?.main_image && (
-                          <img
-                            src={rec.excursion.main_image}
-                            alt={rec.excursion.title}
-                            className="w-full h-48 object-cover"
-                          />
-                        )}
-                        <div className="p-4">
-                          <h3 className="font-medium mb-2">{rec.excursion?.title}</h3>
-                          <p className="text-sm text-gray-600 mb-2">
-                            {rec.excursion?.short_description}
-                          </p>
-                          <p className="text-blue-600 font-medium">{rec.excursion?.price} ₽</p>
-                        </div>
-                      </div>
+                {isLoadingRecommendations || isLoadingRecommended ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  </div>
+                ) : recommendedExcursions.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                    {recommendedExcursions.map((excursion) => (
+                      <ExcursionCard
+                        key={excursion.id}
+                        excursion={excursion}
+                        source="recommendation"
+                      />
                     ))}
                   </div>
                 ) : (
