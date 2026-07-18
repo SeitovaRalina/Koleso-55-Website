@@ -21,7 +21,7 @@ export const recommendationsApi = {
     const response = await axios.get<RecommendationResponse>(
       `${RECOMMENDER_URL}/recommendations/user/${userId}`,
       {
-        params: { limit, exclude_interacted: excludeInteracted },
+        params: { top_k: limit, exclude_interacted: excludeInteracted },
       },
     )
     return response.data.recommendations || []

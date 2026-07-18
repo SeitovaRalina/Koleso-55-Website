@@ -165,8 +165,7 @@ class HomepageReviewSerializer(serializers.ModelSerializer):
         if obj.homepage_main_photo:
             return obj.homepage_main_photo.url
 
-        main_excursion_image = obj.excursion.images.filter(is_main=True).first()
-        return main_excursion_image.image.url if main_excursion_image else None
+        return None
 
 
 class ReviewUpdateSerializer(serializers.ModelSerializer):

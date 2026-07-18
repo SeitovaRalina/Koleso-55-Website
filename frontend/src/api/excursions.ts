@@ -40,7 +40,7 @@ export const excursionsApi = {
     }
 
     const searchParams = new URLSearchParams()
-    ids.forEach((id) => searchParams.append('ids', String(id)))
+    searchParams.set('ids', ids.join(','))
 
     const response = await api.get(`/excursions/?${searchParams.toString()}`)
     const data = response.data

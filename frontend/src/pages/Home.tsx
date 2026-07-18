@@ -1,9 +1,16 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { Autoplay, Navigation, Pagination } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/navigation'
+import 'swiper/css/pagination'
 import {
   FaArrowRight,
   FaCheck,
+  FaChevronLeft,
+  FaChevronRight,
   FaEnvelope,
   FaHeadset,
   FaPhone,
@@ -25,6 +32,7 @@ import {
   Skeleton,
 } from '../components/ui'
 import { CONTACTS, REVIEW_LINKS } from '../config/contacts'
+import { getMediaUrl } from '../utils/media'
 import type { Excursion, HomepageReview } from '../types'
 
 const locationTypes = [
@@ -229,8 +237,8 @@ export default function Home() {
           <h2 className='text-3xl font-bold md:text-4xl'>
             Отзывы наших клиентов
           </h2>
-          <div className='mt-5 grid overflow-hidden rounded-card bg-white shadow-sm lg:grid-cols-[1.1fr_1fr]'>
-            <ReviewsPanel query={homepageReviewsQuery} />
+          <div className='mt-5 grid overflow-hidden rounded-card bg-white shadow-sm lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]'>
+            <SimpleHomepageReviewsCarousel query={homepageReviewsQuery} />
             <OrganizationPanel />
           </div>
         </div>
@@ -326,12 +334,12 @@ function ExcursionSection({ title, query }: ExcursionSectionProps) {
   )
 }
 
-function ReviewsPanel({
+function HomepageReviewsCarousel({
   query,
 }: {
   query: { data?: HomepageReview[]; isLoading: boolean; isError: boolean }
 }) {
-  const review = query.data?.[0]
+  const reviews = query.data || []
 
   if (query.isLoading) {
     return (
@@ -341,9 +349,9 @@ function ReviewsPanel({
     )
   }
 
-  if (query.isError || !review) {
+  if (query.isError || reviews.length === 0) {
     return (
-      <article className='p-6'>
+      <article className='min-w-0 p-6'>
         <ImagePlaceholder className='h-72 w-full rounded-card md:h-80' />
         <div className='mt-5 flex items-center justify-between gap-4'>
           <h3 className='font-bold'>Наталья Климон</h3>
@@ -358,12 +366,69 @@ function ReviewsPanel({
   }
 
   return (
-    <article className='p-6'>
-      {review.main_photo ? (
+    <article className='relative min-w-0 overflow-hidden p-6'>
+      <Swiper
+        modules={[Autoplay, Navigation, Pagination]}
+        slidesPerView={1}
+        loop={reviews.length > 1}
+        autoplay={
+          reviews.length > 1
+            ? { delay: 5500, disableOnInteraction: false, pauseOnMouseEnter: true }
+            : false
+        }
+        navigation={{
+          prevEl: '.home-reviews-prev',
+          nextEl: '.home-reviews-next',
+        }}
+        pagination={{
+          clickable: true,
+          el: '.home-reviews-pagination',
+        }}
+        className='home-reviews-swiper w-full max-w-full overflow-hidden pb-10'
+      >
+        {reviews.map(review => (
+          <SwiperSlide key={review.id}>
+            <ReviewSlide review={review} />
+          </SwiperSlide>
+        ))}
+      </Swiper>
+
+      {reviews.length > 1 && (
+        <>
+          <button
+            type='button'
+            className='home-reviews-prev absolute left-8 top-[178px] z-10 flex h-10 w-10 items-center justify-center rounded-full border border-neutral-line bg-white/95 text-neutral-ink shadow-sm transition hover:border-brand-sky hover:text-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky md:top-[198px]'
+            aria-label='Предыдущий отзыв'
+          >
+            <FaChevronLeft className='h-4 w-4' aria-hidden='true' />
+          </button>
+          <button
+            type='button'
+            className='home-reviews-next absolute right-8 top-[178px] z-10 flex h-10 w-10 items-center justify-center rounded-full border border-neutral-line bg-white/95 text-neutral-ink shadow-sm transition hover:border-brand-sky hover:text-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky md:top-[198px]'
+            aria-label='Следующий отзыв'
+          >
+            <FaChevronRight className='h-4 w-4' aria-hidden='true' />
+          </button>
+          <div className='home-reviews-pagination absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 justify-center gap-2' />
+        </>
+      )}
+    </article>
+  )
+}
+
+function ReviewSlide({ review }: { review: HomepageReview }) {
+  const [isImageBroken, setIsImageBroken] = useState(false)
+  const photoUrl = getMediaUrl(review.main_photo)
+  const rating = Math.max(0, Math.min(5, review.rating))
+
+  return (
+    <div className='min-w-0'>
+      {photoUrl && !isImageBroken ? (
         <img
-          src={review.main_photo}
-          alt={review.author_name}
+          src={photoUrl}
+          alt={`${review.author_name}: ${review.excursion_title}`}
           className='h-72 w-full rounded-card object-cover md:h-80'
+          onError={() => setIsImageBroken(true)}
         />
       ) : (
         <ImagePlaceholder className='h-72 w-full rounded-card md:h-80' />
@@ -371,18 +436,122 @@ function ReviewsPanel({
       <div className='mt-5 flex items-center justify-between gap-4'>
         <div>
           <h3 className='font-bold'>{review.author_name}</h3>
-          <p className='text-xs text-neutral-text'>{review.excursion_title}</p>
+          <Link
+            to={`/excursion/${review.excursion_id}`}
+            className='text-xs text-neutral-text transition hover:text-brand-deep'
+          >
+            {review.excursion_title}
+          </Link>
         </div>
-        <span className='text-[#f5b400]'>{'★'.repeat(review.rating)}</span>
+        <span className='shrink-0 text-[#f5b400]' aria-label={`Рейтинг ${rating} из 5`}>
+          {'★'.repeat(rating)}
+        </span>
       </div>
       <p className='mt-4 text-sm leading-6 text-neutral-text'>{review.text}</p>
+    </div>
+  )
+}
+
+void HomepageReviewsCarousel
+
+function SimpleHomepageReviewsCarousel({
+  query,
+}: {
+  query: { data?: HomepageReview[]; isLoading: boolean; isError: boolean }
+}) {
+  const reviews = query.data || []
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  useEffect(() => {
+    if (reviews.length <= 1) return undefined
+
+    const timerId = window.setInterval(() => {
+      setActiveIndex(index => (index + 1) % reviews.length)
+    }, 5500)
+
+    return () => window.clearInterval(timerId)
+  }, [reviews.length])
+
+  if (query.isLoading) {
+    return (
+      <div className='min-w-0 p-6'>
+        <Skeleton className='h-[500px]' />
+      </div>
+    )
+  }
+
+  if (query.isError || reviews.length === 0) {
+    return (
+      <article className='min-w-0 p-6'>
+        <ImagePlaceholder className='h-72 w-full rounded-card md:h-80' />
+        <div className='mt-5 flex items-center justify-between gap-4'>
+          <h3 className='font-bold'>Наталья Климон</h3>
+          <span className='text-[#f5b400]'>★★★★★</span>
+        </div>
+        <p className='mt-4 text-sm leading-6 text-neutral-text'>
+          Отличная организация, понятный маршрут и живой рассказ. Все прошло
+          спокойно, вовремя и с вниманием к группе.
+        </p>
+      </article>
+    )
+  }
+
+  const safeActiveIndex = activeIndex >= reviews.length ? 0 : activeIndex
+  const activeReview = reviews[safeActiveIndex] || reviews[0]
+  const showControls = reviews.length > 1
+
+  const showPrevious = () => {
+    setActiveIndex(index => (index === 0 ? reviews.length - 1 : index - 1))
+  }
+
+  const showNext = () => {
+    setActiveIndex(index => (index + 1) % reviews.length)
+  }
+
+  return (
+    <article className='relative min-w-0 overflow-hidden p-6'>
+      <ReviewSlide review={activeReview} />
+
+      {showControls && (
+        <>
+          <button
+            type='button'
+            className='absolute left-8 top-[178px] z-10 flex h-10 w-10 items-center justify-center rounded-full border border-neutral-line bg-white/95 text-neutral-ink shadow-sm transition hover:border-brand-sky hover:text-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky md:top-[198px]'
+            aria-label='Предыдущий отзыв'
+            onClick={showPrevious}
+          >
+            <FaChevronLeft className='h-4 w-4' aria-hidden='true' />
+          </button>
+          <button
+            type='button'
+            className='absolute right-8 top-[178px] z-10 flex h-10 w-10 items-center justify-center rounded-full border border-neutral-line bg-white/95 text-neutral-ink shadow-sm transition hover:border-brand-sky hover:text-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky md:top-[198px]'
+            aria-label='Следующий отзыв'
+            onClick={showNext}
+          >
+            <FaChevronRight className='h-4 w-4' aria-hidden='true' />
+          </button>
+          <div className='mt-10 flex w-full items-center justify-center gap-3'>
+            {reviews.map((review, index) => (
+              <button
+                key={review.id}
+                type='button'
+                className={`h-2.5 rounded-full transition-all ${
+                  index === safeActiveIndex ? 'w-7 bg-brand-sky' : 'w-2.5 bg-neutral-line'
+                }`}
+                aria-label={`Показать отзыв ${index + 1}`}
+                onClick={() => setActiveIndex(index)}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </article>
   )
 }
 
 function OrganizationPanel() {
   return (
-    <aside className='relative flex items-center overflow-hidden bg-gradient-to-br from-brand-mist via-white to-heritage-cream p-8'>
+    <aside className='relative flex min-w-0 items-center overflow-hidden bg-gradient-to-br from-brand-mist via-white to-heritage-cream p-8'>
       <div className='absolute right-0 top-0 h-40 w-40 rounded-full bg-nature-green/12 blur-2xl' />
       <div className='absolute bottom-0 left-0 h-44 w-44 rounded-full bg-brand-sky/12 blur-2xl' />
       <div className='relative max-w-sm'>
