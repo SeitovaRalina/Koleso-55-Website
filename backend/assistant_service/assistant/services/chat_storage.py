@@ -1,5 +1,5 @@
 from django.core.cache import cache
-from assistant.models import ChatMessage, Client
+from backend.assistant_service.assistant.models import ChatMessage, Client
 
 class ChatStorageService:
     CONTEXT_LIMIT = 10 

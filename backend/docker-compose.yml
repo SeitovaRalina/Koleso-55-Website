@@ -165,7 +165,7 @@ services:
         restart: unless-stopped
 
     assistant_service:
-        build: ../
+        build: ./assistant_service
         container_name: assistant-service
         ports:
             - "${ASSISTANT_PORT:-8000}:8000"
@@ -185,8 +185,8 @@ services:
             - YANDEX_API_KEY=${YANDEX_API_KEY}
             - YANDEX_FOLDER_ID=${YANDEX_FOLDER_ID}
         volumes:
-            - ../:/app
-            - chroma_data:/app/chroma_data
+            - ./assistant_service:/app
+            - assistant_chroma_data:/data/chroma
         networks:
             - excursion_network
         restart: unless-stopped
@@ -243,6 +243,7 @@ volumes:
     redis_data:
     rabbitmq_data:
     chroma_data:
+    assistant_chroma_data:
 
 networks:
     excursion_network:
