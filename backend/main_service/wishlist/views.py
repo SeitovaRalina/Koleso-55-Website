@@ -11,6 +11,7 @@ from .serializers import (
     WishlistListSerializer,
     WishlistSerializer,
 )
+from analytics.services import publish_recommendation_event
 
 
 @extend_schema(
@@ -42,7 +43,13 @@ class WishlistCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        wishlist = serializer.save(user=self.request.user)
+        publish_recommendation_event(
+            event_type="favorite",
+            user_id=self.request.user.id,
+            excursion_id=wishlist.excursion_id,
+            source="direct",
+        )
 
 
 @extend_schema(

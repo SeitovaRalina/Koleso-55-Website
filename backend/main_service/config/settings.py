@@ -13,7 +13,20 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+from decouple import config
+GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = config('GOOGLE_CLIENT_SECRET')
+
+# ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,main-service,recommender_api,recommender_worker').split(',')
+
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'main-service',  # имя сервиса в docker-compose
+    'recommender_api',
+    'recommender_worker',
+    '*',  # временно для тестирования
+]
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
@@ -24,6 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'corsheaders',
 
     'rest_framework',
     'rest_framework.authtoken',
@@ -46,12 +61,14 @@ INSTALLED_APPS = [
     'bookings',
     'reviews',
     'wishlist',
+    'analytics',
 ]
 
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -59,6 +76,17 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://main-service:3000",
+    "http://recommender_api:3000",
+    "http://recommender_worker:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'config.urls'
 
@@ -211,7 +239,12 @@ SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
-        'OAUTH_PKCE_ENABLED': True,
+        'OAUTH_PKCE_ENABLED': False,
+        'APP': {
+            'client_id': GOOGLE_CLIENT_ID,
+            'secret': GOOGLE_CLIENT_SECRET,
+            'key': '',
+        },
     },
     'vk': {
         'SCOPE': ['email'],
@@ -253,6 +286,9 @@ CELERY_TASK_MAX_RETRIES = 3              # Максимум попыток
 CELERY_TASK_ACKS_LATE = True             # Подтверждение ПОСЛЕ выполнения
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1    # Брать по 1 задаче за раз
 CELERY_TASK_IGNORE_RESULT = True         # Не хранить результаты задач
+CELERY_TASK_DEFAULT_QUEUE = 'django'
+CELERY_TASK_DEFAULT_EXCHANGE = 'django'
+CELERY_TASK_DEFAULT_ROUTING_KEY = 'django'
 # CELERY_TASK_ROUTES = {
 #     'accounts.tasks.send_verification_email_task': {'queue': 'email'},
 # }
@@ -260,3 +296,4 @@ CELERY_TASK_IGNORE_RESULT = True         # Не хранить результа�
 # Domain configuration for email links
 DOMAIN = os.environ.get('DOMAIN', 'localhost:8001')
 PROTOCOL = os.environ.get('PROTOCOL', 'http')
+RECOMMENDER_BASE_URL = os.environ.get('RECOMMENDER_BASE_URL', 'http://recommender_api:8000')

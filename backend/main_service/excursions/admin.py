@@ -1,9 +1,12 @@
-from django.contrib import admin
+import requests
+from django.contrib import admin, messages
 from django.utils.formats import localize
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
 
 from reviews.admin import ReviewInline
-from .models import Category, Excursion, ExcursionImage, Slot
+from analytics.services import publish_recommendation_event
+from .models import Category, Excursion, ExcursionImage, ExcursionProgramDay, Slot, TicketType
 
 
 class ExcursionImageInline(admin.TabularInline):
@@ -13,6 +16,16 @@ class ExcursionImageInline(admin.TabularInline):
 
 class SlotInline(admin.TabularInline):
     model = Slot
+    extra = 1
+
+
+class ExcursionProgramDayInline(admin.TabularInline):
+    model = ExcursionProgramDay
+    extra = 1
+
+
+class TicketTypeInline(admin.TabularInline):
+    model = TicketType
     extra = 1
 
 
@@ -42,17 +55,23 @@ class ExcursionAdmin(admin.ModelAdmin):
     list_filter = ['category', 'is_active', 'location_type', 'created_at']
     search_fields = ['title', 'description', 'short_description']
     prepopulated_fields = {'slug': ('title',)}
-    inlines = [ExcursionImageInline, SlotInline, ReviewInline]
+    inlines = [ExcursionImageInline, SlotInline, TicketTypeInline, ExcursionProgramDayInline, ReviewInline]
     
     # Массовые действия
-    actions = ['activate_excursions', 'deactivate_excursions']
+    actions = ['activate_excursions', 'deactivate_excursions', 'retrain_recommendation_model', 'show_recommendation_stats']
     
     fieldsets = (
         (None, {
-            'fields': ('title', 'slug', 'category', 'location_type')
+            'fields': ('title', 'slug', 'category', 'location_type', 'tour_format')
         }),
         (_('Описание'), {
             'fields': ('short_description', 'description')
+        }),
+        (_('Детали экскурсии'), {
+            'fields': (
+                'group_size', 'included_in_price', 'not_included_in_price',
+                'what_to_bring', 'meeting_point'
+            )
         }),
         (_('Параметры'), {
             'fields': ('price', 'duration', 'is_active')
@@ -76,6 +95,15 @@ class ExcursionAdmin(admin.ModelAdmin):
         return obj.get_location_type_display()
     get_location_type_display.short_description = _('Тип локации')
     get_location_type_display.admin_order_field = 'location_type'
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        publish_recommendation_event(
+            event_type="content_update",
+            excursion_id=obj.id,
+            user_id=request.user.id if request.user.is_authenticated else None,
+            source="admin",
+        )
     
     def activate_excursions(self, request, queryset):
         """Массовая активация экскурсий"""
@@ -94,6 +122,78 @@ class ExcursionAdmin(admin.ModelAdmin):
             _(f'Деактивировано {updated} экскурсий.')
         )
     deactivate_excursions.short_description = _('Деактивировать выбранные экскурсии')
+    
+    def retrain_recommendation_model(self, request, queryset):
+        """Перетренировать модель рекомендаций"""
+        try:
+            # Вызов микросервиса для перетренировки
+            response = requests.post(
+                'http://recommender_api:8000/api/v1/admin/retrain',
+                timeout=30
+            )
+            
+            if response.status_code == 202:
+                data = response.json()
+                task_id = data.get('task_id')
+                self.message_user(
+                    request, 
+                    _(f'Задача перетренировки модели запущена. Task ID: {task_id}'),
+                    messages.SUCCESS
+                )
+            else:
+                self.message_user(
+                    request, 
+                    _('Ошибка при запуске перетренировки модели'),
+                    messages.ERROR
+                )
+                
+        except requests.exceptions.RequestException as e:
+            self.message_user(
+                request, 
+                _(f'Ошибка соединения с микросервисом рекомендаций: {str(e)}'),
+                messages.ERROR
+            )
+    
+    retrain_recommendation_model.short_description = _('Перетренировать модель рекомендаций')
+    
+    def show_recommendation_stats(self, request, queryset):
+        """Показать статистику рекомендаций"""
+        try:
+            # Получение статистики от микросервиса
+            response = requests.get(
+                'http://recommender_api:8000/api/v1/admin/stats',
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                stats = response.json()
+                
+                # Формирование сообщения со статистикой
+                stats_message = _(
+                    "Статистика рекомендаций:\n"
+                    f"Всего экскурсий: {stats.get('excursions', {}).get('total', 0)}\n"
+                    f"С эмбеддингами: {stats.get('excursions', {}).get('with_embeddings', 0)}\n"
+                    f"Пользователей: {stats.get('users', {}).get('total', 0)}\n"
+                    f"Взаимодействий: {stats.get('interactions', {}).get('total', 0)}\n"
+                    f"Модель готова: {'Да' if stats.get('training_state', {}).get('models_ready', False) else 'Нет'}"
+                )
+                
+                self.message_user(request, stats_message, messages.INFO)
+            else:
+                self.message_user(
+                    request, 
+                    _('Ошибка при получении статистики рекомендаций'),
+                    messages.ERROR
+                )
+                
+        except requests.exceptions.RequestException as e:
+            self.message_user(
+                request, 
+                _(f'Ошибка соединения с микросервисом рекомендаций: {str(e)}'),
+                messages.ERROR
+            )
+    
+    show_recommendation_stats.short_description = _('Показать статистику рекомендаций')
 
 
 @admin.register(Slot)

@@ -11,22 +11,18 @@ RUN apt-get update \
         postgresql-client \
         build-essential \
         libpq-dev \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry
-RUN pip install --no-cache-dir poetry==2.2.1
+# Ensure pip is up-to-date
+RUN pip install --no-cache-dir --upgrade pip
 
 # Set work directory
 WORKDIR /app
 
-# Copy Poetry files
-COPY pyproject.toml poetry.lock ./
-
-# Configure Poetry
-RUN poetry config virtualenvs.create false
-
-# Install dependencies
-RUN poetry install --no-root --no-interaction --no-ansi
+# Copy requirements and install (include PyTorch index if needed)
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Copy project
 COPY . .

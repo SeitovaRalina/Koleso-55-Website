@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from .models import Review, ReviewImage, ReviewStatus
 from .services.profanity_filter import toxicity_filter
+from excursions.models import Excursion
 
 
 class ReviewImageSerializer(serializers.ModelSerializer):
@@ -58,7 +59,11 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         request = self.context['request']
-        excursion = attrs['excursion']
+        excursion_id = attrs['excursion']
+        try:
+            excursion = Excursion.objects.get(id=excursion_id, is_active=True)
+        except Excursion.DoesNotExist:
+            raise serializers.ValidationError({"excursion": "Экскурсия не найдена или неактивна"})
 
         has_completed_order = request.user.orders.filter(
             excursion=excursion,
@@ -79,6 +84,8 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
             attrs['status'] = ReviewStatus.REJECTED
         else:
             attrs['status'] = ReviewStatus.PENDING
+
+        attrs['excursion'] = excursion
 
         return attrs
 
@@ -122,6 +129,44 @@ class ReviewListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ['id', 'user_name', 'rating', 'text', 'images', 'created_at']
+
+
+class HomepageReviewSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+    main_photo = serializers.SerializerMethodField()
+    excursion_id = serializers.IntegerField(source='excursion.id', read_only=True)
+    excursion_title = serializers.CharField(source='excursion.title', read_only=True)
+
+    class Meta:
+        model = Review
+        fields = [
+            'id',
+            'author_name',
+            'rating',
+            'text',
+            'main_photo',
+            'excursion_id',
+            'excursion_title',
+            'created_at',
+        ]
+
+    def get_author_name(self, obj):
+        return obj.homepage_author_name or obj.user.get_full_name() or obj.user.email
+
+    def get_main_photo(self, obj):
+        selected_image = obj.images.filter(is_homepage_main=True).order_by('homepage_order', 'uploaded_at').first()
+        if selected_image:
+            return selected_image.image.url
+
+        first_image = obj.images.order_by('homepage_order', 'uploaded_at').first()
+        if first_image:
+            return first_image.image.url
+
+        if obj.homepage_main_photo:
+            return obj.homepage_main_photo.url
+
+        return None
+
 
 class ReviewUpdateSerializer(serializers.ModelSerializer):
     """Сериализатор для редактирования отзыва"""

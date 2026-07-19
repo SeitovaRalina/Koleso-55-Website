@@ -75,7 +75,8 @@ class LoginSerializer(serializers.Serializer):
     contact = serializers.CharField(required=True)
     contact_type = serializers.ChoiceField(
         choices=['email', 'phone'],
-        required=False
+        required=False,
+        allow_blank=True  # Разрешить пустую строку
     )
     password = serializers.CharField(
         write_only=True,
@@ -84,12 +85,24 @@ class LoginSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-        contact = attrs['contact'].strip()
-        contact_type = attrs.get('contact_type')
-        password = attrs['password']
+        contact = attrs.get('contact')
+        if not contact:
+            raise serializers.ValidationError({
+                'contact': 'Это поле обязательно.'
+            })
+        
+        contact = contact.strip()
+        contact_type = attrs.get('contact_type') or ''  # Получить значение или пустую строку
+        contact_type = contact_type.strip() if contact_type else ''  # Убрать пробелы
+        password = attrs.get('password')
+        
+        if not password:
+            raise serializers.ValidationError({
+                'password': 'Это поле обязательно.'
+            })
 
         # Автоопределение типа контакта
-        if not contact_type:
+        if not contact_type or contact_type not in ['email', 'phone']:
             contact_type = 'email' if '@' in contact else 'phone'
 
         user = self._find_user(contact, contact_type)
@@ -101,30 +114,47 @@ class LoginSerializer(serializers.Serializer):
 
     def _find_user(self, contact, contact_type):
         """Поиск пользователя по email или телефону"""
+        logger.debug(f"Searching user with {contact_type}={contact}")
+        
         if contact_type == 'email':
             user = User.objects.filter(email__iexact=contact).first()
             if not user:
-                raise serializers.ValidationError(
-                    "Аккаунт с таким email не найден. Попробуйте войти по телефону."
-                )
+                logger.warning(f"User with email '{contact}' not found")
+                raise serializers.ValidationError({
+                    "contact": "Аккаунт с таким email не найден. Попробуйте войти по телефону."
+                })
         else:
             normalized = normalize_phone(contact)
             if not normalized:
-                raise serializers.ValidationError("Неверный формат телефона")
+                logger.warning(f"Invalid phone format: {contact}")
+                raise serializers.ValidationError({
+                    "contact": "Неверный формат телефона"
+                })
             user = User.objects.filter(phone=normalized).first()
             if not user:
-                raise serializers.ValidationError(
-                    "Аккаунт с таким телефоном не найден. Попробуйте войти по email."
-                )
+                logger.warning(f"User with phone '{normalized}' not found")
+                raise serializers.ValidationError({
+                    "contact": "Аккаунт с таким телефоном не найден. Попробуйте войти по email."
+                })
+        
+        logger.debug(f"User found: {user.email if user else 'None'}")
         return user
 
     def _validate_password(self, user, password):
         if not user.check_password(password):
-            raise serializers.ValidationError("Неверный пароль")
+            logger.warning(f"Invalid password for user: {user.email}")
+            raise serializers.ValidationError({
+                "password": "Неверный пароль"
+            })
+        logger.debug(f"Password valid for user: {user.email}")
 
     def _validate_active(self, user):
         if not user.is_active:
-            raise serializers.ValidationError("Аккаунт деактивирован. Обратитесь к менеджеру.")
+            logger.warning(f"User account is inactive: {user.email}")
+            raise serializers.ValidationError({
+                "contact": "Аккаунт деактивирован. Обратитесь к менеджеру."
+            })
+        logger.debug(f"User is active: {user.email}")
 
     def create(self, validated_data):
         user = validated_data['user']

@@ -73,6 +73,32 @@ class Review(models.Model):
         help_text=_('Комментарий оставленный модератором при обработке отзыва')
     )
 
+    show_on_homepage = models.BooleanField(
+        _('Показывать на главной'),
+        default=False,
+        db_index=True,
+        help_text=_('Отметьте, чтобы отзыв попал в блок отзывов на главной странице.')
+    )
+    homepage_author_name = models.CharField(
+        _('Имя для главной'),
+        max_length=150,
+        blank=True,
+        help_text=_('Если пусто, будет использовано имя пользователя.')
+    )
+    homepage_main_photo = models.ImageField(
+        _('Главное фото для главной'),
+        upload_to='reviews/homepage/%Y/%m/%d/',
+        blank=True,
+        null=True,
+        help_text=_('Опциональное главное фото отзыва для блока на главной.')
+    )
+    homepage_order = models.PositiveIntegerField(
+        _('Порядок на главной'),
+        default=100,
+        db_index=True,
+        help_text=_('Меньше число - выше в списке.')
+    )
+
     created_at = models.DateTimeField(
         _('Дата создания'),
         auto_now_add=True,
@@ -112,6 +138,18 @@ class ReviewImage(models.Model):
         upload_to='reviews/%Y/%m/%d/',
         help_text=_('Фотография к отзыву')
     )
+    is_homepage_main = models.BooleanField(
+        _('Главное фото для главной'),
+        default=False,
+        db_index=True,
+        help_text=_('Если отзыв показывается на главной, это фото будет первым.')
+    )
+    homepage_order = models.PositiveIntegerField(
+        _('Порядок фото на главной'),
+        default=100,
+        db_index=True,
+        help_text=_('Меньшее число - выше в фотоблоке отзыва на главной.')
+    )
     uploaded_at = models.DateTimeField(
         _('Дата загрузки'),
         auto_now_add=True,
@@ -121,4 +159,4 @@ class ReviewImage(models.Model):
     class Meta:
         verbose_name = _('Фото к отзыву')
         verbose_name_plural = _('Фото к отзывам')
-        ordering = ['-uploaded_at']
+        ordering = ['homepage_order', '-is_homepage_main', 'uploaded_at']

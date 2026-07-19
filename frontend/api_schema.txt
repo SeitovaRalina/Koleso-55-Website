@@ -1,0 +1,2424 @@
+openapi: 3.0.3
+info:
+  title: API «КОЛЕСО путешествий 55»
+  version: 1.0.0
+  description: Полная документация REST API туристической компании «КОЛЕСО путешествий
+    55». Каталог экскурсий, бронирование, оплата и личный кабинет.
+paths:
+  /api/accounts/google/:
+    post:
+      operationId: accounts_google_create
+      description: |-
+        class used for social authentications
+        example usage for facebook with access_token
+        -------------
+        from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
+
+        class FacebookLogin(SocialLoginView):
+            adapter_class = FacebookOAuth2Adapter
+        -------------
+
+        example usage for facebook with code
+
+        -------------
+        from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
+        from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+
+        class FacebookLogin(SocialLoginView):
+            adapter_class = FacebookOAuth2Adapter
+            client_class = OAuth2Client
+            callback_url = 'localhost:8000'
+        -------------
+      summary: Вход через Google
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SocialLoginRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialLogin'
+          description: ''
+  /api/accounts/login/:
+    post:
+      operationId: accounts_login_create
+      description: Аутентификация пользователя по email/телефону и паролю. Автоматически
+        определяет тип контакта. Возвращает JWT токены.
+      summary: Вход в систему
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Login'
+          description: ''
+  /api/accounts/logout/:
+    post:
+      operationId: accounts_logout_create
+      description: |-
+        Takes a token and blacklists it. Must be used with the
+        `rest_framework_simplejwt.token_blacklist` app installed.
+      summary: Выход из системы (blacklist refresh токена)
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklistRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/accounts/password-reset/:
+    post:
+      operationId: accounts_password_reset_create
+      description: Отправляет ссылку для сброса пароля на email пользователя. Можно
+        использовать email или телефон для поиска аккаунта.
+      summary: Сброс пароля
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordReset'
+          description: ''
+  /api/accounts/password-reset-confirm/{uidb64}/{token}/:
+    get:
+      operationId: accounts_password_reset_confirm_retrieve
+      description: Устанавливает новый пароль по ссылке из письма. Требует uidb64
+        и token из ссылки для сброса.GET запрос проверяет валидность ссылки, POST
+        устанавливает новый пароль.
+      summary: Подтверждение сброса пароля
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        description: Токен сброса пароля
+        required: true
+      - in: path
+        name: uidb64
+        schema:
+          type: string
+        description: Base64-кодированный ID пользователя
+        required: true
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: accounts_password_reset_confirm_create
+      description: Устанавливает новый пароль по ссылке из письма. Требует uidb64
+        и token из ссылки для сброса.GET запрос проверяет валидность ссылки, POST
+        устанавливает новый пароль.
+      summary: Подтверждение сброса пароля
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        description: Токен сброса пароля
+        required: true
+      - in: path
+        name: uidb64
+        schema:
+          type: string
+        description: Base64-кодированный ID пользователя
+        required: true
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/accounts/profile/:
+    get:
+      operationId: accounts_profile_retrieve
+      description: Просмотр и редактирование профиля. При смене телефона привязываются
+        гостевые бронирования.
+      summary: Профиль пользователя
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+    put:
+      operationId: accounts_profile_update
+      description: Просмотр и редактирование профиля. При смене телефона привязываются
+        гостевые бронирования.
+      summary: Профиль пользователя
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+    patch:
+      operationId: accounts_profile_partial_update
+      description: Просмотр и редактирование профиля. При смене телефона привязываются
+        гостевые бронирования.
+      summary: Профиль пользователя
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+  /api/accounts/refresh/:
+    post:
+      operationId: accounts_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      summary: Обновление JWT токена
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/accounts/register/:
+    post:
+      operationId: accounts_register_create
+      description: Создаёт аккаунт с email (обязательно) и телефоном (опционально).
+        Возвращает JWT токены, привязывает гостевые бронирования и отправляет приветственное
+        письмо подтверждения.
+      summary: Регистрация пользователя
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomRegisterRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomRegister'
+          description: ''
+  /api/accounts/verify-email/:
+    post:
+      operationId: accounts_verify_email_create
+      description: 'Отправляет письмо со ссылкой для подтверждения email. Доступно
+        только для пользователей с неподтвержденным email. Rate limit: 1 запрос в
+        60 секунд.'
+      summary: Отправка письма подтверждения email
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/accounts/verify-email/{uidb64}/{token}/:
+    get:
+      operationId: accounts_verify_email_retrieve
+      description: Подтверждает email пользователя по ссылке из письма. Требует uidb64
+        и token из ссылки подтверждения.
+      summary: Подтверждение email по ссылке
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        description: Токен подтверждения
+        required: true
+      - in: path
+        name: uidb64
+        schema:
+          type: string
+        description: Base64-кодированный ID пользователя
+        required: true
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/accounts/vk/:
+    post:
+      operationId: accounts_vk_create
+      description: |-
+        class used for social authentications
+        example usage for facebook with access_token
+        -------------
+        from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
+
+        class FacebookLogin(SocialLoginView):
+            adapter_class = FacebookOAuth2Adapter
+        -------------
+
+        example usage for facebook with code
+
+        -------------
+        from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
+        from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+
+        class FacebookLogin(SocialLoginView):
+            adapter_class = FacebookOAuth2Adapter
+            client_class = OAuth2Client
+            callback_url = 'localhost:8000'
+        -------------
+      summary: Вход через ВКонтакте
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SocialLoginRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialLogin'
+          description: ''
+  /api/analytics/internal/excursions/:
+    get:
+      operationId: analytics_internal_excursions_list
+      description: Внутренний API endpoint для микросервиса рекомендаций
+      summary: Получить все экскурсии для микросервиса
+      tags:
+      - analytics
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExcursionInternal'
+          description: ''
+  /api/analytics/internal/popularity/:
+    get:
+      operationId: analytics_internal_popularity_retrieve
+      description: Возвращает количество заказов для каждой экскурсии (исключая отмененные)
+      summary: Получить популярность экскурсий
+      tags:
+      - analytics
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Словарь с ID экскурсий и их количеством заказов
+                example:
+                  '1': 42
+                  '2': 28
+                  '3': 15
+          description: ''
+  /api/analytics/recommendations/similar/{excursion_id}/:
+    get:
+      operationId: analytics_recommendations_similar_retrieve
+      parameters:
+      - in: path
+        name: excursion_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - analytics
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/analytics/recommendations/user/{user_id}/:
+    get:
+      operationId: analytics_recommendations_user_retrieve
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - analytics
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/analytics/view/end/:
+    post:
+      operationId: analytics_view_end_create
+      description: Завершает просмотр и публикует событие в RabbitMQ если длительность
+        > 3с
+      summary: Завершить просмотр экскурсии
+      tags:
+      - analytics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExcursionViewEndRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+          description: ''
+  /api/analytics/view/heartbeat/:
+    post:
+      operationId: analytics_view_heartbeat_create
+      description: Обновляет длительность просмотра по heartbeats
+      summary: Обновить длительность просмотра
+      tags:
+      - analytics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExcursionViewHeartbeatRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+          description: ''
+  /api/analytics/view/start/:
+    post:
+      operationId: analytics_view_start_create
+      description: Создает запись о начале просмотра экскурсии
+      summary: Начать отслеживание просмотра экскурсии
+      tags:
+      - analytics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExcursionViewStartRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExcursionView'
+          description: ''
+  /api/bookings/my-orders/:
+    get:
+      operationId: bookings_my_orders_list
+      description: Возвращает список всех заказов текущего пользователя с возможностью
+        фильтрации по статусу. Заказы отсортированы по дате создания (новые первые).
+        Требует JWT токен доступа.
+      summary: Список заказов пользователя
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: status
+        schema:
+          type: string
+          title: Статус
+          enum:
+          - cancelled
+          - completed
+          - confirmed
+          - new
+          - paid
+        description: |-
+          Текущий статус заказа
+
+          * `new` - Новый
+          * `confirmed` - Подтверждён
+          * `paid` - Оплачен
+          * `cancelled` - Отменён
+          * `completed` - Выполнен
+      tags:
+      - bookings
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTourOrderListList'
+          description: ''
+  /api/bookings/my-orders/{id}/:
+    get:
+      operationId: bookings_my_orders_retrieve
+      description: Возвращает полную информацию о конкретном заказе текущего пользователя.
+        Включает все детали экскурсии, слота, контактной информации и историю изменений.
+        Требует JWT токен доступа.
+      summary: Детальная информация о заказе
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - bookings
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourOrderDetail'
+          description: ''
+  /api/bookings/my-orders/{id}/cancel/:
+    post:
+      operationId: bookings_my_orders_cancel_create
+      description: Отменяет заказ текущего пользователя. Доступно только для заказов
+        со статусом 'Новый' или 'Подтверждён'. После отмены заказ нельзя восстановить.
+        Требует JWT токен доступа.
+      summary: Отмена заказа
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - bookings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCancelResponseRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCancelResponse'
+          description: ''
+  /api/bookings/orders/:
+    post:
+      operationId: bookings_orders_create
+      description: Создает новый заказ на экскурсию. Доступно как для авторизованных,
+        так и для неавторизованных пользователей. Проверяет доступность слота и корректность
+        данных. Для авторизованных пользователей авто-заполняет данные из профиля.
+      summary: Создание заказа на экскурсию
+      tags:
+      - bookings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourOrderCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourOrderCreate'
+          description: ''
+  /api/excursions/:
+    get:
+      operationId: excursions_list
+      description: Возвращает список активных экскурсий с основной информацией, рейтингом
+        и изображениями.
+      summary: Список экскурсий
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Фильтр по категории экскурсии. Используйте slug категории.
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+        description: Дата от
+      - in: query
+        name: location_type
+        schema:
+          type: string
+          title: Тип локации
+          enum:
+          - city
+          - russia
+          - suburban
+        description: |-
+          Тип локации
+
+          * `city` - Городские экскурсии
+          * `suburban` - Загородные экскурсии
+          * `russia` - Туры по России
+      - in: query
+        name: max_duration
+        schema:
+          type: integer
+        description: Длительность до (мин)
+      - in: query
+        name: max_price
+        schema:
+          type: number
+        description: Цена до
+      - in: query
+        name: min_duration
+        schema:
+          type: integer
+        description: Длительность от (мин)
+      - in: query
+        name: min_price
+        schema:
+          type: number
+        description: Цена от
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - excursions
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedExcursionListList'
+              examples:
+                ExcursionListResponse:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - count: 1
+                      next: null
+                      previous: null
+                      results:
+                      - id: 1
+                        title: Omsk city highlights
+                        slug: obzornaya-ekskursiya-po-omsku
+                        short_description: A short city tour with the main landmarks.
+                        location_type_display: City excursions
+                        price: '1500.00'
+                        duration: 120
+                        category:
+                          id: 1
+                          name: City
+                          slug: gorodskie
+                        main_image: http://example.com/media/excursions/2024/01/15/photo.jpg
+                        average_rating: 4.5
+                        review_count: 23
+                  summary: Excursion list response
+          description: ''
+  /api/excursions/{slug}/:
+    get:
+      operationId: excursions_retrieve
+      description: Возвращает полную информацию об экскурсии, включая изображения,
+        слоты и отзывы.
+      summary: Детальная информация об экскурсии
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - excursions
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExcursionDetail'
+              examples:
+                ExcursionDetailResponse:
+                  value:
+                    id: 1
+                    title: Omsk city highlights
+                    slug: obzornaya-ekskursiya-po-omsku
+                    description: A detailed sightseeing program around the city center.
+                    short_description: A short city tour with the main landmarks.
+                    price: '1500.00'
+                    duration: 120
+                    category:
+                      id: 1
+                      name: City
+                      slug: gorodskie
+                    location_type_display: City excursions
+                    images:
+                    - id: 1
+                      image: http://example.com/media/photo1.jpg
+                      alt_text: Photo 1
+                      is_main: true
+                    slots:
+                    - id: 1
+                      date: '2024-12-25'
+                      time: '10:00'
+                      max_participants: 20
+                      available_seats: 15
+                      is_available: true
+                    is_active: true
+                    approved_reviews: []
+                    average_rating: 4.5
+                    review_count: 23
+                  summary: Excursion detail response
+          description: ''
+  /api/reviews/:
+    post:
+      operationId: reviews_create
+      description: Позволяет авторизованному пользователю создать новый отзыв на экскурсию.
+        Отзыв будет находиться в статусе 'pending' до проверки модератором.
+      summary: Создание отзыва на экскурсию
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCreate'
+          description: ''
+  /api/reviews/{id}/:
+    put:
+      operationId: reviews_update
+      description: Позволяет автору отзыва редактировать его, если отзыв находится
+        в статусе 'pending'. После редактирования отзыв снова будет отправлен на проверку
+        модератором.
+      summary: Редактирование отзыва
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewUpdateRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewUpdate'
+          description: ''
+    patch:
+      operationId: reviews_partial_update
+      description: Позволяет автору отзыва редактировать его, если отзыв находится
+        в статусе 'pending'. После редактирования отзыв снова будет отправлен на проверку
+        модератором.
+      summary: Редактирование отзыва
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - reviews
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedReviewUpdateRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewUpdate'
+          description: ''
+  /api/reviews/excursions/{excursion_id}/reviews/:
+    get:
+      operationId: reviews_excursions_reviews_list
+      description: Возвращает список одобренных отзывов на экскурсию с возможностью
+        сортировки
+      summary: Список отзывов на экскурсию
+      parameters:
+      - in: path
+        name: excursion_id
+        schema:
+          type: integer
+        required: true
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - reviews
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReviewListList'
+          description: ''
+  /api/reviews/my-reviews/:
+    get:
+      operationId: reviews_my_reviews_list
+      description: Возвращает список всех отзывов, оставленных текущим пользователем,
+        с их статусами.
+      summary: Список отзывов текущего пользователя
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - reviews
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReviewListList'
+          description: ''
+  /api/wishlist/:
+    get:
+      operationId: wishlist_list
+      description: Возвращает список всех экскурсий, добавленных текущим пользователем
+        в избранное.
+      summary: Получение списка избранного
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - wishlist
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWishlistListList'
+          description: ''
+  /api/wishlist/{excursion_id}/:
+    delete:
+      operationId: wishlist_destroy
+      description: Удаляет экскурсию из избранного текущего пользователя.
+      summary: Удаление из избранного
+      parameters:
+      - in: path
+        name: excursion_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - wishlist
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/wishlist/add/:
+    post:
+      operationId: wishlist_add_create
+      description: Добавляет указанную экскурсию в избранное текущего пользователя.
+      summary: Добавление экскурсии в избранное
+      tags:
+      - wishlist
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WishlistCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistCreate'
+          description: ''
+  /api/wishlist/check/{excursion_id}/:
+    get:
+      operationId: wishlist_check_retrieve
+      description: Проверяет, добавлена ли указанная экскурсия в избранное текущего
+        пользователя.
+      summary: Проверка наличия в избранном
+      parameters:
+      - in: path
+        name: excursion_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - wishlist
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistCheck'
+          description: ''
+components:
+  schemas:
+    Category:
+      type: object
+      description: Сериализатор категорий экскурсий
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Уникальный идентификатор категории
+        name:
+          type: string
+          title: Название
+          description: Название категории экскурсий
+          maxLength: 100
+        slug:
+          type: string
+          readOnly: true
+          description: URL-совместимое название категории
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
+      required:
+      - id
+      - name
+      - slug
+    ContactMethodEnum:
+      enum:
+      - call
+      - whatsapp
+      - telegram
+      - max
+      - email
+      type: string
+      description: |-
+        * `call` - Звонок
+        * `whatsapp` - WhatsApp
+        * `telegram` - Telegram
+        * `max` - Max
+        * `email` - Email
+    ContactTypeEnum:
+      enum:
+      - email
+      - phone
+      type: string
+      description: |-
+        * `email` - email
+        * `phone` - phone
+    CustomRegister:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          title: Электронная почта
+          maxLength: 254
+        phone:
+          type: string
+          nullable: true
+          title: Номер телефона
+          description: 'Формат: +7XXXXXXXXXX'
+          maxLength: 20
+      required:
+      - email
+    CustomRegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Электронная почта
+          maxLength: 254
+        phone:
+          type: string
+          nullable: true
+          title: Номер телефона
+          description: 'Формат: +7XXXXXXXXXX'
+          maxLength: 20
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        password2:
+          type: string
+          writeOnly: true
+          minLength: 8
+      required:
+      - email
+      - password
+      - password2
+    ExcursionDetail:
+      type: object
+      description: Сериализатор детальной информации об экскурсии
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Уникальный идентификатор экскурсии
+        title:
+          type: string
+          title: Название
+          description: Название экскурсии
+          maxLength: 200
+        slug:
+          type: string
+          readOnly: true
+          description: URL-совместимое название экскурсии
+          maxLength: 250
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+          title: Полное описание
+          description: Подробное описание экскурсии
+        short_description:
+          type: string
+          title: Краткое описание
+          description: Краткое описание экскурсии (до 500 символов)
+          maxLength: 500
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Цена от
+          description: Минимальная цена участия в экскурсии
+        duration:
+          type: integer
+          title: Длительность
+          description: Длительность экскурсии в минутах
+        category:
+          allOf:
+          - $ref: '#/components/schemas/Category'
+          readOnly: true
+          title: Категория
+          description: Категория, к которой относится экскурсия
+        location_type_display:
+          type: string
+          readOnly: true
+          title: Тип локации
+          description: Отображаемое название типа локации
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExcursionImage'
+          readOnly: true
+          title: Изображения
+          description: Все изображения экскурсии
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slot'
+          readOnly: true
+          title: Слоты
+          description: Доступные временные слоты для бронирования
+        is_active:
+          type: boolean
+          title: Активна
+          description: Доступна ли экскурсия для бронирования
+        approved_reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewList'
+          readOnly: true
+          title: Одобренные отзывы
+          description: Список одобренных отзывов (максимум 10)
+        average_rating:
+          type: number
+          format: double
+          nullable: true
+          readOnly: true
+          title: Средний рейтинг
+          description: Средний рейтинг на основе одобренных отзывов
+        review_count:
+          type: integer
+          readOnly: true
+          title: Количество отзывов
+          description: Количество одобренных отзывов
+      required:
+      - approved_reviews
+      - average_rating
+      - category
+      - description
+      - duration
+      - id
+      - images
+      - is_active
+      - location_type_display
+      - price
+      - review_count
+      - short_description
+      - slots
+      - slug
+      - title
+    ExcursionImage:
+      type: object
+      description: Сериализатор изображений экскурсий
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Уникальный идентификатор изображения
+        image:
+          type: string
+          format: uri
+          title: Изображение
+          description: Фотография экскурсии
+        alt_text:
+          type: string
+          title: Alt-текст
+          description: Альтернативный текст для изображения
+          maxLength: 200
+        is_main:
+          type: boolean
+          default: false
+          title: Главное фото
+          description: Является ли изображение главным для экскурсии
+      required:
+      - id
+      - image
+    ExcursionInternal:
+      type: object
+      description: Сериализатор экскурсий для внутреннего API (микросервис рекомендаций)
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Уникальный идентификатор экскурсии
+        title:
+          type: string
+          title: Название
+          description: Название экскурсии
+          maxLength: 200
+        description:
+          type: string
+          title: Полное описание
+          description: Подробное описание экскурсии
+        short_description:
+          type: string
+          title: Краткое описание
+          description: Краткое описание экскурсии для превью
+          maxLength: 500
+        category:
+          type: string
+          readOnly: true
+          title: Категория
+          description: Название категории
+        location_type:
+          type: string
+          title: Тип локации
+          description: Тип местоположения проведения экскурсии
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Цена от
+          description: Минимальная цена участия в экскурсии
+        duration:
+          type: integer
+          title: Длительность
+          description: Продолжительность экскурсии в минутах
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+          description: Дата и время создания экскурсии
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата обновления
+          description: Дата и время последнего обновления экскурсии
+      required:
+      - category
+      - created_at
+      - description
+      - duration
+      - id
+      - location_type
+      - price
+      - short_description
+      - title
+      - updated_at
+    ExcursionList:
+      type: object
+      description: Сериализатор списка экскурсий
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Уникальный идентификатор экскурсии
+        title:
+          type: string
+          title: Название
+          description: Название экскурсии
+          maxLength: 200
+        slug:
+          type: string
+          readOnly: true
+          description: URL-совместимое название экскурсии
+          maxLength: 250
+          pattern: ^[-a-zA-Z0-9_]+$
+        short_description:
+          type: string
+          title: Краткое описание
+          description: Краткое описание экскурсии (до 500 символов)
+          maxLength: 500
+        location_type_display:
+          type: string
+          readOnly: true
+          title: Тип локации
+          description: Отображаемое название типа локации
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          title: Цена от
+          description: Минимальная цена участия в экскурсии
+        duration:
+          type: integer
+          title: Длительность
+          description: Длительность экскурсии в минутах
+        category:
+          allOf:
+          - $ref: '#/components/schemas/Category'
+          readOnly: true
+          title: Категория
+          description: Категория, к которой относится экскурсия
+        main_image:
+          type: string
+          format: uri
+          readOnly: true
+          title: Главное изображение
+          description: URL главного изображения экскурсии
+        average_rating:
+          type: number
+          format: double
+          nullable: true
+          readOnly: true
+          title: Средний рейтинг
+          description: Средний рейтинг на основе одобренных отзывов
+        review_count:
+          type: integer
+          readOnly: true
+          title: Количество отзывов
+          description: Количество одобренных отзывов
+      required:
+      - average_rating
+      - category
+      - duration
+      - id
+      - location_type_display
+      - main_image
+      - price
+      - review_count
+      - short_description
+      - slug
+      - title
+    ExcursionView:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+          nullable: true
+          title: Пользователь
+          description: Пользователь, просмотревший экскурсию
+        user_email:
+          type: string
+          readOnly: true
+        excursion:
+          type: integer
+          title: Экскурсия
+          description: Просмотренная экскурсия
+        excursion_title:
+          type: string
+          readOnly: true
+        session_id:
+          type: string
+          title: ID сессии
+          description: Идентификатор сессии для анонимных пользователей
+          maxLength: 255
+        duration_seconds:
+          type: integer
+          readOnly: true
+          title: Длительность просмотра (сек)
+          description: Общая длительность просмотра в секундах
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          title: Источник перехода
+          description: |-
+            Откуда пользователь перешел на страницу экскурсии
+
+            * `search` - Поиск
+            * `catalog` - Каталог
+            * `recommendation` - Рекомендации
+            * `similar` - Похожие экскурсии
+            * `direct` - Прямой переход
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Время начала
+          description: Время начала просмотра экскурсии
+        processed_for_recommendations:
+          type: boolean
+          readOnly: true
+          title: Обработано для рекомендаций
+          description: Были ли данные отправлены в систему рекомендаций
+      required:
+      - duration_seconds
+      - excursion
+      - excursion_title
+      - id
+      - processed_for_recommendations
+      - session_id
+      - started_at
+      - user
+      - user_email
+    ExcursionViewEndRequest:
+      type: object
+      properties:
+        view_id:
+          type: integer
+      required:
+      - view_id
+    ExcursionViewHeartbeatRequest:
+      type: object
+      properties:
+        view_id:
+          type: integer
+        elapsed_seconds:
+          type: integer
+          minimum: 1
+      required:
+      - elapsed_seconds
+      - view_id
+    ExcursionViewStartRequest:
+      type: object
+      properties:
+        excursion_id:
+          type: integer
+          writeOnly: true
+        session_id:
+          type: string
+          minLength: 1
+          title: ID сессии
+          description: Идентификатор сессии для анонимных пользователей
+          maxLength: 255
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          title: Источник перехода
+          description: |-
+            Откуда пользователь перешел на страницу экскурсии
+
+            * `search` - Поиск
+            * `catalog` - Каталог
+            * `recommendation` - Рекомендации
+            * `similar` - Похожие экскурсии
+            * `direct` - Прямой переход
+      required:
+      - excursion_id
+      - session_id
+    Login:
+      type: object
+      properties:
+        contact:
+          type: string
+        contact_type:
+          $ref: '#/components/schemas/ContactTypeEnum'
+      required:
+      - contact
+    LoginRequest:
+      type: object
+      properties:
+        contact:
+          type: string
+          minLength: 1
+        contact_type:
+          $ref: '#/components/schemas/ContactTypeEnum'
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - contact
+      - password
+    OrderCancelResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+      - message
+    OrderCancelResponseRequest:
+      type: object
+      properties:
+        message:
+          type: string
+          minLength: 1
+      required:
+      - message
+    PaginatedExcursionListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExcursionList'
+    PaginatedReviewListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewList'
+    PaginatedTourOrderListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TourOrderList'
+    PaginatedWishlistListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WishlistList'
+    PasswordReset:
+      type: object
+      properties:
+        contact:
+          type: string
+        contact_type:
+          $ref: '#/components/schemas/ContactTypeEnum'
+      required:
+      - contact
+    PasswordResetConfirmRequest:
+      type: object
+      properties:
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        new_password2:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - new_password
+      - new_password2
+    PasswordResetRequest:
+      type: object
+      properties:
+        contact:
+          type: string
+          minLength: 1
+        contact_type:
+          $ref: '#/components/schemas/ContactTypeEnum'
+      required:
+      - contact
+    PatchedReviewUpdateRequest:
+      type: object
+      description: Сериализатор для редактирования отзыва
+      properties:
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: Оценка
+          description: Оценка экскурсии от 1 до 5 звезд
+        text:
+          type: string
+          title: Текст отзыва
+          description: Текст отзыва (максимум 2000 символов)
+          maxLength: 2000
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewImageRequest'
+          title: Изображения
+          description: Фотографии к отзыву (необязательно)
+    PatchedUserProfileRequest:
+      type: object
+      properties:
+        phone:
+          type: string
+          nullable: true
+          title: Номер телефона
+          description: 'Формат: +7XXXXXXXXXX'
+          maxLength: 20
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        patronymic:
+          type: string
+          title: Отчество
+          maxLength: 150
+    ReviewCreate:
+      type: object
+      description: Сериализатор для создания отзыва
+      properties:
+        excursion:
+          type: integer
+          title: Экскурсия
+          description: ID экскурсии, на которую оставляется отзыв
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: Оценка
+          description: Оценка экскурсии от 1 до 5 звезд
+        text:
+          type: string
+          title: Текст отзыва
+          description: Текст отзыва (максимум 2000 символов)
+          maxLength: 2000
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewImage'
+          title: Изображения
+          description: Фотографии к отзыву (необязательно)
+      required:
+      - excursion
+      - rating
+      - text
+    ReviewCreateRequest:
+      type: object
+      description: Сериализатор для создания отзыва
+      properties:
+        excursion:
+          type: integer
+          title: Экскурсия
+          description: ID экскурсии, на которую оставляется отзыв
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: Оценка
+          description: Оценка экскурсии от 1 до 5 звезд
+        text:
+          type: string
+          minLength: 1
+          title: Текст отзыва
+          description: Текст отзыва (максимум 2000 символов)
+          maxLength: 2000
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewImageRequest'
+          title: Изображения
+          description: Фотографии к отзыву (необязательно)
+      required:
+      - excursion
+      - rating
+      - text
+    ReviewImage:
+      type: object
+      description: Сериализатор изображений к отзывам
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Уникальный идентификатор изображения
+        image:
+          type: string
+          format: uri
+          title: Изображение
+          description: Фотография к отзыву
+      required:
+      - id
+      - image
+    ReviewImageRequest:
+      type: object
+      description: Сериализатор изображений к отзывам
+      properties:
+        image:
+          type: string
+          format: binary
+          title: Изображение
+          description: Фотография к отзыву
+      required:
+      - image
+    ReviewList:
+      type: object
+      description: Сериализатор списка отзывов
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Уникальный идентификатор отзыва
+        user_name:
+          type: string
+          readOnly: true
+          title: Имя пользователя
+          description: Полное имя пользователя, оставившего отзыв
+        rating:
+          type: integer
+          readOnly: true
+          title: Оценка
+          description: Оценка экскурсии от 1 до 5 звезд
+        text:
+          type: string
+          readOnly: true
+          title: Текст отзыва
+          description: Текст отзыва
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewImage'
+          readOnly: true
+          title: Изображения
+          description: Фотографии к отзыву
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+          description: Дата и время создания отзыва
+      required:
+      - created_at
+      - id
+      - images
+      - rating
+      - text
+      - user_name
+    ReviewUpdate:
+      type: object
+      description: Сериализатор для редактирования отзыва
+      properties:
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: Оценка
+          description: Оценка экскурсии от 1 до 5 звезд
+        text:
+          type: string
+          title: Текст отзыва
+          description: Текст отзыва (максимум 2000 символов)
+          maxLength: 2000
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewImage'
+          title: Изображения
+          description: Фотографии к отзыву (необязательно)
+    ReviewUpdateRequest:
+      type: object
+      description: Сериализатор для редактирования отзыва
+      properties:
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: Оценка
+          description: Оценка экскурсии от 1 до 5 звезд
+        text:
+          type: string
+          title: Текст отзыва
+          description: Текст отзыва (максимум 2000 символов)
+          maxLength: 2000
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewImageRequest'
+          title: Изображения
+          description: Фотографии к отзыву (необязательно)
+    Slot:
+      type: object
+      description: Сериализатор слотов (временных интервалов) экскурсий
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Уникальный идентификатор слота
+        date:
+          type: string
+          format: date
+          title: Дата
+          description: Дата проведения экскурсии
+        time:
+          type: string
+          format: time
+          title: Время начала
+          description: Время начала экскурсии
+        max_participants:
+          type: integer
+          title: Макс. участников
+          description: Максимальное количество участников
+        available_seats:
+          type: integer
+          readOnly: true
+          title: Доступно мест
+          description: Количество свободных мест
+        is_available:
+          type: boolean
+          readOnly: true
+          title: Доступен
+          description: Доступен ли слот для бронирования
+        price_override:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          title: Цена для слота
+          description: Особая цена для этого слота (если отличается от базовой)
+      required:
+      - available_seats
+      - date
+      - id
+      - is_available
+      - max_participants
+      - time
+    SocialLogin:
+      type: object
+      properties:
+        access_token:
+          type: string
+        code:
+          type: string
+        id_token:
+          type: string
+    SocialLoginRequest:
+      type: object
+      properties:
+        access_token:
+          type: string
+        code:
+          type: string
+        id_token:
+          type: string
+    SourceEnum:
+      enum:
+      - search
+      - catalog
+      - recommendation
+      - similar
+      - direct
+      type: string
+      description: |-
+        * `search` - Поиск
+        * `catalog` - Каталог
+        * `recommendation` - Рекомендации
+        * `similar` - Похожие экскурсии
+        * `direct` - Прямой переход
+    StatusEnum:
+      enum:
+      - new
+      - confirmed
+      - paid
+      - cancelled
+      - completed
+      type: string
+      description: |-
+        * `new` - Новый
+        * `confirmed` - Подтверждён
+        * `paid` - Оплачен
+        * `cancelled` - Отменён
+        * `completed` - Выполнен
+    TokenBlacklistRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - refresh
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    TourOrderCreate:
+      type: object
+      properties:
+        excursion:
+          type: integer
+          title: Экскурсия
+          description: Экскурсия, на которую оформлен заказ
+        slot:
+          type: integer
+          title: Слот
+          description: Временной слот для проведения экскурсии
+        first_name:
+          type: string
+        last_name:
+          type: string
+        middle_name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        num_participants:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          title: Количество человек
+          description: Количество участников экскурсии
+        contact_method:
+          allOf:
+          - $ref: '#/components/schemas/ContactMethodEnum'
+          title: Предпочитаемый способ связи
+          description: |-
+            Как с вами связаться для подтверждения заказа
+
+            * `call` - Звонок
+            * `whatsapp` - WhatsApp
+            * `telegram` - Telegram
+            * `max` - Max
+            * `email` - Email
+        comment:
+          type: string
+          title: Комментарий клиента
+          description: Дополнительная информация от клиента
+      required:
+      - excursion
+      - first_name
+      - last_name
+      - num_participants
+      - slot
+    TourOrderCreateRequest:
+      type: object
+      properties:
+        excursion:
+          type: integer
+          title: Экскурсия
+          description: Экскурсия, на которую оформлен заказ
+        slot:
+          type: integer
+          title: Слот
+          description: Временной слот для проведения экскурсии
+        first_name:
+          type: string
+          minLength: 1
+        last_name:
+          type: string
+          minLength: 1
+        middle_name:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+          minLength: 1
+        num_participants:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          title: Количество человек
+          description: Количество участников экскурсии
+        contact_method:
+          allOf:
+          - $ref: '#/components/schemas/ContactMethodEnum'
+          title: Предпочитаемый способ связи
+          description: |-
+            Как с вами связаться для подтверждения заказа
+
+            * `call` - Звонок
+            * `whatsapp` - WhatsApp
+            * `telegram` - Telegram
+            * `max` - Max
+            * `email` - Email
+        comment:
+          type: string
+          title: Комментарий клиента
+          description: Дополнительная информация от клиента
+        save_to_profile:
+          type: boolean
+          writeOnly: true
+          default: true
+          description: Сохранить данные в профиль
+      required:
+      - excursion
+      - first_name
+      - last_name
+      - num_participants
+      - slot
+    TourOrderDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        excursion_title:
+          type: string
+          readOnly: true
+        excursion_slug:
+          type: string
+          readOnly: true
+        slot_datetime:
+          type: string
+          readOnly: true
+        first_name:
+          type: string
+          title: Имя
+          description: Имя клиента
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          description: Фамилия клиента
+          maxLength: 150
+        phone:
+          type: string
+          title: Телефон
+          description: Контактный номер телефона клиента
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          title: Адрес электронной почты
+          description: Укажите email, если предпочитаете связь по почте
+          maxLength: 254
+        num_participants:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          title: Количество человек
+          description: Количество участников экскурсии
+        contact_method:
+          allOf:
+          - $ref: '#/components/schemas/ContactMethodEnum'
+          title: Предпочитаемый способ связи
+          description: |-
+            Как с вами связаться для подтверждения заказа
+
+            * `call` - Звонок
+            * `whatsapp` - WhatsApp
+            * `telegram` - Telegram
+            * `max` - Max
+            * `email` - Email
+        contact_method_display:
+          type: string
+          readOnly: true
+        comment:
+          type: string
+          title: Комментарий клиента
+          description: Дополнительная информация от клиента
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          title: Статус
+          description: |-
+            Текущий статус заказа
+
+            * `new` - Новый
+            * `confirmed` - Подтверждён
+            * `paid` - Оплачен
+            * `cancelled` - Отменён
+            * `completed` - Выполнен
+        status_display:
+          type: string
+          readOnly: true
+        manager_comment:
+          type: string
+          title: Комментарий менеджера
+          description: Внутренний комментарий для менеджеров
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+          description: Дата и время создания заказа
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата обновления
+          description: Дата и время последнего обновления заказа
+      required:
+      - contact_method_display
+      - created_at
+      - excursion_slug
+      - excursion_title
+      - first_name
+      - id
+      - num_participants
+      - phone
+      - slot_datetime
+      - status_display
+      - updated_at
+    TourOrderList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        excursion_title:
+          type: string
+          readOnly: true
+        slot_datetime:
+          type: string
+          readOnly: true
+        num_participants:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          title: Количество человек
+          description: Количество участников экскурсии
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          title: Статус
+          description: |-
+            Текущий статус заказа
+
+            * `new` - Новый
+            * `confirmed` - Подтверждён
+            * `paid` - Оплачен
+            * `cancelled` - Отменён
+            * `completed` - Выполнен
+        status_display:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+          description: Дата и время создания заказа
+        contact_method_display:
+          type: string
+          readOnly: true
+      required:
+      - contact_method_display
+      - created_at
+      - excursion_title
+      - id
+      - num_participants
+      - slot_datetime
+      - status_display
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+          title: Электронная почта
+        phone:
+          type: string
+          nullable: true
+          title: Номер телефона
+          description: 'Формат: +7XXXXXXXXXX'
+          maxLength: 20
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        patronymic:
+          type: string
+          title: Отчество
+          maxLength: 150
+        full_name:
+          type: string
+          readOnly: true
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата регистрации
+        is_email_verified:
+          type: boolean
+          readOnly: true
+          title: Email подтвержден
+          description: Проверено ли подтверждение email
+      required:
+      - date_joined
+      - email
+      - full_name
+      - id
+      - is_email_verified
+    UserProfileRequest:
+      type: object
+      properties:
+        phone:
+          type: string
+          nullable: true
+          title: Номер телефона
+          description: 'Формат: +7XXXXXXXXXX'
+          maxLength: 20
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        patronymic:
+          type: string
+          title: Отчество
+          maxLength: 150
+    WishlistCheck:
+      type: object
+      description: Сериализатор для проверки наличия экскурсии в избранном
+      properties:
+        is_in_wishlist:
+          type: boolean
+          title: В избранном
+          description: Флаг, указывающий на наличие экскурсии в избранном
+      required:
+      - is_in_wishlist
+    WishlistCreate:
+      type: object
+      description: Сериализатор для добавления экскурсии в избранное
+      properties:
+        excursion:
+          type: integer
+          title: Экскурсия
+          description: ID экскурсии для добавления в избранное
+      required:
+      - excursion
+    WishlistCreateRequest:
+      type: object
+      description: Сериализатор для добавления экскурсии в избранное
+      properties:
+        excursion:
+          type: integer
+          title: Экскурсия
+          description: ID экскурсии для добавления в избранное
+      required:
+      - excursion
+    WishlistList:
+      type: object
+      description: Сериализатор для отображения списка избранного с деталями экскурсий
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Уникальный идентификатор записи в избранном
+        excursion:
+          allOf:
+          - $ref: '#/components/schemas/ExcursionList'
+          title: Экскурсия
+          description: Детальная информация об экскурсии
+        added_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата добавления
+          description: Дата и время добавления в избранное
+      required:
+      - added_at
+      - excursion
+      - id
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -45,6 +45,12 @@ class Excursion(models.Model):
         SUBURBAN = 'suburban', 'Загородные экскурсии'
         RUSSIA = 'russia', 'Туры по России'
 
+    class TourFormat(models.TextChoices):
+        WALKING = 'walking', 'Пешеходная'
+        BUS = 'bus', 'Автобусная'
+        WATER = 'water', 'Водная'
+        COMBINED = 'combined', 'Комбинированная'
+
     title = models.CharField(
         'Название экскурсии', 
         max_length=200,
@@ -72,6 +78,23 @@ class Excursion(models.Model):
         db_index=True,
         help_text='Тип местоположения проведения экскурсии'
     )
+    tour_format = models.CharField(
+        'Формат поездки',
+        max_length=20,
+        choices=TourFormat.choices,
+        default=TourFormat.WALKING,
+        help_text='Формат проведения экскурсии'
+    )
+    group_size = models.PositiveIntegerField(
+        'Размер группы',
+        default=20,
+        help_text='Максимальное количество человек в группе'
+    )
+    is_multi_day = models.BooleanField(
+        'Многодневный тур',
+        default=False,
+        help_text='Является ли экскурсия многодневным туром'
+    )
     description = models.TextField(
         'Полное описание',
         help_text='Подробное описание экскурсии'
@@ -80,6 +103,33 @@ class Excursion(models.Model):
         'Краткое описание', 
         max_length=500,
         help_text='Краткое описание экскурсии для превью'
+    )
+    included_in_price = models.TextField(
+        'Что входит в стоимость',
+        blank=True,
+        help_text='Перечень услуг, включенных в стоимость'
+    )
+    not_included_in_price = models.TextField(
+        'Что не входит в стоимость',
+        blank=True,
+        help_text='Перечень услуг, не включенных в стоимость'
+    )
+    what_to_bring = models.TextField(
+        'Что взять с собой',
+        blank=True,
+        help_text='Рекомендации по вещам и экипировке'
+    )
+    meeting_point = models.CharField(
+        'Место встречи',
+        max_length=500,
+        blank=True,
+        help_text='Место сбора группы'
+    )
+    departure_time = models.TimeField(
+        'Время отправления',
+        null=True,
+        blank=True,
+        help_text='Время начала экскурсии'
     )
     price = models.DecimalField(
         'Цена от (руб)', 
@@ -211,3 +261,75 @@ class Slot(models.Model):
     @property
     def is_available(self):
         return self.available_seats > 0 and self.excursion.is_active
+
+
+class ExcursionProgramDay(models.Model):
+    """Модель программы по дням для многодневных туров"""
+    
+    excursion = models.ForeignKey(
+        Excursion,
+        on_delete=models.CASCADE,
+        related_name='program_days',
+        verbose_name='Экскурсия',
+        help_text='Экскурсия, к которой относится день программы'
+    )
+    day_number = models.PositiveIntegerField(
+        'Номер дня',
+        help_text='Порядковый номер дня в туре'
+    )
+    title = models.CharField(
+        'Заголовок дня',
+        max_length=200,
+        help_text='Название или тема дня'
+    )
+    description = models.TextField(
+        'Описание программы дня',
+        help_text='Подробное описание программы на этот день'
+    )
+
+    class Meta:
+        verbose_name = 'День программы'
+        verbose_name_plural = 'Дни программы'
+        unique_together = [['excursion', 'day_number']]
+        ordering = ['day_number']
+
+    def __str__(self):
+        return f'День {self.day_number}: {self.title}'
+
+
+class TicketType(models.Model):
+    """Модель типов билетов (взрослый/детский и т.д.)"""
+    
+    excursion = models.ForeignKey(
+        Excursion,
+        on_delete=models.CASCADE,
+        related_name='ticket_types',
+        verbose_name='Экскурсия',
+        help_text='Экскурсия, к которой относится тип билета'
+    )
+    name = models.CharField(
+        'Название типа',
+        max_length=50,
+        help_text='Например: Взрослый, Детский, Студенческий'
+    )
+    price = models.DecimalField(
+        'Цена',
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        help_text='Цена билета данного типа'
+    )
+    is_active = models.BooleanField(
+        'Активен',
+        default=True,
+        help_text='Доступен ли данный тип билета для бронирования'
+    )
+
+    class Meta:
+        verbose_name = 'Тип билета'
+        verbose_name_plural = 'Типы билетов'
+        unique_together = [['excursion', 'name']]
+        ordering = ['id']
+
+    def __str__(self):
+        return f'{self.name} - {self.price} ₽'
