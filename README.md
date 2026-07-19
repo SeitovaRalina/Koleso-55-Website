@@ -6,6 +6,19 @@ Frontend: React + Vite + Tailwind
 Backend: Django 5 + Django REST Framework + PostgreSQL
 AI-помощник: LangChain + ChromaDB + LLM
 
+## Repository Structure
+
+- `frontend/` — React/Vite client.
+- `backend/main_service/` — main Django API.
+- `backend/recommendation_service/` — FastAPI recommendation service.
+- `backend/assistant_service/` — Django AI assistant service.
+- `backend/vectorizer/` — Celery vectorization worker.
+- `backend/docker-compose.yml` — local backend orchestration.
+- `docs/` — architecture, integration, and deployment notes.
+
+Assistant ChromaDB files are runtime data. Docker stores them in the
+`assistant_chroma_data` named volume; they are not kept in repository root.
+
 ## Agent Docs
 
 - `AGENTS.md` - обязательные правила для Codex/AI-агента в репозитории.

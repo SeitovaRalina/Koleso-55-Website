@@ -1,7 +1,7 @@
 import os
 from django.core.management.base import BaseCommand
-from backend.assistant_service.assistant.services.chroma_db import VectorStore
-from backend.assistant_service.assistant.services.embeddings import EmbeddingsClient
+from assistant.services.chroma_db import VectorStore
+from assistant.services.embeddings import EmbeddingsClient
 
 class Command(BaseCommand):
     help = 'Тестовый поиск по векторной базе туров'

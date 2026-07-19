@@ -104,7 +104,7 @@ services:
     django_celery_beat:
         build: ./main_service
         container_name: django_celery_beat
-        command: celery -A config beat --loglevel=info
+        command: celery -A config beat --loglevel=info --schedule=/tmp/celerybeat-schedule
         depends_on:
             postgres:
                 condition: service_healthy
@@ -174,6 +174,8 @@ services:
                 condition: service_healthy
             redis:
                 condition: service_healthy
+        env_file:
+            - .env
         environment:
             - DJANGO_SETTINGS_MODULE=config.settings
             - DB_NAME=${DB_NAME:-excursions}
@@ -182,6 +184,7 @@ services:
             - DB_HOST=postgres
             - DB_PORT=5432
             - PYTHONUNBUFFERED=1
+            - CHROMA_PERSIST_DIR=/data/chroma
             - YANDEX_API_KEY=${YANDEX_API_KEY}
             - YANDEX_FOLDER_ID=${YANDEX_FOLDER_ID}
         volumes:
@@ -190,11 +193,16 @@ services:
         networks:
             - excursion_network
         restart: unless-stopped
+        healthcheck:
+            test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/', timeout=5)"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
 
     vectorizer_worker:
         build: ./vectorizer
         container_name: vectorizer-worker
-        command: celery -A celery_app worker --loglevel=info -Q vectorizer
+        command: celery -A celery_app worker --loglevel=info -Q vectorizer --concurrency=1
         depends_on:
             postgres:
                 condition: service_healthy
@@ -211,6 +219,7 @@ services:
             - DB_HOST=postgres
             - DB_PORT=5432
             - PYTHONUNBUFFERED=1
+            - ANONYMIZED_TELEMETRY=false
             - YANDEX_API_KEY=${YANDEX_API_KEY}
             - YANDEX_FOLDER_ID=${YANDEX_FOLDER_ID}
         volumes:

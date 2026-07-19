@@ -5,7 +5,7 @@ import psycopg2
 from django.conf import settings
 from .chroma_db import VectorStore
 from .embeddings import EmbeddingsClient
-from backend.assistant_service.assistant.models import Client, LeadRequest, Excursion
+from assistant.models import Client, LeadRequest, Excursion
 
 class RAGPipeline:
     def __init__(self):

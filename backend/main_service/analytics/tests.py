@@ -74,7 +74,7 @@ class AnalyticsAPITest(APITestCase):
             'source': 'catalog'
         }
         
-        response = self.client.post('/api/analytics/view/start/', data)
+        response = self.client.post('/api/analytics/view/start/', data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn('view_id', response.data)
@@ -92,7 +92,7 @@ class AnalyticsAPITest(APITestCase):
             'source': 'catalog'
         }
         
-        response = self.client.post('/api/analytics/view/start/', data)
+        response = self.client.post('/api/analytics/view/start/', data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -107,7 +107,7 @@ class AnalyticsAPITest(APITestCase):
         )
         
         data = {'view_id': view.id}
-        response = self.client.post('/api/analytics/view/end/', data)
+        response = self.client.post('/api/analytics/view/end/', data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_publish.assert_called_once()
@@ -125,7 +125,7 @@ class AnalyticsAPITest(APITestCase):
         )
         
         data = {'view_id': view.id}
-        response = self.client.post('/api/analytics/view/end/', data)
+        response = self.client.post('/api/analytics/view/end/', data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         

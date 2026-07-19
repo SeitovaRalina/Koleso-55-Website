@@ -8,7 +8,10 @@ load_dotenv()
 
 YANDEX_API_KEY = os.getenv('YANDEX_API_KEY')
 YANDEX_FOLDER_ID = os.getenv('YANDEX_FOLDER_ID')
-CHROMA_PERSIST_DIR = os.path.join(BASE_DIR, 'chroma_data')
+CHROMA_PERSIST_DIR = os.environ.get(
+    'CHROMA_PERSIST_DIR',
+    os.path.join(BASE_DIR, 'chroma_data'),
+)
 
 SECRET_KEY = 'django-insecure-super-secret-key-for-dev' #обязт переменная для сессий
 DEBUG = True

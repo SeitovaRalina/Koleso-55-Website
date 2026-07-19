@@ -1,4 +1,5 @@
 import chromadb
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 
@@ -6,7 +7,7 @@ class Command(BaseCommand):
     help = 'Очистка коллекции в ChromaDB'
 
     def handle(self, *args, **options):
-        persist_directory = "/app/chroma_data"
+        persist_directory = settings.CHROMA_PERSIST_DIR
         
         try:
             # Создаем новый клиент и получаем коллекцию

@@ -2,9 +2,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from backend.assistant_service.assistant.models import Client
-from backend.assistant_service.assistant.services.chat_storage import ChatStorageService
-from backend.assistant_service.assistant.services.rag_pipeline import RAGPipeline
+from assistant.models import Client
+from assistant.services.chat_storage import ChatStorageService
+from assistant.services.rag_pipeline import RAGPipeline
 
 class ChatView(APIView):
     def post(self, request):
