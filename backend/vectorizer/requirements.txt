@@ -1,0 +1,5 @@
+celery[redis]==5.3.4
+psycopg2-binary==2.9.9
+chromadb==0.4.22
+requests==2.31.0
+numpy<2.0.0

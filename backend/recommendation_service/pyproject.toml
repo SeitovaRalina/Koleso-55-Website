@@ -1,0 +1,51 @@
+[project]
+name = "recommendation-service"
+version = "0.1.0"
+description = "Personalized recommendations for travel excursions"
+authors = [
+    {name = "Ralina",email = "seitovaralina1@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13,<4"
+dependencies = [
+    "fastapi (>=0.136.1,<0.137.0)",
+    "uvicorn (>=0.46.0,<0.47.0)",
+    "asyncpg (>=0.31.0,<0.32.0)",
+    "sqlalchemy (>=2.0.49,<3.0.0)",
+    "pgvector (>=0.4.2,<0.5.0)",
+    "redis (>=7.4.0,<8.0.0)",
+    "celery (>=5.6.3,<6.0.0)",
+    "aio-pika (>=9.6.2,<10.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "implicit (>=0.7.2,<0.8.0)",
+    "scikit-learn (>=1.8.0,<2.0.0)",
+    "pydantic-settings (>=2.14.0,<3.0.0)",
+    "alembic (>=1.18.4,<2.0.0)",
+    "psycopg2-binary (>=2.9.12,<3.0.0)",
+    "tenacity (>=9.1.4,<10.0.0)",
+    "transformers (>=5.8.0,<6.0.0)",
+    "torch (>=2.11.0,<3.0.0)",
+    "starlette (>=1.0.0,<2.0.0)",
+    "structlog (>=25.5.0,<26.0.0)",
+    "joblib (>=1.5.3,<2.0.0)",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "django-debug-toolbar (>=6.2.0,<7.0.0)",
+    "ipython (>=9.12.0,<10.0.0)"
+]
+
+[[tool.poetry.source]]
+name = "pytorch_cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
+
+[tool.poetry.dependencies]
+torch = {source = "pytorch_cpu"}
