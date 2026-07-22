@@ -85,7 +85,7 @@ services:
     django_celery_worker:
         build: ./main_service
         container_name: django_celery_worker
-        command: celery -A config worker --loglevel=info
+        command: celery -A config worker --loglevel=info --concurrency=1
         depends_on:
             postgres:
                 condition: service_healthy
@@ -148,7 +148,7 @@ services:
     recommender_worker:
         build: ./recommendation_service
         container_name: recommender_worker
-        command: celery -A app.tasks.celery_app:celery_app worker --loglevel=info
+        command: celery -A app.tasks.celery_app:celery_app worker --loglevel=info --concurrency=1
         depends_on:
             postgres:
                 condition: service_healthy
@@ -220,11 +220,12 @@ services:
             - DB_PORT=5432
             - PYTHONUNBUFFERED=1
             - ANONYMIZED_TELEMETRY=false
+            - CHROMA_PERSIST_DIR=/data/chroma
             - YANDEX_API_KEY=${YANDEX_API_KEY}
             - YANDEX_FOLDER_ID=${YANDEX_FOLDER_ID}
         volumes:
             - ./vectorizer:/app
-            - chroma_data:/app/chroma_data
+            - assistant_chroma_data:/data/chroma
         networks:
             - excursion_network
         restart: unless-stopped
@@ -251,7 +252,6 @@ volumes:
     postgres_data:
     redis_data:
     rabbitmq_data:
-    chroma_data:
     assistant_chroma_data:
 
 networks:

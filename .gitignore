@@ -4,3 +4,7 @@ venv/
 __pycache__/
 *.pyc
 **/chroma_data/
+backend/.env.production
+backend/certs/*
+!backend/certs/.gitkeep
+backend/certbot/

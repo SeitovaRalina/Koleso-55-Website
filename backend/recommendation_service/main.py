@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import select, text
 
 from app.core.config import get_settings
@@ -67,10 +68,14 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=[
+            origin.strip()
+            for origin in get_settings().CORS_ORIGINS.split(",")
+            if origin.strip()
+        ],
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 
     app.include_router(recommendations.router, prefix="/api/v1/recommendations", tags=["recommendations"])
@@ -89,14 +94,14 @@ def create_app() -> FastAPI:
             async with app.state.engine.connect() as conn:
                 await conn.execute(text("SELECT 1"))
             db_connected = True
-        except:
+        except Exception:
             db_connected = False
 
         try:
             connection = await aio_pika.connect_robust(settings.RABBITMQ_URL)
             await connection.close()
             rabbitmq_connected = True
-        except:
+        except Exception:
             rabbitmq_connected = False
 
         try:
@@ -104,15 +109,19 @@ def create_app() -> FastAPI:
                 result = await session.execute(select(TrainingState))
                 state = result.scalar_one_or_none()
                 models_ready = state.models_ready if state else False
-        except:
+        except Exception:
             models_ready = False
 
-        return {
+        payload = {
             "status": "healthy" if db_connected and rabbitmq_connected else "unhealthy",
             "db_connected": db_connected,
             "rabbitmq_connected": rabbitmq_connected,
             "models_ready": models_ready
         }
+        return JSONResponse(
+            content=payload,
+            status_code=200 if db_connected and rabbitmq_connected else 503,
+        )
     return app
 
 

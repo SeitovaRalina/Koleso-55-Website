@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 try:
@@ -9,24 +10,25 @@ except ImportError:
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY')
 
-DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+def env_bool(name, default=False):
+    return os.environ.get(name, str(default)).lower() in {'1', 'true', 'yes', 'on'}
 
-from decouple import config
-GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
-GOOGLE_CLIENT_SECRET = config('GOOGLE_CLIENT_SECRET')
 
-# ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,main-service,recommender_api,recommender_worker').split(',')
+def env_list(name, default=''):
+    return [value.strip() for value in os.environ.get(name, default).split(',') if value.strip()]
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'main-service',  # имя сервиса в docker-compose
-    'recommender_api',
-    'recommender_worker',
-    '*',  # временно для тестирования
-]
+
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-development-only')
+DEBUG = env_bool('DEBUG', True)
+
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+
+ALLOWED_HOSTS = env_list(
+    'ALLOWED_HOSTS',
+    'localhost,127.0.0.1,main-service',
+)
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
@@ -43,7 +45,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist',
-    'debug_toolbar',
     'django_filters',
     'drf_spectacular',
     'drf_spectacular_sidecar',
@@ -64,8 +65,10 @@ INSTALLED_APPS = [
     'analytics',
 ]
 
+if DEBUG:
+    INSTALLED_APPS.append('debug_toolbar')
+
 MIDDLEWARE = [
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -77,16 +80,28 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://main-service:3000",
-    "http://recommender_api:3000",
-    "http://recommender_worker:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+if DEBUG:
+    MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
+
+_cors_origins = env_list(
+    'CORS_ORIGINS',
+    'http://localhost:3000,http://127.0.0.1:3000,'
+    'http://localhost:5173,http://127.0.0.1:5173',
+)
+CORS_ALLOW_ALL_ORIGINS = DEBUG and '*' in _cors_origins
+CORS_ALLOWED_ORIGINS = [origin for origin in _cors_origins if origin != '*']
 CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', False)
+SESSION_COOKIE_SECURE = env_bool('SESSION_COOKIE_SECURE', not DEBUG)
+CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', not DEBUG)
+SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '0' if DEBUG else '31536000'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', not DEBUG)
+SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', False)
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 ROOT_URLCONF = 'config.urls'
 
@@ -121,8 +136,16 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD', 'sql'),
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
+        'CONN_MAX_AGE': int(os.environ.get('DB_CONN_MAX_AGE', '60')),
+        'CONN_HEALTH_CHECKS': True,
     }
 }
+
+DB_SSLMODE = os.environ.get('DB_SSLMODE', 'prefer')
+if DB_SSLMODE != 'disable':
+    DATABASES['default']['OPTIONS'] = {'sslmode': DB_SSLMODE}
+    if db_sslrootcert := os.environ.get('DB_SSLROOTCERT'):
+        DATABASES['default']['OPTIONS']['sslrootcert'] = db_sslrootcert
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -145,8 +168,6 @@ REST_FRAMEWORK = {
     ],
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
 }
-
-from datetime import timedelta
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
@@ -251,16 +272,20 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend',
+)
 EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
-
-# # SMTP Configuration (for production)
-# EMAIL_HOST = os.environ.get('EMAIL_HOST')
-# EMAIL_PORT = int(os.environ.get('EMAIL_PORT'))
-# EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS').lower() == 'true'
-# EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-# DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
+EMAIL_USE_SSL = env_bool('EMAIL_USE_SSL', False)
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '10'))
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'webmaster@localhost')
+SERVER_EMAIL = os.environ.get('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
 # Custom email templates
 ACCOUNT_EMAIL_CONFIRMATION_SUBJECT = 'Подтверждение email - КОЛЕСО путешествий 55'

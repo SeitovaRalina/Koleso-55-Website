@@ -18,6 +18,7 @@ class DjangoClient:
         self.base_url = settings.DJANGO_BASE_URL.rstrip('/')
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
+            headers={"X-Forwarded-Proto": "https"},
             timeout=httpx.Timeout(15.0, connect=5.0),
             limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
         )

@@ -28,7 +28,10 @@ class VectorStore:
         if self._initialized:
             return
             
-        self.persist_directory = "/app/chroma_data"
+        self.persist_directory = os.environ.get(
+            "CHROMA_PERSIST_DIR",
+            "/app/chroma_data",
+        )
         self.collection_name = "tours_collection"
         
         # Проверяем работоспособность существующей базы
@@ -83,12 +86,19 @@ class VectorStore:
 
 def get_db_connection():
     """Получаем подключение к базе данных"""
+    connection_options = {
+        'dbname': os.environ.get('DB_NAME', 'excursions'),
+        'user': os.environ.get('DB_USER', 'postgres'),
+        'password': os.environ.get('DB_PASSWORD', 'postgres'),
+        'host': os.environ.get('DB_HOST', 'localhost'),
+        'port': os.environ.get('DB_PORT', '5432'),
+        'sslmode': os.environ.get('DB_SSLMODE', 'prefer'),
+    }
+    if sslrootcert := os.environ.get('DB_SSLROOTCERT'):
+        connection_options['sslrootcert'] = sslrootcert
+
     return psycopg2.connect(
-        dbname=os.environ.get('DB_NAME', 'excursions'),
-        user=os.environ.get('DB_USER', 'postgres'),
-        password=os.environ.get('DB_PASSWORD', 'postgres'),
-        host=os.environ.get('DB_HOST', 'localhost'),
-        port=os.environ.get('DB_PORT', '5432')
+        **connection_options
     )
 
 
