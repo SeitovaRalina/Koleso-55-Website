@@ -22,7 +22,12 @@ RUN pip install --no-cache-dir -r requirements.txt --extra-index-url https://dow
 
 COPY . .
 
-RUN mkdir -p /app/models
+RUN groupadd --gid 10001 app \
+    && useradd --uid 10001 --gid app --create-home --shell /usr/sbin/nologin app \
+    && mkdir -p /app/models /data/huggingface \
+    && chown -R app:app /app /data/huggingface
+
+USER app
 
 EXPOSE 8000
 

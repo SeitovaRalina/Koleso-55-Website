@@ -14,11 +14,15 @@ _sync_sessionmaker: sessionmaker[Session] | None = None
 def create_sync_engine(settings: Settings) -> Engine:
     """Get cached synchronous database engine singleton"""
     sync_url = settings.DATABASE_URL.replace("+asyncpg", "+psycopg2")
+    connect_args = {'sslmode': settings.DB_SSLMODE}
+    if settings.DB_SSLROOTCERT:
+        connect_args['sslrootcert'] = settings.DB_SSLROOTCERT
     engine = create_engine(
         sync_url,
         echo=False,
         pool_pre_ping=True,
         pool_recycle=300,
+        connect_args=connect_args,
     )
     return engine
 

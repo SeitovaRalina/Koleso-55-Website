@@ -135,17 +135,13 @@ Business rules:
 
 Подробно: `docs/YOOKASSA_IMPLEMENTATION.md`.
 
-## Этап 4: nginx + Timeweb one-service deploy
+## Этап 4: nginx + Timeweb VPS deploy
 
-1. Использовать `backend/nginx/nginx.conf`.
-2. Собрать frontend в static bundle.
-3. Раздавать frontend и backend с одного nginx/public origin.
-4. В production убрать wildcard hosts/origins.
-5. Подключить HTTPS.
-6. Проверить reverse proxy:
-   - `/api/health` or `/health/`
-   - `/api/schema/`
-   - `/api/v1/recommendations/...`
+1. Использовать `backend/compose.production.yml`; PostgreSQL брать из Timeweb DBaaS.
+2. Собирать frontend multi-stage image и раздавать `dist` из nginx.
+3. Публиковать только `80/443`; API, Redis и RabbitMQ оставлять во внутренней network.
+4. Использовать один HTTPS origin без wildcard hosts/origins.
+5. Проверить маршруты `/health/`, `/api/`, `/api/v1/` и `/api/assistant/`.
 
 Подробно: `docs/TIMEWEB_NGINX_DEPLOY.md`.
 

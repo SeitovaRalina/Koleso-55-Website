@@ -5,7 +5,6 @@ import sys
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
@@ -13,6 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.models.base import Base
 from app.core.config import Settings
+from app.core.database import create_engine
 from app.models import *
 
 config = context.config
@@ -62,11 +62,7 @@ async def run_async_migrations() -> None:
 
     """
 
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    connectable = create_engine(settings)
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

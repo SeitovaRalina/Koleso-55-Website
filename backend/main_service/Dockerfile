@@ -27,8 +27,13 @@ RUN pip install --no-cache-dir -r requirements.txt --extra-index-url https://dow
 # Copy project
 COPY . .
 
-# Create media and static directories
-RUN mkdir -p media static
+# Create runtime user and writable directories
+RUN groupadd --gid 10001 app \
+    && useradd --uid 10001 --gid app --create-home --shell /usr/sbin/nologin app \
+    && mkdir -p media static /var/lib/celery /data/huggingface \
+    && chown -R app:app /app /var/lib/celery /data/huggingface
+
+USER app
 
 # Expose port
 EXPOSE 8000

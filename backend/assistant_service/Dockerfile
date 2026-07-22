@@ -17,6 +17,13 @@ RUN pip install --no-cache-dir --default-timeout=1000 \
 
 COPY . .
 
+RUN groupadd --gid 10001 app \
+    && useradd --uid 10001 --gid app --create-home --shell /usr/sbin/nologin app \
+    && mkdir -p /data/chroma \
+    && chown -R app:app /app /data/chroma
+
+USER app
+
 EXPOSE 8000
 
 CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]

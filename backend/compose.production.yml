@@ -1,0 +1,340 @@
+name: koleso-production
+
+x-environment: &service-environment
+  - ${ENV_FILE:-.env.production}
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-restart: &default-restart
+  restart: unless-stopped
+  stop_grace_period: 30s
+  logging: *default-logging
+  networks:
+    - app_network
+
+services:
+  redis:
+    <<: *default-restart
+    image: redis:7.4-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - redis-cli --no-auth-warning -a "$${REDIS_PASSWORD}" ping | grep -q PONG
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  rabbitmq:
+    <<: *default-restart
+    image: rabbitmq:3.13-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+
+  main_service:
+    <<: *default-restart
+    networks:
+      app_network:
+        aliases:
+          - main-service
+    build:
+      context: ./main_service
+    command:
+      - sh
+      - -c
+      - >-
+        python manage.py migrate --noinput &&
+        python manage.py collectstatic --noinput &&
+        exec gunicorn config.wsgi:application
+        --bind 0.0.0.0:8000
+        --workers 1
+        --threads 4
+        --timeout 120
+        --access-logfile -
+        --error-logfile -
+    env_file: *service-environment
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - django_static:/app/static
+      - django_media:/app/media
+      - huggingface_cache:/data/huggingface
+    environment:
+      HF_HOME: /data/huggingface
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -fsS
+        - -H
+        - "X-Forwarded-Proto: https"
+        - -H
+        - "Host: main-service"
+        - http://localhost:8000/health/
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  django_celery_worker:
+    <<: *default-restart
+    build:
+      context: ./main_service
+    command:
+      - celery
+      - -A
+      - config
+      - worker
+      - --loglevel=info
+      - --concurrency=1
+    env_file: *service-environment
+    depends_on:
+      main_service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - django_media:/app/media
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - celery -A config inspect ping -d "celery@$${HOSTNAME}" --timeout=5 | grep -q pong
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  django_celery_beat:
+    <<: *default-restart
+    build:
+      context: ./main_service
+    command:
+      - celery
+      - -A
+      - config
+      - beat
+      - --loglevel=info
+      - --schedule=/var/lib/celery/celerybeat-schedule
+    env_file: *service-environment
+    depends_on:
+      main_service:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - celery_beat_data:/var/lib/celery
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  recommender_api:
+    <<: *default-restart
+    build:
+      context: ./recommendation_service
+    command:
+      - sh
+      - -c
+      - >-
+        alembic upgrade head &&
+        exec uvicorn main:app
+        --host 0.0.0.0
+        --port 8000
+        --workers 1
+        --proxy-headers
+        --forwarded-allow-ips=*
+    env_file: *service-environment
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - recommender_models:/app/models
+      - huggingface_cache:/data/huggingface
+    environment:
+      HF_HOME: /data/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  recommender_worker:
+    <<: *default-restart
+    build:
+      context: ./recommendation_service
+    command:
+      - celery
+      - -A
+      - app.tasks.celery_app:celery_app
+      - worker
+      - --loglevel=info
+      - --concurrency=1
+    env_file: *service-environment
+    depends_on:
+      recommender_api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - recommender_models:/app/models
+      - huggingface_cache:/data/huggingface
+    environment:
+      HF_HOME: /data/huggingface
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - celery -A app.tasks.celery_app:celery_app inspect ping -d "celery@$${HOSTNAME}" --timeout=5 | grep -q pong
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  assistant_service:
+    <<: *default-restart
+    networks:
+      app_network:
+        aliases:
+          - assistant-service
+    build:
+      context: ./assistant_service
+    command:
+      - sh
+      - -c
+      - >-
+        python manage.py migrate --noinput &&
+        exec gunicorn config.wsgi:application
+        --bind 0.0.0.0:8000
+        --workers 1
+        --threads 4
+        --timeout 120
+        --access-logfile -
+        --error-logfile -
+    env_file: *service-environment
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - assistant_chroma_data:/data/chroma
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; request = urllib.request.Request('http://localhost:8000/health/', headers={'Host':'assistant-service','X-Forwarded-Proto':'https'}); urllib.request.urlopen(request, timeout=5)
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  vectorizer_worker:
+    <<: *default-restart
+    build:
+      context: ./vectorizer
+    command:
+      - celery
+      - -A
+      - celery_app
+      - worker
+      - --loglevel=info
+      - -Q
+      - vectorizer
+      - --concurrency=1
+    env_file: *service-environment
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - assistant_chroma_data:/data/chroma
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - celery -A celery_app inspect ping -d "celery@$${HOSTNAME}" --timeout=5 | grep -q pong
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  nginx:
+    <<: *default-restart
+    build:
+      context: ../frontend
+      args:
+        VITE_API_URL: /api
+        VITE_RECOMMENDER_URL: /api/v1
+        VITE_ASSISTANT_URL: /api/assistant
+    environment:
+      DOMAIN: ${DOMAIN}
+      SERVER_NAMES: ${SERVER_NAMES}
+    depends_on:
+      main_service:
+        condition: service_healthy
+      recommender_api:
+        condition: service_healthy
+      assistant_service:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - django_static:/srv/django/static:ro
+      - django_media:/srv/django/media:ro
+      - ${LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q --spider --no-check-certificate https://localhost/nginx-health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  redis_data:
+  rabbitmq_data:
+  django_static:
+  django_media:
+  celery_beat_data:
+  recommender_models:
+  assistant_chroma_data:
+  huggingface_cache:
+
+networks:
+  app_network:
+    driver: bridge

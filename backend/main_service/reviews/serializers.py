@@ -150,10 +150,10 @@ class HomepageReviewSerializer(serializers.ModelSerializer):
             'created_at',
         ]
 
-    def get_author_name(self, obj):
+    def get_author_name(self, obj: Review) -> str:
         return obj.homepage_author_name or obj.user.get_full_name() or obj.user.email
 
-    def get_main_photo(self, obj):
+    def get_main_photo(self, obj: Review) -> Optional[str]:
         selected_image = obj.images.filter(is_homepage_main=True).order_by('homepage_order', 'uploaded_at').first()
         if selected_image:
             return selected_image.image.url

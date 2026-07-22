@@ -5,6 +5,7 @@ python-dotenv
 requests
 redis
 django-redis
-chromadb>=0.5.25
+chromadb==1.5.9
 psycopg2-binary
 Pillow
+gunicorn>=23.0,<24.0
