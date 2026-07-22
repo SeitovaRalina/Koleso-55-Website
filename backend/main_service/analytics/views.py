@@ -193,6 +193,7 @@ def internal_popularity(request):
     return Response(popularity)
 
 
+@extend_schema(responses={200: OpenApiTypes.OBJECT})
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def recommendations_for_user(request, user_id):
@@ -200,6 +201,7 @@ def recommendations_for_user(request, user_id):
     return Response({"recommendations": get_user_recommendations(user_id, top_k=top_k)})
 
 
+@extend_schema(responses={200: OpenApiTypes.OBJECT})
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def similar_for_excursion(request, excursion_id):

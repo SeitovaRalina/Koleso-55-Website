@@ -1,8 +1,14 @@
 import logging
+from typing import TYPE_CHECKING
+
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .validators import normalize_phone, mask_email
 from .utils import get_domain_and_protocol, generate_jwt_response
+
+if TYPE_CHECKING:
+    from .models import CustomUser
+
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
@@ -284,7 +290,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'email', 'date_joined', 'is_email_verified', 'full_name']
 
-    def get_full_name(self, obj):
+    def get_full_name(self, obj: "CustomUser") -> str:
         return f"{obj.first_name} {obj.last_name} {obj.patronymic}".strip()
 
     def validate_phone(self, value):
