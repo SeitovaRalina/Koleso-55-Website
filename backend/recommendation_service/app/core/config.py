@@ -12,6 +12,22 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://user:pass@localhost:5432/recommender",
         description="PostgreSQL database URL for recommendation service"
     )
+    DATABASE_ECHO: bool = Field(
+        default=False,
+        description="Enable SQLAlchemy SQL query logging"
+    )
+    CORS_ORIGINS: str = Field(
+        default="http://localhost:5173,http://127.0.0.1:5173",
+        description="Comma-separated browser origins allowed by CORS"
+    )
+    DB_SSLMODE: str = Field(
+        default="prefer",
+        description="PostgreSQL TLS mode: prefer, require, verify-ca, or verify-full"
+    )
+    DB_SSLROOTCERT: Optional[str] = Field(
+        default=None,
+        description="Path to PostgreSQL CA certificate"
+    )
 
     # RabbitMQ
     RABBITMQ_URL: str = Field(
