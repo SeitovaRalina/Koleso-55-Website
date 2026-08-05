@@ -4,7 +4,7 @@ from .views import (
     PasswordResetView, PasswordResetConfirmView,
     VerifyEmailView, VerifyEmailConfirmView,
     CustomTokenRefreshView, CustomTokenBlacklistView,
-    GoogleLogin, VKLogin
+    GoogleLogin, VKLogin, SocialConfigView
 )
 
 app_name = 'accounts'
@@ -32,4 +32,5 @@ urlpatterns = [
     # Социальная аутентификация
     path('google/', GoogleLogin.as_view(), name='google_login'),
     path('vk/', VKLogin.as_view(), name='vk_login'),
+    path('social-config/<str:provider>/', SocialConfigView.as_view(), name='social-config'),
 ]

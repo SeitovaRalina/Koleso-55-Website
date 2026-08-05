@@ -299,6 +299,8 @@ services:
         VITE_API_URL: /api
         VITE_RECOMMENDER_URL: /api/v1
         VITE_ASSISTANT_URL: /api/assistant
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        VITE_VK_CLIENT_ID: ${VK_CLIENT_ID}
     environment:
       DOMAIN: ${DOMAIN}
       SERVER_NAMES: ${SERVER_NAMES}

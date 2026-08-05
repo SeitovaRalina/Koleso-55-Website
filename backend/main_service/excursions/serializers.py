@@ -237,7 +237,7 @@ class ExcursionListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.URLField())
     def get_main_image(self, obj):
-        main = obj.images.filter(is_main=True).first()
+        main = obj.images.filter(is_main=True).first() or obj.images.first()
         return main.image.url if main else None
 
     @extend_schema_field(serializers.FloatField(allow_null=True))

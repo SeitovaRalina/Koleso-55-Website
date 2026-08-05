@@ -16,6 +16,7 @@ import Certificates from '../pages/Certificates'
 import News from '../pages/News'
 import RecommendationInfo from '../pages/RecommendationInfo'
 import GoogleCallback from '../pages/GoogleCallback'
+import { About, Activities, BookingRules, Contacts, CustomTour, Faq, LegalPage } from '../pages/PublicPages'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 
 const UiKit = import.meta.env.DEV ? lazy(() => import('../pages/UiKit')) : null
@@ -23,6 +24,7 @@ const UiKit = import.meta.env.DEV ? lazy(() => import('../pages/UiKit')) : null
 export const router = createBrowserRouter([
     {
         element: <RootLayout />,
+        errorElement: <NotFound />,
         children: [
             {
                 path: '/',
@@ -69,6 +71,16 @@ export const router = createBrowserRouter([
                 path: 'recommendations',
                 element: <RecommendationInfo />,
             },
+            { path: 'about', element: <About /> },
+            { path: 'contacts', element: <Contacts /> },
+            { path: 'faq', element: <Faq /> },
+            { path: 'booking', element: <BookingRules /> },
+            { path: 'activities', element: <Activities /> },
+            { path: 'custom-tour', element: <CustomTour /> },
+            { path: 'legal/personal-data', element: <LegalPage type='consent' /> },
+            { path: 'legal/personal-data-consent', element: <LegalPage type='consent' /> },
+            { path: 'legal/privacy-policy', element: <LegalPage type='policy' /> },
+            { path: 'legal/personal-data-policy', element: <LegalPage type='policy' /> },
             ...(import.meta.env.DEV ? [{
                 path: 'ui-kit',
                 element: UiKit ? (
@@ -80,24 +92,28 @@ export const router = createBrowserRouter([
                 ],
             },
             {
-                path: '/login',
+                path: 'login',
                 element: <Login />,
             },
             {
-                path: '/register',
+                path: 'register',
                 element: <Register />,
             },
             {
-                path: '/password-reset',
+                path: 'password-reset',
                 element: <PasswordReset />,
             },
             {
-                path: '/password-reset/:uidb64/:token',
+                path: 'password-reset/:uidb64/:token',
                 element: <PasswordResetConfirm />,
             },
             {
-                path: '/google-callback',
+                path: 'google-callback',
                 element: <GoogleCallback />,
+            },
+            {
+                path: '*',
+                element: <NotFound />,
             },
         ],
     },

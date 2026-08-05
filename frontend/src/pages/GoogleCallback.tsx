@@ -5,18 +5,19 @@ export default function GoogleCallback() {
     // Получаем access_token из URL
     const urlParams = new URLSearchParams(window.location.hash.substring(1))
     const accessToken = urlParams.get('access_token')
+    const provider = new URLSearchParams(window.location.search).get('provider') === 'vk' ? 'vk' : 'google'
 
     if (accessToken) {
       // Отправляем токен в родительское окно через postMessage
       window.opener.postMessage(
-        { type: 'google_token', token: accessToken },
+        { type: `${provider}_token`, token: accessToken },
         window.location.origin
       )
       // Родительское окно закроет popup после успешной обработки
     } else {
       // Если токена нет, отправляем ошибку
       window.opener.postMessage(
-        { type: 'google_error', error: 'No access token' },
+        { type: `${provider}_error`, error: 'No access token' },
         window.location.origin
       )
     }

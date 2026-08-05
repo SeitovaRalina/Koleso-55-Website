@@ -25,5 +25,6 @@ export function getMediaUrl(path: string | null | undefined): string | null {
   
   // Otherwise, prepend the media base URL
   const baseUrl = getMediaBaseUrl()
-  return `${baseUrl}${path}`
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return `${baseUrl}${normalizedPath}`
 }

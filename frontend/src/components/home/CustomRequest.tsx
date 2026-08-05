@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { CONTACTS } from '../../config/contacts';
 
 export default function CustomRequest() {
+  const [status, setStatus] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -10,10 +12,10 @@ export default function CustomRequest() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Custom request submitted:', formData);
-    // TODO: Send to backend email endpoint
-    alert('Заявка отправлена! Мы свяжемся с вами в ближайшее время.');
-    setFormData({ name: '', phone: '', email: '', description: '' });
+    const subject = encodeURIComponent('Экскурсия на заказ');
+    const body = encodeURIComponent(`Имя: ${formData.name}\nТелефон: ${formData.phone}\nEmail: ${formData.email}\nПожелания: ${formData.description}`);
+    setStatus('Открываем почтовую программу с заполненной заявкой.');
+    window.location.href = `mailto:${CONTACTS.email}?subject=${subject}&body=${body}`;
   };
 
   return (
@@ -81,6 +83,7 @@ export default function CustomRequest() {
           >
             Отправить заявку
           </button>
+          {status && <p className="mt-3 text-center text-sm text-neutral-text" role="status">{status}</p>}
         </form>
       </div>
     </section>

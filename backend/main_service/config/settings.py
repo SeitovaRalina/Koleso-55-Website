@@ -24,6 +24,8 @@ DEBUG = env_bool('DEBUG', True)
 
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+VK_CLIENT_ID = os.environ.get('VK_CLIENT_ID', '')
+VK_CLIENT_SECRET = os.environ.get('VK_CLIENT_SECRET', '')
 
 ALLOWED_HOSTS = env_list(
     'ALLOWED_HOSTS',
@@ -269,6 +271,11 @@ SOCIALACCOUNT_PROVIDERS = {
     },
     'vk': {
         'SCOPE': ['email'],
+        'APP': {
+            'client_id': VK_CLIENT_ID,
+            'secret': VK_CLIENT_SECRET,
+            'key': '',
+        },
     }
 }
 

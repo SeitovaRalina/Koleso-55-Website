@@ -2,6 +2,10 @@ import api from './axios'
 import type { User } from '../types'
 
 export const authApi = {
+  getSocialConfig: async (provider: 'google' | 'vk'): Promise<{ client_id: string }> => {
+    const response = await api.get(`/accounts/social-config/${provider}/`)
+    return response.data
+  },
   login: async (data: {
     contact: string
     contact_type: 'email' | 'phone'

@@ -14,8 +14,12 @@ export default function Login() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleGoogleLogin = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  const handleGoogleLogin = async () => {
+    const { client_id: clientId } = await authApi.getSocialConfig('google').catch(() => ({ client_id: '' }))
+    if (!clientId || clientId === 'your-google-client-id-here') {
+      setError('Вход через Google временно недоступен: OAuth client ID не настроен.')
+      return
+    }
     const redirectUri = encodeURIComponent(window.location.origin + '/google-callback')
     const scope = encodeURIComponent('profile email')
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}`
@@ -24,7 +28,7 @@ export default function Login() {
 
     // Слушаем сообщение от popup
     const messageHandler = (event: MessageEvent) => {
-      if (event.data.type === 'google_token') {
+      if (event.origin === window.location.origin && event.data.type === 'google_token') {
         window.removeEventListener('message', messageHandler)
 
         const accessToken = event.data.token
@@ -53,6 +57,30 @@ export default function Login() {
       }
     }
 
+    window.addEventListener('message', messageHandler)
+  }
+
+  const handleVkLogin = async () => {
+    const { client_id: clientId } = await authApi.getSocialConfig('vk').catch(() => ({ client_id: '' }))
+    if (!clientId || clientId === 'your-vk-client-id-here') {
+      setError('Вход через VK временно недоступен: OAuth client ID не настроен.')
+      return
+    }
+
+    const redirectUri = encodeURIComponent(`${window.location.origin}/google-callback?provider=vk`)
+    const authUrl = `https://oauth.vk.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=email`
+    const popup = window.open(authUrl, 'vkAuth', 'width=500,height=600')
+    const messageHandler = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.data.type !== 'vk_token') return
+      window.removeEventListener('message', messageHandler)
+      authApi.socialLogin('vk', { access_token: event.data.token })
+        .then((response) => {
+          login({ access: response.access, refresh: response.refresh }, response.user)
+          navigate('/')
+          popup?.close()
+        })
+        .catch(() => setError('Не удалось войти через VK. Проверьте настройки OAuth.'))
+    }
     window.addEventListener('message', messageHandler)
   }
 
@@ -201,7 +229,7 @@ export default function Login() {
               </button>
               <button
                 type="button"
-                onClick={() => console.log('VK OAuth')}
+                onClick={handleVkLogin}
                 className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
               >
                 ВКонтакте

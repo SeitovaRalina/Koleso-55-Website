@@ -34,6 +34,7 @@ import {
 import { CONTACTS, REVIEW_LINKS } from '../config/contacts'
 import { getMediaUrl } from '../utils/media'
 import type { Excursion, HomepageReview } from '../types'
+import { useAuth } from '../contexts/useAuth'
 
 const locationTypes = [
   { value: 'city', label: 'Городские экскурсии' },
@@ -42,6 +43,7 @@ const locationTypes = [
 ]
 
 export default function Home() {
+  const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const [locationType, setLocationType] = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -179,7 +181,7 @@ export default function Home() {
             <button
               type='button'
               className='magic-ai-button inline-flex h-12 items-center gap-2 rounded-card border px-5 text-sm font-bold'
-              onClick={() => navigate('/recommendations')}
+              onClick={() => navigate(isAuthenticated ? '/account?tab=recommendations' : '/recommendations')}
             >
               <FaWandMagicSparkles className='relative z-10 h-5 w-5' aria-hidden='true' />
               <span>Подобрать тур с ИИ</span>
