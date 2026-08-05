@@ -103,7 +103,7 @@ CACHES = {
 }
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 _cors_origins = env_list(
     'CORS_ORIGINS',
     'http://localhost:5173,http://127.0.0.1:5173',
