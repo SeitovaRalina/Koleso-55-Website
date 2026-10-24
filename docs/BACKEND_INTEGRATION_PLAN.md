@@ -1,5 +1,11 @@
 # Backend Integration Plan
 
+## Новости (KOLE-7)
+
+`GET /api/news/` возвращает DRF page-number ответ `{count,next,previous,results}` (12 записей на страницу; `?page=2`). `GET /api/news/{slug}/` возвращает одну запись или 404. Оба endpoint доступны гостям и показывают только `is_published=true` с `published_at <= now`, сортировка по дате публикации от новых к старым. Поля записи: `title`, `slug`, `excerpt`, `body` (обычный текст), `cover` (URL либо null), `category`, `published_at`.
+
+Редактору дать `is_staff` и только права `view/add/change/delete` модели `news.NewsArticle` в Django Admin. Публикация управляется флагом «Опубликовано» и датой: будущая дата скрывает запись до наступления срока. Снятие флага сразу убирает новость из API. Обложки хранятся в общем media volume.
+
 Цель: стабильно связать Django `main_service`, FastAPI `recommendation_service`, frontend и будущую оплату YooKassa.
 
 Current priority note: frontend production-ready work goes first. Backend pricing, YooKassa, and deploy remain planned later phases.

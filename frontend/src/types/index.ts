@@ -4,6 +4,16 @@ export interface Category {
   slug: string
 }
 
+export interface NewsArticle {
+  title: string
+  slug: string
+  excerpt: string
+  body: string
+  cover: string | null
+  category: string
+  published_at: string
+}
+
 export interface Excursion {
   id: number
   slug: string
