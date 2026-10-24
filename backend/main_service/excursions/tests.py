@@ -1,5 +1,6 @@
 from datetime import date, time
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -12,11 +13,12 @@ class SlotContractTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         category = Category.objects.create(name='Программы', slug='programs')
-        cls.excursion = Excursion.objects.create(
-            title='Программа', slug='program', category=category,
-            description='Описание', short_description='Кратко',
-            price=Decimal('1000.00'), duration=2040,
-        )
+        with patch('config.celery.app.send_task'):
+            cls.excursion = Excursion.objects.create(
+                title='Программа', slug='program', category=category,
+                description='Описание', short_description='Кратко',
+                price=Decimal('1000.00'), duration=2040,
+            )
 
     def make_slot(self, **overrides):
         values = dict(excursion=self.excursion, date=date(2026, 10, 14), time=time(10))

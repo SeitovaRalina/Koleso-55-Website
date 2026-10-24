@@ -567,7 +567,7 @@ export default function ExcursionDetail() {
               {/* Типы билетов */}
               {priceSlot?.price_override != null && (
                 <p className="mb-4 text-sm text-gray-600">
-                  Для {selectedSlot ? 'выбранного' : 'ближайшего доступного'} слота действует цена {priceSlot.price_override} ₽.
+                  Цена {selectedSlot ? 'выбранного' : 'ближайшего доступного'} слота.
                 </p>
               )}
               {priceSlot?.price_override == null && excursion.ticket_types && excursion.ticket_types.some((t: TicketType) => t.is_active) && (

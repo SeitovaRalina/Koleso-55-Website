@@ -7,10 +7,10 @@ const shortDate = (value: string) => {
 
 const shortTime = (value: string) => value.slice(0, 5)
 
-export function formatSlot(slot: ExcursionSlot, compact = false) {
+export function formatSlot(slot: ExcursionSlot, compact = false, multiDay = false) {
   const start = `${shortDate(slot.date)} ${shortTime(slot.time)}`
   if (!slot.end_date || !slot.end_time) return start
-  if (compact && slot.end_date !== slot.date) {
+  if (compact && multiDay && slot.end_date !== slot.date) {
     return `${shortDate(slot.date)} – ${shortDate(slot.end_date)}`
   }
   if (compact && slot.end_date === slot.date) {

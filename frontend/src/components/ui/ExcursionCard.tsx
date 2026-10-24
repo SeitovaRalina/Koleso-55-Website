@@ -15,7 +15,7 @@ interface ExcursionCardProps {
   compact?: boolean
 }
 
-function getSlotBadge(slots?: ExcursionSlot[]) {
+function getSlotBadge(slots?: ExcursionSlot[], multiDay = false) {
   const availableSlots = slots?.filter(slot => slot.is_available) || []
   const nearestSlot = availableSlots[0] || slots?.[0]
 
@@ -25,7 +25,7 @@ function getSlotBadge(slots?: ExcursionSlot[]) {
   return {
     seats,
     slot: nearestSlot,
-    dateLine: formatSlot(nearestSlot, true),
+    dateLine: formatSlot(nearestSlot, true, multiDay),
   }
 }
 
@@ -35,7 +35,7 @@ export function ExcursionCard({ excursion, source = 'direct' }: ExcursionCardPro
   const { isAuthenticated } = useAuth()
   const imageUrl = getMediaUrl(excursion.main_image)
   const categoryName = excursion.category?.name || 'Экскурсия'
-  const slotBadge = getSlotBadge(excursion.nearest_slots)
+  const slotBadge = getSlotBadge(excursion.nearest_slots, excursion.is_multi_day)
   const price = getPrice(excursion, slotBadge?.slot)
   
   // Check initial wishlist status
@@ -114,7 +114,7 @@ export function ExcursionCard({ excursion, source = 'direct' }: ExcursionCardPro
             </button>
           </div>
           {slotBadge && (
-            <div className='absolute bottom-3 left-3 max-w-[calc(100%-24px)] rounded-card bg-neutral-ink/84 px-3 py-2 text-xs font-bold leading-5 text-white shadow-sm backdrop-blur'>
+            <div className='absolute bottom-3 left-3 max-w-[calc(100%-24px)] rounded-card bg-neutral-ink/90 px-3 py-2 text-xs font-bold leading-5 text-white shadow-sm'>
               <div>Осталось {slotBadge.seats} мест</div>
               <div>{slotBadge.dateLine}</div>
             </div>

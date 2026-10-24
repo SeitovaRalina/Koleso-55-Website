@@ -55,7 +55,7 @@ class Excursion(models.Model):
     title = models.CharField(
         'Название программы или экскурсии',
         max_length=200,
-        help_text='Название экскурсии'
+        help_text='Название программы, экскурсии или встречи'
     )
     slug = models.SlugField(
         'Slug', 
@@ -69,7 +69,7 @@ class Excursion(models.Model):
         on_delete=models.PROTECT, 
         related_name='excursions',
         verbose_name='Категория',
-        help_text='Категория, к которой относится экскурсия'
+        help_text='Категория программы или экскурсии'
     )
     location_type = models.CharField(
         'Тип локации',
@@ -94,7 +94,7 @@ class Excursion(models.Model):
     is_multi_day = models.BooleanField(
         'Многодневный тур',
         default=False,
-        help_text='Является ли экскурсия многодневным туром'
+        help_text='Программа проходит в несколько календарных дней'
     )
     description = models.TextField(
         'Полное описание',
