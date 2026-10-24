@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Каталог: категории в верхней панели — Колесо путешествий 55</title>
+  <style>
+    :root { font-family: Arial, Helvetica, sans-serif; color: #172033; background: #fff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    :is(button, input, select):focus-visible { outline: 3px solid #0b8ed8; outline-offset: 2px; }
+    .header { position: sticky; z-index: 40; top: 0; height: 80px; border-bottom: 1px solid #dfe5eb; background: #fff; }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; max-width: 1180px; height: 100%; margin: auto; padding: 0 16px; }
+    .logo { width: 140px; height: auto; }
+    .nav { display: flex; gap: 28px; font-size: 15px; font-weight: 700; }
+    .nav span:first-child { color: #0a3f9a; }
+    .layout { display: grid; grid-template-columns: 262px minmax(0, 1fr); gap: 36px; max-width: 1180px; margin: auto; padding: 24px 16px 80px; }
+    .sidebar { align-self: start; padding: 28px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; }
+    .sidebar h2 { margin: 0 0 28px; font-size: 19px; }
+    .filter-group + .filter-group { margin-top: 28px; }
+    .filter-group label { display: block; margin-bottom: 12px; color: #445066; font-size: 14px; font-weight: 700; }
+    .range { display: flex; align-items: center; gap: 8px; }
+    .range input { min-width: 0; width: 50%; }
+    .filter-group input, .filter-group select { width: 100%; height: 46px; padding: 0 11px; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; color: #172033; font-size: 14px; }
+    .filter-group input[type="date"] + label { margin-top: 16px; }
+    .catalog { min-width: 0; }
+    .heading { margin: 7px 0 22px; }
+    h1 { margin: 0 0 6px; font-size: 28px; }
+    .heading p { margin: 0; color: #5b687a; font-size: 14px; }
+    .controls { position: sticky; z-index: 30; top: 80px; padding: 14px; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; box-shadow: 0 6px 18px #17203317; }
+    .search { display: flex; gap: 10px; }
+    .search input { min-width: 0; flex: 1; height: 52px; padding: 0 18px; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; font-size: 16px; }
+    .search button { min-width: 116px; height: 52px; border: 0; border-radius: 8px; background: #0b8ed8; color: #fff; font-weight: 700; }
+    .control-row { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
+    .control-row label { font-size: 14px; }
+    .sort { width: 215px; height: 46px; padding: 0 14px; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; color: #172033; }
+    .category-anchor { position: relative; }
+    .category-trigger { display: flex; align-items: center; gap: 12px; width: 215px; height: 46px; padding: 0 14px; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; color: #172033; text-align: left; }
+    .category-trigger[aria-expanded="true"] { border-color: #0a3f9a; }
+    .category-trigger .selection { margin-left: auto; color: #637083; font-size: 12px; white-space: nowrap; }
+    .category-trigger svg { width: 16px; height: 16px; flex: none; margin-left: 8px; color: #445066; }
+    .category-trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
+    .category-menu { position: absolute; z-index: 50; top: calc(100% + 7px); left: 0; width: 295px; max-width: calc(100vw - 32px); padding: 16px; border: 1px solid #dce4ed; border-radius: 8px; background: #fff; box-shadow: 0 14px 35px #17203326; }
+    .category-menu[hidden] { display: none; }
+    .category-menu h2 { margin: 0 0 12px; font-size: 15px; }
+    .category-menu label { display: flex; align-items: start; gap: 10px; margin: 0; padding: 5px 0; font-size: 13px; line-height: 1.35; cursor: pointer; }
+    .category-menu input { width: 17px; height: 17px; flex: none; margin: 0; accent-color: #0a3f9a; }
+    .all-option { padding-bottom: 10px; border-bottom: 1px solid #e5e7eb; font-weight: 700; }
+    .category-options { max-height: 236px; overflow-y: auto; padding-top: 10px; }
+    .mobile-filter-button, .mobile-close { display: none; }
+    .results { display: flex; justify-content: space-between; gap: 12px; margin: 16px 0 18px; color: #5b687a; font-size: 14px; }
+    .results strong { color: #172033; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+    .card { overflow: hidden; border: 1px solid #e0e5eb; border-radius: 8px; background: #fff; box-shadow: 0 2px 5px #1720330c; }
+    .photo { position: relative; aspect-ratio: 3 / 4; overflow: hidden; background: #0a3f9a; }
+    .photo::before { position: absolute; inset: 0; content: ""; background: url('../frontend/public/hero-bg.jpg') 17% center / auto 100% no-repeat; }
+    .photo::after { position: absolute; inset: 0; content: ""; background: linear-gradient(180deg, #0a2f5024, transparent 42%, #071c3d9c); }
+    .tag, .slot { position: absolute; z-index: 1; left: 14px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+    .tag { top: 14px; max-width: calc(100% - 28px); padding: 7px 10px; background: #d9eef7; color: #0a3f9a; }
+    .slot { bottom: 13px; padding: 8px 10px; background: #172033c9; color: #fff; line-height: 1.5; }
+    .card-body { padding: 16px; }
+    .card h3 { min-height: 50px; margin: 0 0 9px; font-size: 17px; line-height: 1.4; }
+    .card p { min-height: 39px; margin: 0 0 18px; color: #5b687a; font-size: 13px; line-height: 1.5; }
+    .card-foot { display: flex; justify-content: space-between; align-items: end; gap: 8px; }
+    .card-foot strong { color: #0a3f9a; font-size: 20px; white-space: nowrap; }
+    .card-foot small { color: #596678; text-align: right; }
+    .empty { padding: 32px; border: 1px dashed #b8c8d8; border-radius: 8px; color: #596678; text-align: center; }
+    .empty[hidden] { display: none; }
+    .demo-note { margin: 30px 0 0; color: #637083; font-size: 12px; }
+    @media (max-width: 1050px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 750px) {
+      .header { height: 64px; }
+      .logo { width: 112px; }
+      .nav span:not(:first-child) { display: none; }
+      .layout { display: block; padding: 16px; }
+      .heading { margin-top: 8px; }
+      .controls { top: 64px; }
+      .mobile-filter-button { display: block; height: 46px; padding: 0 13px; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; }
+      .sidebar { display: none; position: fixed; z-index: 60; top: 64px; bottom: 0; left: 0; width: min(320px, 90vw); overflow-y: auto; border-radius: 0; box-shadow: 12px 0 30px #17203340; }
+      .sidebar.open { display: block; }
+      .mobile-close { display: block; float: right; border: 0; background: none; color: #0a3f9a; font-weight: 700; }
+      .sort { width: min(190px, 39vw); }
+      .category-trigger { width: min(190px, 39vw); }
+    }
+    @media (max-width: 520px) {
+      .search input { font-size: 14px; }
+      .search button { min-width: 74px; }
+      .control-row { flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+      .control-row label { display: none; }
+      .sort { width: calc(50% - 4px); }
+      .category-anchor { width: calc(50% - 4px); }
+      .category-trigger { width: 100%; padding-inline: 10px; font-size: 13px; }
+      .category-trigger .selection { display: block; overflow: hidden; text-overflow: ellipsis; }
+      .category-trigger svg { margin-left: auto; }
+      .cards { grid-template-columns: 1fr; max-width: 390px; }
+      .card h3, .card p { min-height: 0; }
+      .results { margin-top: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header"><div class="header-inner"><img class="logo" src="../frontend/public/logo.png" alt="Колесо путешествий 55"><nav class="nav" aria-label="Навигация"><span>Каталог</span><span>Сертификаты</span><span>Новости</span></nav></div></header>
+  <main class="layout">
+    <aside class="sidebar" id="sidebar"><button class="mobile-close" id="close-filters" type="button">Закрыть ×</button><h2>Фильтры</h2>
+      <div class="filter-group"><label for="min-price">Цена (₽)</label><div class="range"><input id="min-price" type="number" min="0" value="0" aria-label="Цена от"><span>—</span><input id="max-price" type="number" min="0" value="10000" aria-label="Цена до"></div></div>
+      <div class="filter-group"><label for="location">Локация</label><select id="location"><option value="">Все локации</option><option value="omsk">Городские экскурсии</option><option value="region">Загородные экскурсии</option><option value="russia">Туры по России</option></select></div>
+      <div class="filter-group"><label for="duration">Длительность</label><select id="duration"><option value="">Любая</option><option value="short">До 2 часов</option><option value="medium">2–4 часа</option><option value="long">Более 4 часов</option></select></div>
+      <div class="filter-group"><label for="date-from">Дата от</label><input id="date-from" type="date"><label for="date-to">Дата до</label><input id="date-to" type="date"></div>
+    </aside>
+    <section class="catalog" aria-label="Каталог событий">
+      <div class="heading"><h1>Все экскурсии</h1><p id="result-count"></p></div>
+      <div class="controls"><form class="search" id="search-form"><input id="search" type="search" placeholder="Поиск по названию и описанию..." aria-label="Поиск по названию и описанию"><button type="submit">Найти</button></form>
+        <div class="control-row"><label for="sort">Сортировка:</label><select class="sort" id="sort"><option>По популярности</option><option>Цена: по возрастанию</option><option>Сначала ближайшие</option></select>
+          <label for="category-trigger">Категории:</label><div class="category-anchor"><button class="category-trigger" id="category-trigger" type="button" aria-expanded="false" aria-controls="category-menu"><span class="selection" id="selection-label">Все категории</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 7 6 6 6-6"/></svg></button>
+            <div class="category-menu" id="category-menu" hidden><h2>Выберите категории</h2><div class="all-option"><label><input id="all-categories" type="checkbox" checked>Все категории</label></div><div class="category-options" id="category-options"></div></div>
+          </div><button class="mobile-filter-button" id="open-filters" type="button">Фильтры</button>
+        </div>
+      </div>
+      <div class="results"><strong id="summary">Все категории</strong><span>Данные для примера</span></div>
+      <div class="cards" id="cards"></div><div class="empty" id="empty" hidden>Событий по выбранным условиям нет.</div>
+      <p class="demo-note">Макет показывает расположение элементов. Изображения и события — примеры; основной интерфейс сайта здесь не менялся.</p>
+    </section>
+  </main>
+  <script>
+    const categories = ['Авторская программа', 'Активные программы зимние', 'Активные программы летние', 'Городские экскурсии', 'Дегустации', 'Загородные экскурсии', 'Мастер-классы', 'Путешествия по России', 'Детские программы', 'Корпоративные программы', 'Театральные поездки', 'Экскурсии для школьников'];
+    const events = [
+      { title: 'Истории старого Омска', category: 'Городские экскурсии', description: 'Прогулка по историческому центру города.', date: '2026-11-04', slot: '04.11 12:50–17:50', price: 1800, location: 'omsk', duration: 'long' },
+      { title: 'Авторский Омск: знакомые места по-новому', category: 'Авторская программа', description: 'Городская программа с новыми маршрутами.', date: '2026-11-12', slot: '12.11 10:00–14:00', price: 2300, location: 'omsk', duration: 'medium' },
+      { title: 'Мастер-класс для всей семьи', category: 'Мастер-классы', description: 'Творческая встреча для детей и взрослых.', date: '2026-11-20', slot: '20.11 11:00–13:00', price: 1200, location: 'omsk', duration: 'short' },
+      { title: 'Сибирские выходные в Новосибирске', category: 'Путешествия по России', description: 'Два дня с прогулкой и культурной программой.', date: '2026-12-10', slot: '10.12 – 11.12', price: 7900, location: 'russia', duration: 'long' },
+      { title: 'Омская область: поездка за город', category: 'Загородные экскурсии', description: 'Новый маршрут и день на свежем воздухе.', date: '2026-12-14', slot: '14.12 09:00–18:00', price: 3200, location: 'region', duration: 'long' },
+      { title: 'Зимняя активная программа', category: 'Активные программы зимние', description: 'Движение и впечатления в небольшой группе.', date: '2026-12-18', slot: '18.12 10:00–16:00', price: 2600, location: 'region', duration: 'long' }
+    ];
+    const selected = new Set(categories);
+    const options = document.getElementById('category-options');
+    const all = document.getElementById('all-categories');
+    categories.forEach(name => {
+      const label = document.createElement('label');
+      const input = document.createElement('input'); input.type = 'checkbox'; input.value = name; input.checked = true;
+      input.addEventListener('change', () => { input.checked ? selected.add(name) : selected.delete(name); render(); });
+      label.append(input, document.createTextNode(name)); options.append(label);
+    });
+    all.addEventListener('change', () => {
+      selected.clear();
+      options.querySelectorAll('input').forEach(input => { input.checked = all.checked; if (all.checked) selected.add(input.value); });
+      render();
+    });
+    const menu = document.getElementById('category-menu');
+    const trigger = document.getElementById('category-trigger');
+    trigger.addEventListener('click', () => { menu.hidden = !menu.hidden; trigger.setAttribute('aria-expanded', String(!menu.hidden)); });
+    document.addEventListener('click', event => { if (!menu.contains(event.target) && !trigger.contains(event.target)) { menu.hidden = true; trigger.setAttribute('aria-expanded', 'false'); } });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') { menu.hidden = true; trigger.setAttribute('aria-expanded', 'false'); document.getElementById('sidebar').classList.remove('open'); } });
+    document.getElementById('open-filters').addEventListener('click', () => document.getElementById('sidebar').classList.add('open'));
+    document.getElementById('close-filters').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+    const cards = document.getElementById('cards');
+    function render() {
+      const query = document.getElementById('search').value.trim().toLocaleLowerCase('ru-RU');
+      const min = Number(document.getElementById('min-price').value) || 0;
+      const max = Number(document.getElementById('max-price').value) || Infinity;
+      const location = document.getElementById('location').value;
+      const duration = document.getElementById('duration').value;
+      const from = document.getElementById('date-from').value;
+      const to = document.getElementById('date-to').value;
+      let visible = events.filter(item => selected.has(item.category) && (!query || (item.title + ' ' + item.description).toLocaleLowerCase('ru-RU').includes(query)) && item.price >= min && item.price <= max && (!location || item.location === location) && (!duration || item.duration === duration) && (!from || item.date >= from) && (!to || item.date <= to));
+      const sort = document.getElementById('sort').selectedIndex;
+      if (sort === 1) visible = visible.sort((a, b) => a.price - b.price);
+      if (sort === 2) visible = visible.sort((a, b) => a.date.localeCompare(b.date));
+      cards.replaceChildren();
+      visible.forEach(item => {
+        const card = document.createElement('article'); card.className = 'card';
+        card.innerHTML = '<div class="photo"><span class="tag"></span><span class="slot"></span></div><div class="card-body"><h3></h3><p></p><div class="card-foot"><strong></strong><small>★ 4,9 · 12 отзывов</small></div></div>';
+        card.querySelector('.tag').textContent = item.category;
+        card.querySelector('.slot').textContent = item.slot;
+        card.querySelector('h3').textContent = item.title;
+        card.querySelector('p').textContent = item.description;
+        card.querySelector('.card-foot strong').textContent = new Intl.NumberFormat('ru-RU').format(item.price) + ' ₽';
+        cards.append(card);
+      });
+      all.checked = selected.size === categories.length;
+      all.indeterminate = selected.size > 0 && selected.size < categories.length;
+      document.getElementById('selection-label').textContent = all.checked ? 'Все категории' : 'Выбрано: ' + selected.size;
+      document.getElementById('summary').textContent = all.checked ? 'Все категории' : 'Выбрано категорий: ' + selected.size;
+      document.getElementById('result-count').textContent = 'Найдено ' + visible.length + ' событий';
+      document.getElementById('empty').hidden = visible.length > 0;
+    }
+    document.getElementById('search-form').addEventListener('submit', event => { event.preventDefault(); render(); });
+    ['sort', 'min-price', 'max-price', 'location', 'duration', 'date-from', 'date-to'].forEach(id => document.getElementById(id).addEventListener('change', render));
+    render();
+  </script>
+</body>
+</html>
