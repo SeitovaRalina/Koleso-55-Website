@@ -8,4 +8,3 @@ backend/.env.production
 backend/certs/*
 !backend/certs/.gitkeep
 backend/certbot/
-.multica/
