@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
 import { authApi } from '../api/auth'
+import { featureFlags } from '../config/features'
 import { getApiErrorData } from '../utils/apiError'
 
 export default function Login() {
@@ -219,7 +220,7 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className={`mt-6 grid gap-3 ${featureFlags.vkAuth ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <button
                 type="button"
                 onClick={handleGoogleLogin}
@@ -227,13 +228,15 @@ export default function Login() {
               >
                 Google
               </button>
-              <button
-                type="button"
-                onClick={handleVkLogin}
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                ВКонтакте
-              </button>
+              {featureFlags.vkAuth && (
+                <button
+                  type="button"
+                  onClick={handleVkLogin}
+                  className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                >
+                  ВКонтакте
+                </button>
+              )}
             </div>
           </div>
         </form>

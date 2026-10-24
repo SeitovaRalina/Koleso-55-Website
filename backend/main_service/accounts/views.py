@@ -11,6 +11,7 @@ from rest_framework_simplejwt.views import TokenRefreshView, TokenBlacklistView
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
 from .serializers import (
+    SocialConfigSerializer,
     CustomRegisterSerializer,
     LoginSerializer,
     UserProfileSerializer,
@@ -33,6 +34,7 @@ User = get_user_model()
 
 class SocialConfigView(generics.GenericAPIView):
     """Expose public OAuth client IDs; never expose provider secrets."""
+    serializer_class = SocialConfigSerializer
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, provider):
