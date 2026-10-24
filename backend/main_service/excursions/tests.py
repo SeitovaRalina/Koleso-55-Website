@@ -1,4 +1,5 @@
 import uuid
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -13,10 +14,11 @@ class ExcursionInquiryTests(TestCase):
         cache.clear()
         self.client = APIClient()
         category = Category.objects.create(name='Город', slug='city')
-        self.excursion = Excursion.objects.create(
-            title='Программа', slug='program', category=category,
-            description='Описание', short_description='Кратко', price=1000, duration=60,
-        )
+        with patch('config.celery.app.send_task'):
+            self.excursion = Excursion.objects.create(
+                title='Программа', slug='program', category=category,
+                description='Описание', short_description='Кратко', price=1000, duration=60,
+            )
         self.payload = {
             'request_id': str(uuid.uuid4()), 'excursion': self.excursion.pk,
             'name': 'Иван', 'phone': '+7 (999) 123-45-67',
