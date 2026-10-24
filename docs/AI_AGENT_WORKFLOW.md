@@ -1,5 +1,9 @@
 # AI Agent Workflow
 
+> Current production and session handover: `docs/AGENT_HANDOVER.md`. It takes
+> precedence over stale deployment assumptions in this document, including the
+> former “domain not ready” and “deploy later” notes.
+
 Цель: сделать Codex полезным для разработки backend/frontend, проверки интеграции `main_service` и `recommendation_service`, оплаты YooKassa и деплоя.
 
 ## Базовые правила
