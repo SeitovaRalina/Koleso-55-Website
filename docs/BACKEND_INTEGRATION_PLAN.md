@@ -157,6 +157,18 @@ Business rules:
 
 ## Homepage Reviews API
 
+- `Review.user` заполнен для отзывов сайта и пуст для ручных отзывов клиента.
+  Ручной отзыв хранит `manual_first_name`, `manual_last_name` и
+  `is_admin_added=True`. Для отзывов сайта действует уникальность
+  `(user, excursion)`; точный дубль ручного отзыва блокируется формой Admin.
+- `GET /api/reviews/excursions/{id}/reviews/` возвращает `user_name` из
+  имени аккаунта или имени ручного автора. `GET /api/reviews/homepage/`
+  возвращает `author_name` по тому же правилу, если не задано
+  `homepage_author_name`. Только одобренные отзывы публичны.
+- Создание через `POST /api/reviews/` остаётся доступно авторизованному
+  пользователю с завершённым заказом; ручное создание доступно только
+  сотруднику с правом добавления отзыва в Django Admin.
+
 - Admin controls homepage inclusion on `Review`:
   - `show_on_homepage`;
   - `homepage_author_name`;

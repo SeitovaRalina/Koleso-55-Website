@@ -1,8 +1,41 @@
 from django.contrib import admin
+from django import forms
 from django.utils.formats import localize
 from django.utils.translation import gettext_lazy as _
 
 from .models import Review, ReviewImage, ReviewStatus
+
+
+class ReviewAdminForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = '__all__'
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.instance.pk is None:
+            self.instance.is_admin_added = True
+            self.instance.user = None
+            cleaned['manual_first_name'] = (cleaned.get('manual_first_name') or '').strip()
+            cleaned['manual_last_name'] = (cleaned.get('manual_last_name') or '').strip()
+            for field in ('manual_first_name', 'manual_last_name'):
+                if not cleaned[field]:
+                    self.add_error(field, _('Обязательное поле.'))
+
+        if self.instance.is_admin_added and all(
+            cleaned.get(field) for field in ('excursion', 'manual_first_name', 'manual_last_name', 'rating', 'text')
+        ):
+            duplicate = Review.objects.filter(
+                is_admin_added=True,
+                excursion=cleaned['excursion'],
+                manual_first_name__iexact=cleaned['manual_first_name'],
+                manual_last_name__iexact=cleaned['manual_last_name'],
+                rating=cleaned['rating'],
+                text=cleaned['text'],
+            ).exclude(pk=self.instance.pk).exists()
+            if duplicate:
+                raise forms.ValidationError(_('Такой ручной отзыв уже существует.'))
+        return cleaned
 
 
 class ReviewImageInline(admin.TabularInline):
@@ -15,8 +48,8 @@ class ReviewImageInline(admin.TabularInline):
 class ReviewInline(admin.TabularInline):
     model = Review
     extra = 0
-    readonly_fields = ['is_toxic', 'toxicity_score', 'created_at', 'updated_at', 'user', 'excursion']
-    fields = ['user', 'rating', 'text', 'status', 'is_toxic', 'toxicity_score']
+    readonly_fields = ['is_toxic', 'toxicity_score', 'created_at', 'updated_at', 'author_name', 'user', 'excursion']
+    fields = ['author_name', 'rating', 'text', 'status', 'is_toxic', 'toxicity_score']
     show_change_link = True
 
     def has_add_permission(self, request, obj=None):
@@ -28,13 +61,14 @@ class ReviewAdmin(admin.ModelAdmin):
     """Admin panel for excursion reviews."""
 
     list_display = [
-        'id', 'excursion', 'user', 'rating', 'status',
+        'id', 'excursion', 'author_name', 'is_admin_added', 'rating', 'status',
         'is_toxic', 'show_on_homepage', 'homepage_order', 'get_created_at_formatted',
     ]
     list_filter = ['status', 'show_on_homepage', 'is_toxic', 'rating', 'created_at']
-    search_fields = ['text', 'toxicity_score', 'user__email', 'excursion__title']
+    search_fields = ['text', 'user__email', 'manual_first_name', 'manual_last_name', 'excursion__title']
     inlines = [ReviewImageInline]
-    readonly_fields = ['is_toxic', 'toxicity_score', 'created_at', 'updated_at', 'user', 'excursion']
+    form = ReviewAdminForm
+    readonly_fields = ['is_toxic', 'toxicity_score', 'created_at', 'updated_at', 'user', 'is_admin_added']
 
     fieldsets = (
         (None, {
@@ -56,6 +90,31 @@ class ReviewAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
+
+    def get_fieldsets(self, request, obj=None):
+        if obj is None:
+            return (("Отзыв клиента (добавлен администратором)", {
+                'fields': ('manual_first_name', 'manual_last_name', 'excursion', 'rating', 'text'),
+                'description': 'Вносите только настоящий отзыв, полученный вне сайта. После сохранения он ожидает модерации.',
+            }),)
+        author_fields = ('manual_first_name', 'manual_last_name') if obj.is_admin_added else ('user',)
+        return (
+            (None, {'fields': ('excursion', *author_fields, 'rating', 'text')}),
+            *self.fieldsets[1:],
+        )
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = list(super().get_readonly_fields(request, obj))
+        if obj is not None:
+            fields.append('excursion')
+        return fields
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.is_admin_added = True
+            obj.user = None
+            obj.status = ReviewStatus.PENDING
+        super().save_model(request, obj, form, change)
 
     actions = [
         'approve_selected',

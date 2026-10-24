@@ -1,4 +1,6 @@
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from accounts.models import CustomUser
@@ -19,9 +21,14 @@ class Review(models.Model):
         CustomUser, 
         on_delete=models.CASCADE, 
         related_name='reviews',
+        null=True,
+        blank=True,
         verbose_name=_('Пользователь'),
         help_text=_('Автор отзыва')
     )
+    is_admin_added = models.BooleanField(_('Добавлен администратором'), default=False, editable=False)
+    manual_first_name = models.CharField(_('Имя автора'), max_length=150, blank=True)
+    manual_last_name = models.CharField(_('Фамилия автора'), max_length=150, blank=True)
     excursion = models.ForeignKey(
         Excursion, 
         on_delete=models.CASCADE, 
@@ -113,14 +120,40 @@ class Review(models.Model):
     def can_be_edited(self):
         return self.status == ReviewStatus.PENDING
 
+    @property
+    def author_name(self):
+        if self.is_admin_added:
+            return f'{self.manual_last_name} {self.manual_first_name}'.strip()
+        return self.user.get_full_name() or self.user.email
+
+    def clean(self):
+        super().clean()
+        if self.is_admin_added:
+            if self.user_id or not self.manual_first_name.strip() or not self.manual_last_name.strip():
+                raise ValidationError(_('Для ручного отзыва нужны имя и фамилия, без аккаунта пользователя.'))
+        elif not self.user_id or self.manual_first_name or self.manual_last_name:
+            raise ValidationError(_('Отзыв сайта должен принадлежать пользователю, без ручного имени.'))
+
     class Meta:
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
         ordering = ['-created_at']
         unique_together = [['user', 'excursion']]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(is_admin_added=True, user__isnull=True) &
+                    ~Q(manual_first_name='') & ~Q(manual_last_name='')
+                ) | (
+                    Q(is_admin_added=False, user__isnull=False) &
+                    Q(manual_first_name='', manual_last_name='')
+                ),
+                name='review_author_matches_origin',
+            ),
+        ]
 
     def __str__(self):
-        return f"Отзыв от {self.user.get_full_name()} на {self.excursion.title} ({self.rating}★)"
+        return f"Отзыв от {self.author_name} на {self.excursion.title} ({self.rating}★)"
 
 
 class ReviewImage(models.Model):
