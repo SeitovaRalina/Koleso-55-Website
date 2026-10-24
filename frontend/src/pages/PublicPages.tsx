@@ -4,10 +4,6 @@ import { CONTACTS } from '../config/contacts'
 
 const pageClass = 'mx-auto max-w-content px-4 py-12 text-neutral-ink'
 
-export function About() {
-  return <section className={pageClass}><h1 className='text-4xl font-bold'>О компании</h1><p className='mt-5 max-w-2xl leading-7 text-neutral-text'>«Колесо путешествий 55» организует экскурсии по Омску, области и России. Помогаем выбрать маршрут, дату и формат поездки.</p><Link className='mt-6 inline-flex text-brand-deep hover:underline' to='/contacts'>Связаться с нами</Link></section>
-}
-
 export function Contacts() {
   return <section className={pageClass}><h1 className='text-4xl font-bold'>Контакты</h1><div className='mt-6 grid gap-3 text-neutral-text'>{CONTACTS.phones.map(phone => <a key={phone.raw} href={`tel:${phone.raw}`} className='hover:text-brand-deep'>{phone.name}: {phone.label}</a>)}<a href={`mailto:${CONTACTS.email}`} className='hover:text-brand-deep'>{CONTACTS.email}</a></div></section>
 }

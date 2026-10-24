@@ -20,12 +20,15 @@ export default function Header() {
       <div className='mx-auto max-w-content px-4'>
         <div className='flex h-16 items-center justify-between gap-4'>
           <div className='flex min-w-0 flex-1 items-center gap-4'>
-            <Link to='/' className='flex shrink-0 items-center'>
+            <Link to='/' className='flex min-w-0 items-center gap-2 sm:gap-3'>
               <img
                 src='/logo.png'
                 alt='Колесо путешествий 55'
-                className='h-10 w-auto'
+                className='h-9 w-auto shrink-0 sm:h-10'
               />
+              <span className='max-w-[145px] text-[10px] font-medium leading-tight text-neutral-text sm:max-w-[190px] sm:text-xs lg:max-w-[230px]'>
+                Экскурсии и авторские программы по Омску, области и России
+              </span>
             </Link>
 
             {showSearch && (
