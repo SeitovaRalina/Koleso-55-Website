@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from excursions.models import Category, Excursion
 from .models import Review, ReviewStatus
@@ -109,7 +111,32 @@ class ReviewAdminTests(TestCase):
         response = self.client.get(reverse('review-list', args=[self.excursion.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Иванова Анна', str(response.data))
-        self.client.force_login(self.site_user)
-        my_reviews = self.client.get(reverse('my-reviews'))
+        api_client = APIClient()
+        api_client.force_authenticate(user=self.site_user)
+        my_reviews = api_client.get(reverse('my-reviews'))
         self.assertEqual(my_reviews.status_code, 200)
         self.assertNotIn(manual.pk, [item['id'] for item in my_reviews.data['results']])
+
+    def test_registered_review_still_requires_completed_order(self):
+        api_client = APIClient()
+        api_client.force_authenticate(user=self.site_user)
+        response = api_client.post(reverse('review-create'), {
+            'excursion': self.excursion.pk, 'rating': 5, 'text': 'Отзыв без заказа',
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Review.objects.exists())
+
+    def test_registered_uniqueness_does_not_conflate_manual_authors(self):
+        Review.objects.create(
+            user=self.site_user, excursion=self.excursion, rating=5, text='Первый отзыв',
+        )
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Review.objects.create(
+                user=self.site_user, excursion=self.excursion, rating=4, text='Повторный отзыв',
+            )
+        Review.objects.create(
+            excursion=self.excursion, is_admin_added=True,
+            manual_first_name='Анна', manual_last_name='Иванова',
+            rating=5, text='Получен вне сайта',
+        )
+        self.assertEqual(Review.objects.count(), 2)
