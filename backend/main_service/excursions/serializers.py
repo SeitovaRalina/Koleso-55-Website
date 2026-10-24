@@ -5,8 +5,30 @@ from datetime import date, time
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from .models import Excursion, Category, ExcursionImage, Slot, ExcursionProgramDay, TicketType
+from .models import Excursion, Category, ExcursionImage, Slot, ExcursionProgramDay, TicketType, ExcursionInquiry
 from reviews.serializers import ReviewListSerializer
+
+
+class ExcursionInquirySerializer(serializers.ModelSerializer):
+    request_id = serializers.UUIDField(required=True)
+    excursion = serializers.PrimaryKeyRelatedField(queryset=Excursion.objects.filter(is_active=True))
+    name = serializers.CharField(max_length=120, allow_blank=False, trim_whitespace=True)
+    question = serializers.CharField(max_length=2000, allow_blank=False, trim_whitespace=True)
+    phone = serializers.RegexField(r'^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$', max_length=18)
+
+    class Meta:
+        model = ExcursionInquiry
+        fields = ['request_id', 'excursion', 'name', 'phone', 'contact_method', 'question']
+
+    def validate_name(self, value):
+        if len(value) < 2:
+            raise serializers.ValidationError('Укажите имя не короче 2 символов.')
+        return value
+
+    def validate_question(self, value):
+        if len(value) < 5:
+            raise serializers.ValidationError('Укажите вопрос не короче 5 символов.')
+        return value
 
 
 class CategorySerializer(serializers.ModelSerializer):

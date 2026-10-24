@@ -6,7 +6,19 @@ from django.conf import settings
 
 from reviews.admin import ReviewInline
 from analytics.services import publish_recommendation_event
-from .models import Category, Excursion, ExcursionImage, ExcursionProgramDay, Slot, TicketType
+from .models import Category, Excursion, ExcursionImage, ExcursionProgramDay, Slot, TicketType, ExcursionInquiry
+
+
+@admin.register(ExcursionInquiry)
+class ExcursionInquiryAdmin(admin.ModelAdmin):
+    list_display = ['id', 'excursion', 'name', 'contact_method', 'created_at', 'status']
+    list_filter = ['status', 'contact_method', 'created_at']
+    search_fields = ['name', 'phone', 'excursion__title']
+    readonly_fields = ['request_id', 'excursion', 'name', 'phone', 'contact_method', 'question', 'created_at']
+    list_select_related = ['excursion']
+
+    def has_add_permission(self, request):
+        return False
 
 
 class ExcursionImageInline(admin.TabularInline):

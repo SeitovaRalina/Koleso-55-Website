@@ -1,7 +1,39 @@
+import uuid
+
 from django.db import models
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
+
+
+class ExcursionInquiry(models.Model):
+    class Status(models.TextChoices):
+        NEW = 'new', 'Новое'
+        IN_PROGRESS = 'in_progress', 'В работе'
+        CLOSED = 'closed', 'Закрыто'
+
+    class ContactMethod(models.TextChoices):
+        CALL = 'call', 'Звонок'
+        WHATSAPP = 'whatsapp', 'WhatsApp'
+        TELEGRAM = 'telegram', 'Telegram'
+        MAX = 'max', 'MAX'
+
+    request_id = models.UUIDField('Ключ отправки', default=uuid.uuid4, unique=True, editable=False)
+    excursion = models.ForeignKey('Excursion', on_delete=models.PROTECT, related_name='inquiries', verbose_name='Программа')
+    name = models.CharField('Имя', max_length=120)
+    phone = models.CharField('Телефон', max_length=18)
+    contact_method = models.CharField('Способ связи', max_length=20, choices=ContactMethod.choices)
+    question = models.TextField('Вопрос', max_length=2000)
+    created_at = models.DateTimeField('Дата обращения', auto_now_add=True)
+    status = models.CharField('Статус обработки', max_length=20, choices=Status.choices, default=Status.NEW)
+
+    class Meta:
+        verbose_name = 'Обращение по программе'
+        verbose_name_plural = 'Обращения по программам'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Обращение #{self.pk} — {self.excursion}'
 
 class Category(models.Model):
     """Модель категорий экскурсий"""

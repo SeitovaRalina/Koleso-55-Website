@@ -1,12 +1,52 @@
-from rest_framework import generics, filters as drf_filters
+from rest_framework import generics, filters as drf_filters, permissions, status
 from rest_framework.response import Response
+from rest_framework.throttling import SimpleRateThrottle
+from rest_framework.views import APIView
+from django.db import IntegrityError, transaction
 from django_filters.rest_framework import DjangoFilterBackend
 
 from drf_spectacular.utils import OpenApiExample, extend_schema
 
 from .filters import ExcursionFilter
-from .models import Excursion, Category
-from .serializers import ExcursionDetailSerializer, ExcursionListSerializer, CategorySerializer
+from .models import Excursion, Category, ExcursionInquiry
+from .serializers import ExcursionDetailSerializer, ExcursionListSerializer, CategorySerializer, ExcursionInquirySerializer
+
+
+class InquiryThrottle(SimpleRateThrottle):
+    rate = '5/hour'
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {'scope': 'inquiry', 'ident': self.get_ident(request)}
+
+
+@extend_schema(
+    summary='Отправить вопрос по программе',
+    description='Гостевая отправка. Повтор с тем же request_id и теми же данными возвращает тот же результат. Данные доступны только в Django Admin.',
+    request=ExcursionInquirySerializer,
+    responses={201: None, 400: None, 429: None},
+)
+class ExcursionInquiryCreateView(APIView):
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [InquiryThrottle]
+
+    def post(self, request):
+        serializer = ExcursionInquirySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        existing = ExcursionInquiry.objects.filter(request_id=data['request_id']).first()
+        if existing:
+            if all(getattr(existing, key) == value for key, value in data.items()):
+                return Response({'id': existing.id}, status=status.HTTP_201_CREATED)
+            return Response({'request_id': ['Ключ уже использован для другого обращения.']}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            with transaction.atomic():
+                inquiry = ExcursionInquiry.objects.create(**data)
+        except IntegrityError:
+            existing = ExcursionInquiry.objects.get(request_id=data['request_id'])
+            if not all(getattr(existing, key) == value for key, value in data.items()):
+                return Response({'request_id': ['Ключ уже использован для другого обращения.']}, status=status.HTTP_400_BAD_REQUEST)
+            inquiry = existing
+        return Response({'id': inquiry.id}, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(

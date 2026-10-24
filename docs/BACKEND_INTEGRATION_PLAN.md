@@ -187,3 +187,10 @@ Business rules:
 - `nearest_slots` contains up to 3 upcoming slots from today, ordered by date/time.
 - Homepage event cards use `nearest_slots[0]` for nearest date/time and remaining seats.
 - Homepage location search uses `Excursion.LocationType` values and submits `location_type=city|suburban|russia` to catalog.
+
+## Вопросы по программе
+
+- `POST /api/excursions/inquiries/` доступен гостю, принимает JSON: `request_id` (UUID), `excursion` (ID активной программы), `name` (2–120 символов), `phone` (`+7 (999) 999-99-99`), `contact_method` (`call|whatsapp|telegram|max`), `question` (5–2000 символов).
+- Успех: HTTP 201 `{"id": 123}` только после сохранения в БД. Повтор с тем же `request_id` и теми же данными возвращает тот же ID без новой записи; другой текст с тем же ключом — HTTP 400. Ошибки полей — HTTP 400, лимит 5 запросов в час с IP — HTTP 429.
+- Публичного чтения обращений нет. Сотрудник видит обращение и меняет статус (`new`, `in_progress`, `closed`) в Django Admin → «Обращения по программам». Контактные данные не передаются в аналитику и не выводятся в ответ API.
+- Форма требует согласие на обработку данных. После ошибки сохраняет введённые данные и ключ запроса для безопасной повторной отправки. Уведомления менеджеру сейчас не отправляются; источник обращений — Admin, сбой внешнего сервиса не влияет на сохранение.
