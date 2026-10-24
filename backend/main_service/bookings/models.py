@@ -5,6 +5,40 @@ from django.core.validators import MinValueValidator
 from accounts.models import CustomUser
 from excursions.models import Excursion, Slot
 
+
+class GiftCertificateRequest(models.Model):
+    class Status(models.TextChoices):
+        NEW = 'new', 'Новая'
+        IN_PROGRESS = 'in_progress', 'В работе'
+        COMPLETED = 'completed', 'Обработана'
+        CANCELLED = 'cancelled', 'Отменена'
+
+    class Format(models.TextChoices):
+        DIGITAL = 'digital', 'Электронный'
+        PRINTED = 'printed', 'Печатный'
+
+    buyer_name = models.CharField(max_length=150)
+    buyer_phone = models.CharField(max_length=30)
+    buyer_email = models.EmailField()
+    recipient_name = models.CharField(max_length=150)
+    recipient_phone = models.CharField(max_length=30, blank=True)
+    recipient_email = models.EmailField(blank=True)
+    amount = models.PositiveIntegerField()
+    format = models.CharField(max_length=10, choices=Format.choices)
+    message = models.TextField(blank=True, max_length=1000)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Заявка на подарочный сертификат'
+        verbose_name_plural = 'Заявки на подарочные сертификаты'
+
+    def __str__(self):
+        return f'Заявка #{self.pk}: {self.buyer_name}'
+
+
 class ContactMethod(models.TextChoices):
     CALL = 'call', 'Звонок'
     WHATSAPP = 'whatsapp', 'WhatsApp'

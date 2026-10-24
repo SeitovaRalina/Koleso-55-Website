@@ -1,5 +1,16 @@
 from django.contrib import admin
-from .models import TourOrder
+from .models import GiftCertificateRequest, TourOrder
+
+
+@admin.register(GiftCertificateRequest)
+class GiftCertificateRequestAdmin(admin.ModelAdmin):
+    list_display = ('id', 'buyer_name', 'recipient_name', 'amount', 'format', 'status', 'created_at')
+    list_filter = ('status', 'format', 'created_at')
+    search_fields = ('buyer_name', 'buyer_phone', 'buyer_email', 'recipient_name', 'recipient_phone', 'recipient_email')
+    readonly_fields = (
+        'buyer_name', 'buyer_phone', 'buyer_email', 'recipient_name', 'recipient_phone',
+        'recipient_email', 'amount', 'format', 'message', 'created_at', 'updated_at',
+    )
 
 
 @admin.register(TourOrder)

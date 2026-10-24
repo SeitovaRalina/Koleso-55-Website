@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
-from .models import TourOrder, ContactMethod
+from .models import TourOrder, ContactMethod, GiftCertificateRequest
 
 
 class TourOrderCreateSerializer(serializers.ModelSerializer):
@@ -131,3 +131,23 @@ class TourOrderDetailSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.CharField())
     def get_slot_datetime(self, obj):
         return f"{obj.slot.date} {obj.slot.time}"
+
+
+class GiftCertificateRequestSerializer(serializers.ModelSerializer):
+    amount = serializers.ChoiceField(choices=(1000, 2000, 3000, 5000, 10000))
+
+    class Meta:
+        model = GiftCertificateRequest
+        fields = (
+            'id', 'buyer_name', 'buyer_phone', 'buyer_email', 'recipient_name',
+            'recipient_phone', 'recipient_email', 'amount', 'format', 'message',
+            'created_at',
+        )
+        read_only_fields = ('id', 'created_at')
+
+    def validate(self, attrs):
+        for field in ('buyer_name', 'buyer_phone', 'recipient_name'):
+            if not attrs[field].strip():
+                raise serializers.ValidationError({field: 'Обязательное поле.'})
+            attrs[field] = attrs[field].strip()
+        return attrs

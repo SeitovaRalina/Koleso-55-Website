@@ -4,6 +4,10 @@
 
 Current priority note: frontend production-ready work goes first. Backend pricing, YooKassa, and deploy remain planned later phases.
 
+## Gift certificate requests (KOLE-2)
+
+`POST /api/bookings/certificate-requests/` accepts guests without auth. Required JSON fields: `buyer_name`, `buyer_phone`, `buyer_email`, `recipient_name`, `amount` (1000, 2000, 3000, 5000, 10000), `format` (`digital` or `printed`). Optional: `recipient_phone`, `recipient_email`, `message`. A successful `201` returns the saved request with `id` and `created_at`; it means only that a manager can review the request in Django Admin. It does not issue, charge, or send a certificate. Invalid fields return `400` with field errors. Public list and detail endpoints are absent. Admin statuses: `new`, `in_progress`, `completed`, `cancelled`.
+
 Update 2026-06-07:
 
 - Local `python manage.py check` in `backend/main_service` currently fails before Django setup because Python cannot import `celery`.
