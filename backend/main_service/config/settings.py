@@ -24,6 +24,8 @@ DEBUG = env_bool('DEBUG', True)
 
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+VK_CLIENT_ID = os.environ.get('VK_CLIENT_ID', '')
+VK_CLIENT_SECRET = os.environ.get('VK_CLIENT_SECRET', '')
 
 ALLOWED_HOSTS = env_list(
     'ALLOWED_HOSTS',
@@ -161,7 +163,6 @@ REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
@@ -195,7 +196,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 INTERNAL_IPS = ['127.0.0.1']
 
@@ -269,6 +270,11 @@ SOCIALACCOUNT_PROVIDERS = {
     },
     'vk': {
         'SCOPE': ['email'],
+        'APP': {
+            'client_id': VK_CLIENT_ID,
+            'secret': VK_CLIENT_SECRET,
+            'key': '',
+        },
     }
 }
 

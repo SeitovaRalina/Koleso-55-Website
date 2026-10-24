@@ -12,9 +12,14 @@ def publish_event(self, event_data):
     """
     try:
         # Устанавливаем соединение с RabbitMQ
-        connection = pika.BlockingConnection(
-            pika.URLParameters(settings.CELERY_BROKER_URL)
-        )
+        parameters = pika.URLParameters(settings.CELERY_BROKER_URL)
+        # Celery accepts an AMQP URL ending in ``//`` for RabbitMQ's default
+        # vhost. Pika parses that form as an empty vhost, which RabbitMQ
+        # rejects. Normalise it before opening the Pika connection.
+        if not parameters.virtual_host:
+            parameters.virtual_host = "/"
+
+        connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
         
         # Объявляем exchange (если не существует)

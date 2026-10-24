@@ -75,7 +75,9 @@ export default function Catalog() {
       else ordering = '-created_at'
       params.set('ordering', ordering)
     }
-    setSearchParams(params)
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true })
+    }
   }, [filters, page, sortUiValue, setSearchParams, searchParams])
 
   const {

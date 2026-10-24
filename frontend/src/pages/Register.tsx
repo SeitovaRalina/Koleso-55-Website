@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
 import { authApi } from '../api/auth'
+import { featureFlags } from '../config/features'
 import { getApiErrorData } from '../utils/apiError'
 
 export default function Register() {
@@ -17,9 +18,21 @@ export default function Register() {
   })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const hasRequiredConsents = formData.agree_personal_data && formData.agree_privacy_policy
 
-  const handleGoogleLogin = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  const requireConsents = () => {
+    if (hasRequiredConsents) return true
+    setError('Необходимо согласие на обработку персональных данных и с политикой конфиденциальности')
+    return false
+  }
+
+  const handleGoogleLogin = async () => {
+    if (!requireConsents()) return
+    const { client_id: clientId } = await authApi.getSocialConfig('google').catch(() => ({ client_id: '' }))
+    if (!clientId || clientId === 'your-google-client-id-here') {
+      setError('Регистрация через Google временно недоступна: OAuth client ID не настроен.')
+      return
+    }
     const redirectUri = encodeURIComponent(window.location.origin + '/google-callback')
     const scope = encodeURIComponent('profile email')
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}`
@@ -28,7 +41,7 @@ export default function Register() {
 
     // Слушаем сообщение от popup
     const messageHandler = (event: MessageEvent) => {
-      if (event.data.type === 'google_token') {
+      if (event.origin === window.location.origin && event.data.type === 'google_token') {
         window.removeEventListener('message', messageHandler)
 
         const accessToken = event.data.token
@@ -58,14 +71,36 @@ export default function Register() {
     window.addEventListener('message', messageHandler)
   }
 
+  const handleVkLogin = async () => {
+    if (!requireConsents()) return
+    const { client_id: clientId } = await authApi.getSocialConfig('vk').catch(() => ({ client_id: '' }))
+    if (!clientId || clientId === 'your-vk-client-id-here') {
+      setError('Регистрация через VK временно недоступна: OAuth client ID не настроен.')
+      return
+    }
+
+    const redirectUri = encodeURIComponent(`${window.location.origin}/google-callback?provider=vk`)
+    const authUrl = `https://oauth.vk.com/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=email`
+    const popup = window.open(authUrl, 'vkAuth', 'width=500,height=600')
+    const messageHandler = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.data.type !== 'vk_token') return
+      window.removeEventListener('message', messageHandler)
+      authApi.socialLogin('vk', { access_token: event.data.token })
+        .then((response) => {
+          login({ access: response.access, refresh: response.refresh }, response.user)
+          navigate('/')
+          popup?.close()
+        })
+        .catch(() => setError('Не удалось зарегистрироваться через VK. Проверьте настройки OAuth.'))
+    }
+    window.addEventListener('message', messageHandler)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    if (!formData.agree_personal_data || !formData.agree_privacy_policy) {
-      setError('Необходимо согласие с условиями')
-      return
-    }
+    if (!requireConsents()) return
 
     if (formData.password !== formData.password2) {
       setError('Пароли не совпадают')
@@ -238,7 +273,7 @@ export default function Register() {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={!hasRequiredConsents || isLoading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
@@ -255,14 +290,25 @@ export default function Register() {
               </div>
             </div>
 
-            <div className="mt-6">
+            <div className={`mt-6 grid gap-3 ${featureFlags.vkAuth ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <button
                 type="button"
                 onClick={handleGoogleLogin}
+                disabled={!hasRequiredConsents || isLoading}
                 className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
               >
                 Зарегистрироваться через Google
               </button>
+              {featureFlags.vkAuth && (
+                <button
+                  type="button"
+                  onClick={handleVkLogin}
+                  disabled={!hasRequiredConsents || isLoading}
+                  className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                >
+                  Зарегистрироваться через VK
+                </button>
+              )}
             </div>
           </div>
         </form>

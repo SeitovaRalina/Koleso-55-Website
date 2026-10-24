@@ -1,4 +1,8 @@
+import { Link } from 'react-router-dom'
+import { useAuth } from '../contexts/useAuth'
+
 export default function RecommendationInfo() {
+  const { isAuthenticated } = useAuth()
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -44,9 +48,9 @@ export default function RecommendationInfo() {
             <p className="text-gray-700 mb-4">
               Войдите в аккаунт, чтобы система могла запоминать ваши предпочтения и предлагать более релевантные экскурсии.
             </p>
-            <button className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
-              Войти в аккаунт
-            </button>
+            <Link to={isAuthenticated ? '/account?tab=recommendations' : '/login'} className="inline-flex bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+              {isAuthenticated ? 'Открыть мои рекомендации' : 'Войти в аккаунт'}
+            </Link>
           </section>
         </div>
       </div>

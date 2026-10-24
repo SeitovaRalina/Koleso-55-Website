@@ -54,13 +54,13 @@ async def get_recommendations(
     """
     Get personalized recommendations for a user or session
     """
-    try:
-        if not user_id and not session_id:
-            raise HTTPException(
-                status_code=400,
-                detail="Either user_id or session_id must be provided"
-            )
+    if not user_id and not session_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Either user_id or session_id must be provided"
+        )
 
+    try:
         recommendations = await hybrid_service.get_user_recommendations(
             user_id=user_id,
             session_id=session_id,

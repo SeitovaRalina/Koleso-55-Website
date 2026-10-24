@@ -1,8 +1,12 @@
 from django.conf import settings
 from django.utils import timezone
 import requests
+import logging
 
 from .tasks import publish_event
+
+
+logger = logging.getLogger(__name__)
 
 
 EVENT_WEIGHTS = {
@@ -33,7 +37,15 @@ def publish_recommendation_event(
         "source": source,
         "duration_seconds": duration_seconds,
     }
-    publish_event.delay(event_data)
+    try:
+        publish_event.delay(event_data)
+    except Exception:
+        # Recommendation delivery is asynchronous and must not block a user
+        # flow or Django Admin content save when the broker is unavailable.
+        logger.exception(
+            "Could not enqueue recommendation event",
+            extra={"event_type": event_type, "excursion_id": excursion_id},
+        )
 
 
 def _recommender_base_url() -> str:

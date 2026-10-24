@@ -101,7 +101,7 @@ def send_password_reset_email_task(self, user_id, domain, protocol='http'):
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         
         # Строим URL сброса пароля
-        reset_url = f"{protocol}://{domain}/api/accounts/password-reset-confirm/{uidb64}/{token}/"
+        reset_url = f"{protocol}://{domain}/password-reset/{uidb64}/{token}"
         
         # Тема и тело письма
         subject = 'Сброс пароля - КОЛЕСО путешествий 55'

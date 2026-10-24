@@ -1,4 +1,5 @@
 import logging
+from django.conf import settings
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
@@ -10,6 +11,7 @@ from rest_framework_simplejwt.views import TokenRefreshView, TokenBlacklistView
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
 from .serializers import (
+    SocialConfigSerializer,
     CustomRegisterSerializer,
     LoginSerializer,
     UserProfileSerializer,
@@ -28,6 +30,21 @@ from dj_rest_auth.registration.views import SocialLoginView
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+class SocialConfigView(generics.GenericAPIView):
+    """Expose public OAuth client IDs; never expose provider secrets."""
+    serializer_class = SocialConfigSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, provider):
+        clients = {
+            'google': getattr(settings, 'GOOGLE_CLIENT_ID', ''),
+            'vk': getattr(settings, 'VK_CLIENT_ID', ''),
+        }
+        if provider not in clients:
+            return Response({'detail': 'Unknown provider.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'client_id': clients[provider]})
 
 
 # ============================================================
