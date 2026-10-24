@@ -20,6 +20,7 @@ import { FavoriteIcon } from '../components/ui/FavoriteIcon'
 import { ExcursionCard } from '../components/ui/ExcursionCard'
 import { ExcursionPhotoGallery } from '../components/excursion/ExcursionPhotoGallery'
 import { getApiErrorMessage } from '../utils/apiError'
+import { formatDuration, formatSlot, getPrice } from '../utils/excursionDisplay'
 
 type ContactMethod = 'call' | 'whatsapp' | 'telegram' | 'max' | 'email'
 
@@ -360,7 +361,7 @@ export default function ExcursionDetail() {
                 </svg>
                 <div>
                   <div className="text-sm text-gray-500">Длительность</div>
-                  <div className="font-medium">{Math.floor(excursion.duration / 60)}ч {excursion.duration % 60}мин</div>
+                  <div className="font-medium">{formatDuration(excursion, selectedSlot || excursion.slots?.find(slot => slot.is_available))}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -558,20 +559,19 @@ export default function ExcursionDetail() {
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
               <h3 className="text-xl font-bold mb-4">Бронирование</h3>
               <div className="text-3xl font-bold text-blue-600 mb-6">
-                от {excursion.price} ₽
+                {getPrice(excursion, selectedSlot || excursion.slots?.find(slot => slot.is_available)).from ? 'от ' : ''}{getPrice(excursion, selectedSlot || excursion.slots?.find(slot => slot.is_available)).amount} ₽
               </div>
 
               {/* Типы билетов */}
-              {excursion.ticket_types && excursion.ticket_types.length > 0 && (
+              {excursion.ticket_types && excursion.ticket_types.some((t: TicketType) => t.is_active) && (
                 <div className="mb-6">
                   <h4 className="font-semibold mb-3">Тип билета</h4>
                   <div className="space-y-2">
                     {excursion.ticket_types.filter((t: TicketType) => t.is_active).map((ticket: TicketType) => (
-                      <label key={ticket.id} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
-                        <input type="radio" name="ticket_type" className="w-4 h-4" />
+                      <div key={ticket.id} className="flex items-center gap-2 p-2 border rounded">
                         <span>{ticket.name}</span>
                         <span className="ml-auto font-medium">{ticket.price} ₽</span>
-                      </label>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -592,8 +592,7 @@ export default function ExcursionDetail() {
                           : 'border-gray-200 hover:border-gray-300'
                       } ${!slot.is_available ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      <div className="font-medium">{new Date(slot.date).toLocaleDateString('ru-RU')}</div>
-                      <div className="text-sm text-gray-600">{slot.time}</div>
+                      <div className="font-medium">{formatSlot(slot)}</div>
                       <div className="text-xs text-gray-500">
                         Осталось мест: {slot.available_seats}/{slot.max_participants}
                       </div>
@@ -722,7 +721,7 @@ export default function ExcursionDetail() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Дата и время:</span>
                     <span className="font-medium">
-                      {selectedSlot && new Date(selectedSlot.date).toLocaleDateString('ru-RU')} {selectedSlot?.time}
+                      {selectedSlot && formatSlot(selectedSlot)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -732,7 +731,7 @@ export default function ExcursionDetail() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Итого:</span>
                     <span className="font-bold text-blue-600">
-                      от {excursion.price} ₽ за человека
+                      {getPrice(excursion, selectedSlot).from ? 'от ' : ''}{getPrice(excursion, selectedSlot).amount} ₽ за человека
                     </span>
                   </div>
                 </div>

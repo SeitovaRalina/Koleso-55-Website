@@ -7,22 +7,12 @@ import { Badge } from './Badge'
 import { FavoriteIcon } from './FavoriteIcon'
 import { ImagePlaceholder } from './ImagePlaceholder'
 import { useAuth } from '../../contexts/useAuth'
+import { formatDuration, formatSlot, getPrice } from '../../utils/excursionDisplay'
 
 interface ExcursionCardProps {
   excursion: Excursion
   source?: 'search' | 'catalog' | 'recommendation' | 'similar' | 'direct' | 'wishlist'
   compact?: boolean
-}
-
-function formatDuration(minutes: number) {
-  if (minutes < 60) return `${minutes} мин`
-  const hours = Math.floor(minutes / 60)
-  const rest = minutes % 60
-  return rest ? `${hours} ч ${rest} мин` : `${hours} ч`
-}
-
-function formatShortDate(value: string) {
-  return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit' }).format(new Date(value))
 }
 
 function getSlotBadge(slots?: ExcursionSlot[]) {
@@ -32,13 +22,10 @@ function getSlotBadge(slots?: ExcursionSlot[]) {
   if (!nearestSlot) return null
 
   const seats = nearestSlot.available_seats
-  const firstDate = formatShortDate(nearestSlot.date)
-  const endDateValue = nearestSlot.date_to || nearestSlot.end_date
-  const endDate = endDateValue && endDateValue !== nearestSlot.date ? formatShortDate(endDateValue) : null
-
   return {
     seats,
-    dateLine: endDate ? `${firstDate} - ${endDate}` : `${firstDate}, ${nearestSlot.time.slice(0, 5)}`,
+    slot: nearestSlot,
+    dateLine: formatSlot(nearestSlot, true),
   }
 }
 
@@ -49,6 +36,7 @@ export function ExcursionCard({ excursion, source = 'direct' }: ExcursionCardPro
   const imageUrl = getMediaUrl(excursion.main_image)
   const categoryName = excursion.category?.name || 'Экскурсия'
   const slotBadge = getSlotBadge(excursion.nearest_slots)
+  const price = getPrice(excursion, slotBadge?.slot)
   
   // Check initial wishlist status
   const { data: wishlistCheck } = useQuery({
@@ -146,11 +134,11 @@ export function ExcursionCard({ excursion, source = 'direct' }: ExcursionCardPro
 
         <div className='mt-4 flex items-end justify-between gap-3'>
           <div>
-            <p className='text-xs text-neutral-text'>от</p>
-            <p className='text-lg font-bold text-brand-deep'>{excursion.price} ₽</p>
+            {price.from && <p className='text-xs text-neutral-text'>от</p>}
+            <p className='text-lg font-bold text-brand-deep'>{price.amount} ₽</p>
           </div>
           <div className='text-right text-sm text-neutral-text'>
-            <p>{formatDuration(excursion.duration)}</p>
+            <p>{formatDuration(excursion, slotBadge?.slot)}</p>
             <p aria-label='Рейтинг'>
               ★ {excursion.average_rating ?? '-'} <span className='text-neutral-text/70'>({excursion.review_count})</span>
             </p>

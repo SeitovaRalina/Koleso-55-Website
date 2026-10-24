@@ -67,14 +67,14 @@ class ExcursionAdmin(admin.ModelAdmin):
         (_('Описание'), {
             'fields': ('short_description', 'description')
         }),
-        (_('Детали экскурсии'), {
+        (_('Детали программы или экскурсии'), {
             'fields': (
                 'group_size', 'included_in_price', 'not_included_in_price',
                 'what_to_bring', 'meeting_point'
             )
         }),
         (_('Параметры'), {
-            'fields': ('price', 'duration', 'is_active')
+            'fields': ('price', 'duration', 'is_multi_day', 'is_active')
         }),
     )
     
@@ -201,7 +201,7 @@ class SlotAdmin(admin.ModelAdmin):
     """Админ-панель для управления слотами"""
     
     list_display = [
-        'excursion', 'get_date_formatted', 'get_time_formatted', 
+        'excursion', 'get_date_formatted', 'get_time_formatted', 'end_date', 'end_time',
         'max_participants', 'booked_participants', 
         'get_available_seats', 'get_availability_status'
     ]

@@ -1,5 +1,11 @@
 # Backend Integration Plan
 
+## KOLE-5: расписание и отображение цены
+
+`SlotSerializer` в списке и деталях события отдаёт `end_date` и `end_time` (оба `null` для старых слотов). Окончание задаётся парой полей и должно быть позже начала; переход через полночь допустим. Клиент не вычисляет окончание из `Excursion.duration`. Для многодневной программы число календарных дней считается включительно по `Slot.date` и `Slot.end_date`.
+
+Список событий отдаёт `is_multi_day` и `ticket_types` с `is_active`, как и детали. Клиент показывает цену ближайшего доступного слота: `price_override`, если задана, иначе минимальную цену активных тарифов или базовую `Excursion.price` при отсутствии тарифов. При нескольких тарифах выводится «от»; при одном тарифе и выбранном слоте цена точная. Сортировка и фильтр по `price` продолжают использовать базовое поле модели; при изменении тарифов базовую цену нужно поддерживать как индекс каталога.
+
 Цель: стабильно связать Django `main_service`, FastAPI `recommendation_service`, frontend и будущую оплату YooKassa.
 
 Current priority note: frontend production-ready work goes first. Backend pricing, YooKassa, and deploy remain planned later phases.
