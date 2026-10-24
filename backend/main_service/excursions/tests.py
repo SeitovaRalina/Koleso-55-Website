@@ -65,3 +65,21 @@ class SlotContractTests(TestCase):
         data = ExcursionListSerializer(self.excursion).data
         self.assertEqual(len(data['ticket_types']), 3)
         self.assertEqual(data['nearest_slots'][0]['price_override'], '700.00')
+
+    def test_list_exposes_single_active_tariff_without_override(self):
+        TicketType.objects.create(excursion=self.excursion, name='Основной', price=1200)
+        TicketType.objects.create(excursion=self.excursion, name='Скрытый', price=500, is_active=False)
+        self.make_slot(date=date(2027, 10, 14)).save()
+
+        data = ExcursionListSerializer(self.excursion).data
+        self.assertEqual([ticket['price'] for ticket in data['ticket_types'] if ticket['is_active']], ['1200.00'])
+        self.assertIsNone(data['nearest_slots'][0]['price_override'])
+
+    def test_list_exposes_multiple_tariffs_without_override(self):
+        TicketType.objects.create(excursion=self.excursion, name='Взрослый', price=1500)
+        TicketType.objects.create(excursion=self.excursion, name='Детский', price=800)
+        self.make_slot(date=date(2027, 10, 14)).save()
+
+        data = ExcursionListSerializer(self.excursion).data
+        self.assertEqual(sorted(float(ticket['price']) for ticket in data['ticket_types']), [800, 1500])
+        self.assertIsNone(data['nearest_slots'][0]['price_override'])

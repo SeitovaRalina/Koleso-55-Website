@@ -317,6 +317,8 @@ export default function ExcursionDetail() {
     )
   }
 
+  const priceSlot = selectedSlot || excursion.slots?.find(slot => slot.is_available)
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -559,11 +561,16 @@ export default function ExcursionDetail() {
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
               <h3 className="text-xl font-bold mb-4">Бронирование</h3>
               <div className="text-3xl font-bold text-blue-600 mb-6">
-                {getPrice(excursion, selectedSlot || excursion.slots?.find(slot => slot.is_available)).from ? 'от ' : ''}{getPrice(excursion, selectedSlot || excursion.slots?.find(slot => slot.is_available)).amount} ₽
+                {getPrice(excursion, priceSlot).from ? 'от ' : ''}{getPrice(excursion, priceSlot).amount} ₽
               </div>
 
               {/* Типы билетов */}
-              {excursion.ticket_types && excursion.ticket_types.some((t: TicketType) => t.is_active) && (
+              {priceSlot?.price_override != null && (
+                <p className="mb-4 text-sm text-gray-600">
+                  Для {selectedSlot ? 'выбранного' : 'ближайшего доступного'} слота действует цена {priceSlot.price_override} ₽.
+                </p>
+              )}
+              {priceSlot?.price_override == null && excursion.ticket_types && excursion.ticket_types.some((t: TicketType) => t.is_active) && (
                 <div className="mb-6">
                   <h4 className="font-semibold mb-3">Тип билета</h4>
                   <div className="space-y-2">
