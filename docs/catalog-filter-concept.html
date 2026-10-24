@@ -29,7 +29,7 @@
     .heading { margin: 7px 0 22px; }
     h1 { margin: 0 0 6px; font-size: 28px; }
     .heading p { margin: 0; color: #5b687a; font-size: 14px; }
-    .controls { position: sticky; z-index: 30; top: 80px; padding: 10px 0 13px; background: #fff; box-shadow: 0 6px 9px -9px #17203399; }
+    .controls { position: sticky; z-index: 30; top: 80px; padding: 14px; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; box-shadow: 0 6px 18px #17203317; }
     .search { display: flex; gap: 10px; }
     .search input { min-width: 0; flex: 1; height: 52px; padding: 0 18px; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; font-size: 16px; }
     .search button { min-width: 116px; height: 52px; border: 0; border-radius: 8px; background: #0b8ed8; color: #fff; font-weight: 700; }
@@ -37,10 +37,10 @@
     .control-row label { font-size: 14px; }
     .sort { width: 215px; height: 46px; padding: 0 14px; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; color: #172033; }
     .category-anchor { position: relative; }
-    .category-trigger { display: flex; align-items: center; gap: 12px; width: 225px; height: 46px; padding: 0 14px; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; color: #172033; text-align: left; }
+    .category-trigger { display: flex; align-items: center; gap: 12px; width: 215px; height: 46px; padding: 0 14px; border: 1px solid #cfd8e3; border-radius: 8px; background: #fff; color: #172033; text-align: left; }
     .category-trigger[aria-expanded="true"] { border-color: #0a3f9a; }
     .category-trigger .selection { margin-left: auto; color: #637083; font-size: 12px; white-space: nowrap; }
-    .category-trigger svg { width: 16px; height: 16px; flex: none; margin-left: 3px; color: #445066; }
+    .category-trigger svg { width: 16px; height: 16px; flex: none; margin-left: 8px; color: #445066; }
     .category-trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
     .category-menu { position: absolute; z-index: 50; top: calc(100% + 7px); left: 0; width: 295px; max-width: calc(100vw - 32px); padding: 16px; border: 1px solid #dce4ed; border-radius: 8px; background: #fff; box-shadow: 0 14px 35px #17203326; }
     .category-menu[hidden] { display: none; }
@@ -82,7 +82,7 @@
       .sidebar.open { display: block; }
       .mobile-close { display: block; float: right; border: 0; background: none; color: #0a3f9a; font-weight: 700; }
       .sort { width: min(190px, 39vw); }
-      .category-trigger { width: min(200px, 39vw); }
+      .category-trigger { width: min(190px, 39vw); }
     }
     @media (max-width: 520px) {
       .search input { font-size: 14px; }
@@ -92,7 +92,7 @@
       .sort { width: calc(50% - 4px); }
       .category-anchor { width: calc(50% - 4px); }
       .category-trigger { width: 100%; padding-inline: 10px; font-size: 13px; }
-      .category-trigger .selection { display: none; }
+      .category-trigger .selection { display: block; overflow: hidden; text-overflow: ellipsis; }
       .category-trigger svg { margin-left: auto; }
       .cards { grid-template-columns: 1fr; max-width: 390px; }
       .card h3, .card p { min-height: 0; }
@@ -113,7 +113,7 @@
       <div class="heading"><h1>Все экскурсии</h1><p id="result-count"></p></div>
       <div class="controls"><form class="search" id="search-form"><input id="search" type="search" placeholder="Поиск по названию и описанию..." aria-label="Поиск по названию и описанию"><button type="submit">Найти</button></form>
         <div class="control-row"><label for="sort">Сортировка:</label><select class="sort" id="sort"><option>По популярности</option><option>Цена: по возрастанию</option><option>Сначала ближайшие</option></select>
-          <div class="category-anchor"><button class="category-trigger" id="category-trigger" type="button" aria-expanded="false" aria-controls="category-menu"><span>Категории</span><span class="selection" id="selection-label">Все</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 7 6 6 6-6"/></svg></button>
+          <label for="category-trigger">Категории:</label><div class="category-anchor"><button class="category-trigger" id="category-trigger" type="button" aria-expanded="false" aria-controls="category-menu"><span class="selection" id="selection-label">Все категории</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 7 6 6 6-6"/></svg></button>
             <div class="category-menu" id="category-menu" hidden><h2>Выберите категории</h2><div class="all-option"><label><input id="all-categories" type="checkbox" checked>Все категории</label></div><div class="category-options" id="category-options"></div></div>
           </div><button class="mobile-filter-button" id="open-filters" type="button">Фильтры</button>
         </div>
@@ -180,7 +180,7 @@
       });
       all.checked = selected.size === categories.length;
       all.indeterminate = selected.size > 0 && selected.size < categories.length;
-      document.getElementById('selection-label').textContent = all.checked ? 'Все' : selected.size + ' из ' + categories.length;
+      document.getElementById('selection-label').textContent = all.checked ? 'Все категории' : 'Выбрано: ' + selected.size;
       document.getElementById('summary').textContent = all.checked ? 'Все категории' : 'Выбрано категорий: ' + selected.size;
       document.getElementById('result-count').textContent = 'Найдено ' + visible.length + ' событий';
       document.getElementById('empty').hidden = visible.length > 0;
