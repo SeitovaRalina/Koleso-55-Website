@@ -45,8 +45,30 @@ class GiftCertificateRequestAPITests(APITestCase):
     def test_public_list_is_not_available(self):
         self.assertEqual(self.client.get(self.url).status_code, 405)
 
+    def test_client_cannot_set_processing_status(self):
+        response = self.client.post(self.url, {**self.payload, 'status': 'completed'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(GiftCertificateRequest.objects.get(pk=response.data['id']).status, 'new')
+
+    def test_repeat_submission_creates_separate_requests(self):
+        first = self.client.post(self.url, self.payload, format='json')
+        second = self.client.post(self.url, self.payload, format='json')
+        self.assertEqual((first.status_code, second.status_code), (201, 201))
+        self.assertNotEqual(first.data['id'], second.data['id'])
+        self.assertEqual(GiftCertificateRequest.objects.count(), 2)
+
 
 class GiftCertificateRequestAdminTests(TestCase):
+    def test_admin_requires_staff_and_model_permissions(self):
+        url = reverse('admin:bookings_giftcertificaterequest_changelist')
+        self.assertEqual(self.client.get(url).status_code, 302)
+        user = get_user_model().objects.create_user(email='guest@example.com', password='test-password')
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(url).status_code, 302)
+        user.is_staff = True
+        user.save(update_fields=['is_staff'])
+        self.assertEqual(self.client.get(url).status_code, 403)
+
     def test_admin_lists_contact_details_and_can_change_status(self):
         model_admin = admin.site._registry[GiftCertificateRequest]
         self.assertIsInstance(model_admin, GiftCertificateRequestAdmin)
@@ -71,3 +93,13 @@ class GiftCertificateRequestAdminTests(TestCase):
         self.assertEqual(response.status_code, 302)
         request.refresh_from_db()
         self.assertEqual(request.status, GiftCertificateRequest.Status.IN_PROGRESS)
+
+        response = self.client.post(change_url, {'status': GiftCertificateRequest.Status.COMPLETED, '_save': 'Save'})
+        self.assertEqual(response.status_code, 302)
+        request.refresh_from_db()
+        self.assertEqual(request.status, GiftCertificateRequest.Status.COMPLETED)
+
+        response = self.client.post(change_url, {'status': 'invalid', '_save': 'Save'})
+        self.assertEqual(response.status_code, 200)
+        request.refresh_from_db()
+        self.assertEqual(request.status, GiftCertificateRequest.Status.COMPLETED)
