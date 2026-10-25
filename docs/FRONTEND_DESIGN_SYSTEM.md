@@ -66,7 +66,7 @@ Must exist as reusable patterns:
 - Badge: category, status, availability.
 - ExcursionCard: image, category, favorite, price, rating, duration.
 - FilterSidebar: category, price, duration, location, date.
-- BookingPanel: slot, participants, summary, pay action.
+- BookingPanel: slot, participants, summary, request action and manager contact state.
 - StatusAlert: backend warnings and payment state.
 - EmptyState, ErrorState, Skeleton.
 - Tabs for account.
@@ -128,15 +128,15 @@ Excursion detail:
 - Similar excursions from recommender.
 - Track analytics view source.
 
-Booking:
+Booking (current public request path):
 
 - Show all backend fields.
-- Show business rules: guest booking, optional auth, slot availability, full prepayment, YooKassa as main payment, manager fallback.
-- Slot is occupied only after payment.
+- Show business rules: guest request, optional auth, slot availability, and manager follow-up. Do not show payment or instant confirmation as the next step.
+- Creating a request does not occupy a slot.
 - Show adult/child price breakdown when backend supports it.
 - Show negotiated/custom price fallback when price is not fixed.
 - Never calculate trusted payment amount on frontend; show backend-computed amount.
-- YooKassa test mode should be clear in dev/staging.
+- YooKassa test mode and payment UI belong to a future integration.
 - Guest booking must include legal consent checkboxes.
 - Authorized booking can show compact legal notice if consent already accepted.
 

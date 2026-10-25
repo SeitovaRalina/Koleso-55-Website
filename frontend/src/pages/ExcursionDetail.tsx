@@ -81,7 +81,6 @@ export default function ExcursionDetail() {
   const [bookingError, setBookingError] = useState('')
   const [bookingSuccess, setBookingSuccess] = useState('')
   const [isBookingSubmitting, setIsBookingSubmitting] = useState(false)
-  const [questionContactMethod, setQuestionContactMethod] = useState<ContactMethod>('whatsapp')
   const { data: excursion, isLoading, error } = useQuery<Excursion>({
     queryKey: ['excursion', excursionId],
     queryFn: () => excursionsApi.getExcursionById(Number(excursionId!)),
@@ -239,8 +238,13 @@ export default function ExcursionDetail() {
     }
 
     const { firstName, lastName, middleName } = splitFullName(bookingForm.fullName)
-    if (!firstName) {
+    if (!firstName || !lastName) {
       setBookingError('Укажите ФИО')
+      return
+    }
+
+    if (!bookingForm.phone.trim()) {
+      setBookingError('Укажите телефон для связи с менеджером')
       return
     }
 
@@ -280,7 +284,7 @@ export default function ExcursionDetail() {
         }
       }
 
-      setBookingSuccess('Заказ успешно создан. Статус заказа можно отслеживать в личном кабинете.')
+      setBookingSuccess('Заявка отправлена. Менеджер свяжется с вами по указанному телефону и уточнит детали.')
       setBookingForm((current) => ({
         ...current,
         participantNames: '',
@@ -556,7 +560,7 @@ export default function ExcursionDetail() {
           {/* Правая колонка: sidebar бронирования */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
-              <h3 className="text-xl font-bold mb-4">Бронирование</h3>
+              <h3 className="text-xl font-bold mb-4">Заявка на экскурсию</h3>
               <div className="text-3xl font-bold text-blue-600 mb-6">
                 от {excursion.price} ₽
               </div>
@@ -623,7 +627,7 @@ export default function ExcursionDetail() {
                 onClick={handleBookNow}
                 className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
-                Забронировать место
+                Оставить заявку
               </button>
             </div>
           </div>
@@ -639,41 +643,9 @@ export default function ExcursionDetail() {
                 Менеджер ответит удобным для вас способом и поможет выбрать подходящий слот.
               </p>
             </div>
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ваше имя</label>
-                <input type="text" className="w-full border rounded-lg p-2" placeholder="Как к вам обращаться?" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-                <input type="tel" className="w-full border rounded-lg p-2" placeholder="+7 (___) ___-__-__" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Способ связи</label>
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                  {contactMethods.map((method) => (
-                    <label key={method.value} className="flex items-center gap-2 rounded border p-2 hover:bg-gray-50">
-                      <input
-                        type="radio"
-                        name="question_contact_method"
-                        value={method.value}
-                        checked={questionContactMethod === method.value}
-                        onChange={() => setQuestionContactMethod(method.value)}
-                        className="h-4 w-4"
-                      />
-                      <span className="text-sm">{method.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Сообщение</label>
-                <textarea className="w-full border rounded-lg p-2" rows={3} placeholder="Ваш вопрос..." />
-              </div>
-              <button type="submit" className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                Отправить вопрос
-              </button>
-            </form>
+            <Link to="/contacts" className="inline-flex justify-center rounded-lg bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700">
+              Открыть контакты
+            </Link>
           </div>
         </div>
 
@@ -700,7 +672,7 @@ export default function ExcursionDetail() {
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">Бронирование</h2>
+                <h2 className="text-2xl font-bold">Бронь</h2>
                 <button
                   onClick={() => setIsBookingModalOpen(false)}
                   className="p-2 hover:bg-gray-100 rounded-lg"
@@ -713,7 +685,7 @@ export default function ExcursionDetail() {
 
               {/* Ваше бронирование */}
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold mb-3">Ваше бронирование</h3>
+                <h3 className="font-semibold mb-3">Данные заявки</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Экскурсия:</span>
@@ -737,15 +709,15 @@ export default function ExcursionDetail() {
                   </div>
                 </div>
                 <p className="mt-3 text-xs text-gray-500">
-                  Слот окончательно занимается после подтверждения оплаты или менеджером.
+                  Отправка заявки не подтверждает участие. Менеджер свяжется с вами и уточнит доступность.
                 </p>
               </div>
 
               {bookingSuccess ? (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-5">
-                  <h3 className="text-lg font-semibold text-green-800">Заказ успешно создан</h3>
+                  <h3 className="text-lg font-semibold text-green-800">Заявка отправлена</h3>
                   <p className="mt-2 text-sm text-green-700">
-                    Статус заказа можно отслеживать в личном кабинете.
+                    Менеджер свяжется с вами по указанному телефону и уточнит детали.
                   </p>
                   <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                     {isAuthenticated ? (
@@ -921,7 +893,7 @@ export default function ExcursionDetail() {
                   disabled={isBookingSubmitting}
                   className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isBookingSubmitting ? 'Создание заказа...' : 'Подтвердить бронирование'}
+                  {isBookingSubmitting ? 'Отправляем заявку...' : 'Отправить заявку'}
                 </button>
               </form>
                 </>

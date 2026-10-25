@@ -23,7 +23,7 @@ export default function CustomRequest() {
       <div className="max-w-3xl mx-auto">
         <h2 className="text-3xl font-bold text-center mb-4">Не нашли то, что искали?</h2>
         <p className="text-gray-600 text-center mb-8">
-          Оставьте заявку, и мы подберём для вас индивидуальную экскурсию
+          Заполните письмо и отправьте его нам из почтовой программы. Менеджер свяжется с вами.
         </p>
         
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-8 shadow-sm">
@@ -81,7 +81,7 @@ export default function CustomRequest() {
             type="submit"
             className="w-full bg-primary hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
           >
-            Отправить заявку
+            Открыть письмо с заявкой
           </button>
           {status && <p className="mt-3 text-center text-sm text-neutral-text" role="status">{status}</p>}
         </form>
