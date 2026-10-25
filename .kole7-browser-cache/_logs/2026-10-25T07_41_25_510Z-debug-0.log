@@ -1,0 +1,36 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Users\seito\AppData\Roaming\npm\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.3.0
+2 info using node@v22.14.0
+3 silly config load:file:C:\Users\seito\AppData\Roaming\npm\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\seito\multica_workspaces\koleso-trav-727767283713\kole-7-796096fcfab8\worktree\.kole7-browser\.npmrc
+5 silly config load:file:C:\Users\seito\.npmrc
+6 silly config load:file:C:\Users\seito\multica_workspaces\koleso-trav-727767283713\kole-7-796096fcfab8\worktree\.kole7-browser\etc\npmrc
+7 verbose title npm install playwright-core
+8 verbose argv "install" "--prefix" ".kole7-browser" "playwright-core" "--ignore-scripts" "--cache" ".kole7-browser-cache" "--no-audit" "--no-fund"
+9 verbose logfile logs-max:10 dir:C:\Users\seito\multica_workspaces\koleso-trav-727767283713\kole-7-796096fcfab8\worktree\.kole7-browser-cache\_logs\2026-10-25T07_41_25_510Z-
+10 verbose logfile C:\Users\seito\multica_workspaces\koleso-trav-727767283713\kole-7-796096fcfab8\worktree\.kole7-browser-cache\_logs\2026-10-25T07_41_25_510Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+13 silly idealTree buildDeps
+14 silly fetch manifest playwright-core@*
+15 silly packumentCache full:https://registry.npmjs.org/playwright-core cache-miss
+16 http fetch GET 200 https://registry.npmjs.org/npm 1325ms
+17 http fetch GET 200 https://registry.npmjs.org/playwright-core 2607ms (cache miss)
+18 silly packumentCache full:https://registry.npmjs.org/playwright-core set size:undefined disposed:false
+19 silly placeDep ROOT playwright-core@1.64.1 OK for:  want: *
+20 silly reify moves {}
+21 http cache playwright-core@https://registry.npmjs.org/playwright-core/-/playwright-core-1.64.1.tgz 1ms (cache hit)
+22 silly tarball no local data for playwright-core@https://registry.npmjs.org/playwright-core/-/playwright-core-1.64.1.tgz. Extracting by manifest.
+23 http fetch GET 200 https://registry.npmjs.org/playwright-core/-/playwright-core-1.64.1.tgz 2319ms (cache miss)
+24 silly ADD node_modules/playwright-core
+25 verbose cwd C:\Users\seito\multica_workspaces\koleso-trav-727767283713\kole-7-796096fcfab8\worktree
+26 verbose os Windows_NT 10.0.26200
+27 verbose node v22.14.0
+28 verbose npm  v11.3.0
+29 notice
+29 notice New minor version of npm available! 11.3.0 -> 11.21.1
+29 notice Changelog: https://github.com/npm/cli/releases/tag/v11.21.1
+29 notice To update run: npm install -g npm@11.21.1
+29 notice  { force: true, [Symbol(proc-log.meta)]: true }
+30 verbose exit 0
+31 info ok
