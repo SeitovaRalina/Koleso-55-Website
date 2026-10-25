@@ -15,6 +15,7 @@ export interface FilterState {
 interface Props {
   filters: FilterState
   onFiltersChange: (filters: FilterState) => void
+  onResetAll: () => void
   open: boolean
   onClose: () => void
 }
@@ -29,11 +30,10 @@ const durations = [
   { value: '2_to_4h', label: 'От 2 до 4 часов' },
   { value: 'over_4h', label: 'Более 4 часов' },
 ]
-const defaults: FilterState = { categories: [], locations: [], durations: [], minPrice: '', maxPrice: '', dateFrom: '', dateTo: '' }
 type Section = 'categories' | 'price' | 'locations' | 'durations' | 'date'
 const titles: Record<Section, string> = { categories: 'Категории', price: 'Цена', locations: 'Локация', durations: 'Длительность', date: 'Дата' }
 
-export default function FilterSidebar({ filters, onFiltersChange, open, onClose }: Props) {
+export default function FilterSidebar({ filters, onFiltersChange, onResetAll, open, onClose }: Props) {
   const [expanded, setExpanded] = useState<Record<Section, boolean>>({ categories: true, price: true, locations: true, durations: true, date: true })
   const [allCategories, setAllCategories] = useState(false)
   const [categorySearch, setCategorySearch] = useState('')
@@ -47,6 +47,16 @@ export default function FilterSidebar({ filters, onFiltersChange, open, onClose 
   }, [open, onClose])
 
   const change = (patch: Partial<FilterState>) => onFiltersChange({ ...filters, ...patch })
+  const resetCategories = () => {
+    setCategorySearch('')
+    setAllCategories(false)
+    change({ categories: [] })
+  }
+  const resetAll = () => {
+    setCategorySearch('')
+    setAllCategories(false)
+    onResetAll()
+  }
   const toggle = (key: 'categories' | 'locations' | 'durations', value: string) => {
     const selected = filters[key]
     const next = selected.includes(value) ? selected.filter(item => item !== value) : [...selected.filter(Boolean), value]
@@ -67,7 +77,7 @@ export default function FilterSidebar({ filters, onFiltersChange, open, onClose 
           {titles[key]} {count(key) > 0 && <span className='text-xs rounded-full bg-blue-50 px-2 py-1'>{count(key)}</span>}
           <span aria-hidden='true' className='float-right'>{expanded[key] ? '−' : '+'}</span>
         </button>
-        {count(key) > 0 && <button type='button' onClick={() => change(key === 'categories' ? { categories: [] } : key === 'locations' ? { locations: [] } : key === 'durations' ? { durations: [] } : key === 'price' ? { minPrice: '', maxPrice: '' } : { dateFrom: '', dateTo: '' })} className='text-xs text-primary underline focus-visible:outline'>Сбросить</button>}
+        {(count(key) > 0 || (key === 'categories' && filters.categories.length > 0)) && <button type='button' onClick={() => key === 'categories' ? resetCategories() : change(key === 'locations' ? { locations: [] } : key === 'durations' ? { durations: [] } : key === 'price' ? { minPrice: '', maxPrice: '' } : { dateFrom: '', dateTo: '' })} className='text-xs text-primary underline focus-visible:outline'>Сбросить</button>}
       </div>
       {expanded[key] && <div className='mt-3'>{children}</div>}
     </section>
@@ -87,9 +97,9 @@ export default function FilterSidebar({ filters, onFiltersChange, open, onClose 
           <h2 className='text-lg font-bold'>Фильтры</h2>
           <button type='button' onClick={onClose} className='lg:hidden text-primary focus-visible:outline' aria-label='Закрыть фильтры'>Закрыть</button>
         </div>
-        <button type='button' onClick={() => onFiltersChange(defaults)} className='text-sm text-primary underline mb-2 focus-visible:outline'>Сбросить все фильтры</button>
+        <button type='button' onClick={resetAll} className='text-sm text-primary underline mb-2 focus-visible:outline'>Сбросить все фильтры</button>
         {section('categories', <>
-          <button type='button' onClick={() => change({ categories: [] })} className='block text-sm text-primary mb-2 focus-visible:outline'>Все категории</button>
+          <button type='button' onClick={resetCategories} className='block text-sm text-primary mb-2 focus-visible:outline'>Все категории</button>
           {categories.length > 6 && <input type='search' aria-label='Поиск категории' placeholder='Найти категорию' value={categorySearch} onChange={event => setCategorySearch(event.target.value)} className='w-full min-w-0 border rounded px-2 py-2 mb-2 focus-visible:outline-primary' />}
           <div className={allCategories || categorySearch ? 'max-h-52 overflow-y-auto' : ''}>
             {isLoading ? <p>Загрузка категорий…</p> : shown.length ? shown.map(cat => checkbox('categories', cat.slug, cat.name)) : <p className='text-sm text-gray-500'>Категории не найдены</p>}

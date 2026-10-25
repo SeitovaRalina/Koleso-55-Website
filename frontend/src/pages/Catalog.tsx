@@ -47,6 +47,10 @@ export default function Catalog() {
     if (value.dateFrom) next.set('date_from', value.dateFrom)
     if (value.dateTo) next.set('date_to', value.dateTo)
   })
+  const resetAllFilters = () => {
+    setSearchQuery('')
+    setParams(new URLSearchParams())
+  }
   const { data, isLoading, error } = useQuery({
     queryKey: ['excursions', params.toString()],
     queryFn: () => excursionsApi.getExcursions({
@@ -71,7 +75,7 @@ export default function Catalog() {
       <button type='button' aria-expanded={open} onClick={() => setOpen(!open)} className='lg:hidden border rounded px-4 py-2 text-primary focus-visible:outline-primary'>Фильтры</button>
     </div>
     <div className='flex flex-col lg:flex-row gap-8'>
-      {(desktopVisible || open) && <div className={desktopVisible ? '' : 'lg:hidden'}><FilterSidebar filters={filters} onFiltersChange={handleFiltersChange} open={open} onClose={() => setOpen(false)} /></div>}
+      {(desktopVisible || open) && <div className={desktopVisible ? '' : 'lg:hidden'}><FilterSidebar filters={filters} onFiltersChange={handleFiltersChange} onResetAll={resetAllFilters} open={open} onClose={() => setOpen(false)} /></div>}
       <div className='min-w-0 flex-1'>
         <form onSubmit={submitSearch} className='flex flex-wrap gap-2 mb-5'>
           <label htmlFor='catalog-search' className='sr-only'>Поиск экскурсий</label>
