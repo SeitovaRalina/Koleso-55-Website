@@ -77,6 +77,18 @@ class ExcursionAdmin(admin.ModelAdmin):
             'fields': ('price', 'duration', 'is_multi_day', 'is_active')
         }),
     )
+
+    def add_view(self, request, form_url='', extra_context=None):
+        return super().add_view(
+            request, form_url,
+            {**(extra_context or {}), 'title': 'Добавить программу или экскурсию'},
+        )
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        return super().change_view(
+            request, object_id, form_url,
+            {**(extra_context or {}), 'title': 'Изменить программу или экскурсию'},
+        )
     
     def get_formatted_price(self, obj):
         """Форматированная цена с рублем"""

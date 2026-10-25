@@ -92,7 +92,7 @@ class Excursion(models.Model):
         help_text='Максимальное количество человек в группе'
     )
     is_multi_day = models.BooleanField(
-        'Многодневный тур',
+        'Многодневная программа',
         default=False,
         help_text='Программа проходит в несколько календарных дней'
     )
@@ -216,8 +216,8 @@ class Slot(models.Model):
         Excursion, 
         on_delete=models.CASCADE, 
         related_name='slots',
-        verbose_name='Экскурсия',
-        help_text='Экскурсия, для которой создан слот'
+        verbose_name='Программа или экскурсия',
+        help_text='Программа или экскурсия, для которой создан слот'
     )
     date = models.DateField(
         'Дата',
