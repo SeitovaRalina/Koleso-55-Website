@@ -2,6 +2,7 @@ import uuid
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.cache import cache
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -48,6 +49,41 @@ class ExcursionInquiryTests(TestCase):
         self.assertEqual(update.status_code, 302)
         inquiry.refresh_from_db()
         self.assertEqual(inquiry.status, 'in_progress')
+
+    def test_public_cannot_read_or_set_processing_status(self):
+        payload = {**self.payload, 'status': 'closed'}
+        response = self.client.post('/api/excursions/inquiries/', payload, format='json')
+        self.assertEqual(response.status_code, 201)
+        inquiry = ExcursionInquiry.objects.get(pk=response.data['id'])
+        self.assertEqual(inquiry.status, 'new')
+        self.assertEqual(self.client.get('/api/excursions/inquiries/').status_code, 405)
+        self.assertEqual(self.client.get(f'/api/excursions/inquiries/{inquiry.pk}/').status_code, 404)
+        self.assertEqual(self.client.get('/admin/excursions/excursioninquiry/').status_code, 302)
+
+    def test_admin_permissions_and_invalid_status(self):
+        response = self.client.post('/api/excursions/inquiries/', self.payload, format='json')
+        inquiry = ExcursionInquiry.objects.get(pk=response.data['id'])
+        staff = get_user_model().objects.create_user('staff@example.com', 'password', is_staff=True)
+        self.client.force_login(staff)
+        list_url = '/admin/excursions/excursioninquiry/'
+        change_url = f'/admin/excursions/excursioninquiry/{inquiry.pk}/change/'
+        self.assertEqual(self.client.get(list_url).status_code, 403)
+        self.assertEqual(self.client.get(change_url).status_code, 403)
+        self.assertEqual(self.client.post(change_url, {'status': 'closed', '_save': 'Save'}).status_code, 403)
+        staff.user_permissions.add(Permission.objects.get(codename='view_excursioninquiry'))
+        self.client.logout()
+        self.client.force_login(staff)
+        self.assertEqual(self.client.get(list_url).status_code, 200)
+        self.assertEqual(self.client.get(change_url).status_code, 200)
+        self.assertEqual(self.client.post(change_url, {'status': 'closed', '_save': 'Save'}).status_code, 403)
+        staff.user_permissions.add(Permission.objects.get(codename='change_excursioninquiry'))
+        self.client.logout()
+        self.client.force_login(staff)
+        invalid = self.client.post(change_url, {'status': 'unknown', '_save': 'Save'})
+        self.assertEqual(invalid.status_code, 200)
+        self.assertContains(invalid, 'Выберите корректный вариант')
+        inquiry.refresh_from_db()
+        self.assertEqual(inquiry.status, 'new')
 
     def test_duplicate_key_is_idempotent_and_conflict_is_rejected(self):
         self.assertEqual(self.client.post('/api/excursions/inquiries/', self.payload, format='json').status_code, 201)
