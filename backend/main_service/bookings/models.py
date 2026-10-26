@@ -34,7 +34,7 @@ class GiftCertificateRequest(models.Model):
     class Meta:
         ordering = ['-created_at']
         verbose_name = 'Заявка на подарочный сертификат'
-        verbose_name_plural = 'Заявки на подарочные сертификаты'
+        verbose_name_plural = 'заявки на подарочные сертификаты'
 
     def __str__(self):
         return f'Заявка #{self.pk}: {self.buyer_name}'

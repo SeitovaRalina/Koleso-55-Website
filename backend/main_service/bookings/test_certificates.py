@@ -91,6 +91,7 @@ class GiftCertificateRequestAdminTests(TestCase):
         self.assertContains(response, 'Статус обработки')
         self.assertContains(response, 'Формат сертификата')
         self.assertContains(response, 'Создать заявку')
+        self.assertContains(response, 'Удалить выбранные заявки на подарочные сертификаты')
         self.assertNotContains(response, 'Добавить Заявка')
 
         change_url = reverse('admin:bookings_giftcertificaterequest_change', args=[request.pk])
