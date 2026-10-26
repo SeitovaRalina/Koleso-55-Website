@@ -46,6 +46,11 @@ class NewsApiTests(APITestCase):
         self.assertEqual(len(second.data['results']), 1)
         self.assertIsNotNone(first.data['next'])
 
+    def test_public_api_is_read_only(self):
+        response = self.client.post(reverse('news:list'), {'title': 'Не должно сохраниться'})
+        self.assertEqual(response.status_code, 405)
+        self.assertFalse(NewsArticle.objects.exists())
+
 
 class NewsAdminTests(TestCase):
     def setUp(self):
@@ -76,6 +81,42 @@ class NewsAdminTests(TestCase):
         item = NewsArticle.objects.get(slug='new-story')
         self.assertEqual(self.client.get(reverse('news:list')).data['count'], 1)
         data.pop('is_published')
+        data['body'] = 'Исправленный текст'
         response = self.client.post(reverse('admin:news_newsarticle_change', args=[item.pk]), data)
         self.assertEqual(response.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.body, 'Исправленный текст')
+        self.assertFalse(item.is_published)
         self.assertEqual(self.client.get(reverse('news:list')).data['count'], 0)
+
+    def test_admin_rejects_duplicate_slug_and_missing_body(self):
+        article('same-slug')
+        add_url = reverse('admin:news_newsarticle_add')
+        data = {
+            'title': 'Другая новость', 'slug': 'same-slug', 'excerpt': 'Анонс',
+            'body': 'Текст', 'published_at_0': '2026-01-01',
+            'published_at_1': '10:00:00',
+        }
+        response = self.client.post(add_url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('slug', response.context['adminform'].form.errors)
+        self.assertEqual(NewsArticle.objects.count(), 1)
+
+        data['slug'] = 'new-slug'
+        data['body'] = ''
+        response = self.client.post(add_url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('body', response.context['adminform'].form.errors)
+        self.assertEqual(NewsArticle.objects.count(), 1)
+
+    def test_view_only_editor_cannot_add_or_change(self):
+        item = article('read-only')
+        self.user.user_permissions.set(Permission.objects.filter(
+            content_type__app_label='news', codename='view_newsarticle'
+        ))
+        self.assertEqual(self.client.get(reverse('admin:news_newsarticle_add')).status_code, 403)
+        change_url = reverse('admin:news_newsarticle_change', args=[item.pk])
+        self.assertEqual(self.client.get(change_url).status_code, 200)
+        self.assertEqual(self.client.post(change_url, {'title': 'Changed'}).status_code, 403)
+        item.refresh_from_db()
+        self.assertEqual(item.title, 'read-only')
