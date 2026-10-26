@@ -56,7 +56,7 @@ class ExcursionInquiryTests(TestCase):
         self.assertEqual(response.status_code, 201)
         inquiry = ExcursionInquiry.objects.get(pk=response.data['id'])
         self.assertEqual(inquiry.status, 'new')
-        self.assertEqual(self.client.get('/api/excursions/inquiries/').status_code, 405)
+        self.assertEqual(self.client.get('/api/excursions/inquiries/').status_code, 401)
         self.assertEqual(self.client.get(f'/api/excursions/inquiries/{inquiry.pk}/').status_code, 404)
         self.assertEqual(self.client.get('/admin/excursions/excursioninquiry/').status_code, 302)
 
@@ -94,7 +94,7 @@ class ExcursionInquiryTests(TestCase):
         self.assertEqual(ExcursionInquiry.objects.count(), 1)
 
     def test_invalid_input_and_unknown_or_inactive_program_are_rejected(self):
-        self.assertEqual(self.client.get('/api/excursions/inquiries/').status_code, 405)
+        self.assertEqual(self.client.get('/api/excursions/inquiries/').status_code, 401)
         invalid = {**self.payload, 'phone': '123', 'question': 'x'}
         self.assertEqual(self.client.post('/api/excursions/inquiries/', invalid, format='json').status_code, 400)
         unknown = {**self.payload, 'excursion': 999999}
@@ -110,3 +110,45 @@ class ExcursionInquiryTests(TestCase):
             self.assertEqual(self.client.post('/api/excursions/inquiries/', payload, format='json').status_code, 201)
         self.assertEqual(self.client.post('/api/excursions/inquiries/', {**self.payload, 'request_id': str(uuid.uuid4())}, format='json').status_code, 429)
         self.assertEqual(ExcursionInquiry.objects.count(), 5)
+
+    def test_authenticated_inquiry_belongs_only_to_signed_in_account(self):
+        owner = get_user_model().objects.create_user('owner@example.com', 'password')
+        other = get_user_model().objects.create_user('other@example.com', 'password')
+        guest = self.client.post('/api/excursions/inquiries/', self.payload, format='json')
+        self.assertEqual(guest.status_code, 201)
+        payload = {**self.payload, 'request_id': str(uuid.uuid4()), 'email': 'edited@example.com', 'user_id': other.pk}
+        self.client.force_authenticate(user=owner)
+        created = self.client.post('/api/excursions/inquiries/', payload, format='json')
+        self.assertEqual(created.status_code, 201)
+        inquiry = ExcursionInquiry.objects.get(pk=created.data['id'])
+        self.assertEqual(inquiry.user, owner)
+        self.assertEqual(inquiry.email, 'edited@example.com')
+        listing = self.client.get('/api/excursions/inquiries/')
+        self.assertEqual(listing.status_code, 200)
+        self.assertEqual([item['id'] for item in listing.data['results']], [inquiry.pk])
+        self.assertEqual(listing.data['results'][0]['excursion_title'], self.excursion.title)
+        self.assertEqual(listing.data['results'][0]['public_status'], 'Новое')
+        self.assertNotIn('email', listing.data['results'][0])
+        self.assertNotIn('phone', listing.data['results'][0])
+        inquiry.status = 'in_progress'
+        inquiry.save(update_fields=['status'])
+        self.assertEqual(self.client.get('/api/excursions/inquiries/').data['results'][0]['public_status'], 'В работе')
+        self.client.force_authenticate(user=other)
+        self.assertEqual(self.client.get('/api/excursions/inquiries/').data['count'], 0)
+        self.assertEqual(self.client.get(f'/api/excursions/inquiries/{inquiry.pk}/').status_code, 404)
+
+    def test_duplicate_request_cannot_claim_another_account_or_guest_inquiry(self):
+        owner = get_user_model().objects.create_user('owner@example.com', 'password')
+        other = get_user_model().objects.create_user('other@example.com', 'password')
+        self.client.force_authenticate(user=owner)
+        self.assertEqual(self.client.post('/api/excursions/inquiries/', self.payload, format='json').status_code, 201)
+        self.client.force_authenticate(user=other)
+        self.assertEqual(self.client.post('/api/excursions/inquiries/', self.payload, format='json').status_code, 400)
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.post('/api/excursions/inquiries/', self.payload, format='json').status_code, 400)
+        self.assertEqual(ExcursionInquiry.objects.count(), 1)
+
+    def test_invalid_email_does_not_create_inquiry(self):
+        payload = {**self.payload, 'email': 'invalid'}
+        self.assertEqual(self.client.post('/api/excursions/inquiries/', payload, format='json').status_code, 400)
+        self.assertEqual(ExcursionInquiry.objects.count(), 0)

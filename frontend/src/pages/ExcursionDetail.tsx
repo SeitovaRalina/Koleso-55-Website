@@ -98,12 +98,19 @@ export default function ExcursionDetail() {
   const [questionContactMethod, setQuestionContactMethod] = useState<ContactMethod>('whatsapp')
   const [questionName, setQuestionName] = useState('')
   const [questionPhone, setQuestionPhone] = useState('')
+  const [questionEmail, setQuestionEmail] = useState('')
   const [questionText, setQuestionText] = useState('')
   const [questionConsent, setQuestionConsent] = useState(false)
   const [questionRequestId, setQuestionRequestId] = useState(() => crypto.randomUUID())
   const [questionSubmitting, setQuestionSubmitting] = useState(false)
   const [questionError, setQuestionError] = useState('')
   const [questionSuccess, setQuestionSuccess] = useState(false)
+  useEffect(() => {
+    if (!isAuthenticated || !user) return
+    setQuestionName((current) => current || getUserFullName(user))
+    setQuestionPhone((current) => current || formatRussianPhone(user.phone || ''))
+    setQuestionEmail((current) => current || user.email || '')
+  }, [isAuthenticated, user])
   const { data: excursion, isLoading, error } = useQuery<Excursion>({
     queryKey: ['excursion', excursionId],
     queryFn: () => excursionsApi.getExcursionById(Number(excursionId!)),
@@ -336,12 +343,14 @@ export default function ExcursionDetail() {
         excursion: excursion.id,
         name: questionName.trim(),
         phone: questionPhone,
+        email: questionEmail.trim(),
         contact_method: questionContactMethod as 'call' | 'whatsapp' | 'telegram' | 'max',
         question: questionText.trim(),
       })
       setQuestionSuccess(true)
       setQuestionName('')
       setQuestionPhone('')
+      setQuestionEmail('')
       setQuestionText('')
       setQuestionConsent(false)
       setQuestionRequestId(crypto.randomUUID())
@@ -706,6 +715,10 @@ export default function ExcursionDetail() {
               <div>
                 <label htmlFor="question-phone" className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
                 <input id="question-phone" type="tel" required inputMode="tel" autoComplete="tel" className="w-full border rounded-lg p-2" placeholder="+7 (___) ___-__-__" value={questionPhone} onChange={(event) => { setQuestionPhone(formatRussianPhone(event.target.value)); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
+              </div>
+              <div>
+                <label htmlFor="question-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input id="question-email" type="email" autoComplete="email" className="w-full border rounded-lg p-2" placeholder="name@example.com" value={questionEmail} onChange={(event) => { setQuestionEmail(event.target.value); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Способ связи</label>

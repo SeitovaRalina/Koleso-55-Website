@@ -11,10 +11,10 @@ from .models import Category, Excursion, ExcursionImage, ExcursionProgramDay, Sl
 
 @admin.register(ExcursionInquiry)
 class ExcursionInquiryAdmin(admin.ModelAdmin):
-    list_display = ['id', 'excursion', 'name', 'contact_method', 'created_at', 'status']
+    list_display = ['id', 'excursion', 'user', 'name', 'contact_method', 'created_at', 'status']
     list_filter = ['status', 'contact_method', 'created_at']
-    search_fields = ['name', 'phone', 'excursion__title']
-    readonly_fields = ['request_id', 'excursion', 'name', 'phone', 'contact_method', 'question', 'created_at']
+    search_fields = ['name', 'phone', 'email', 'excursion__title']
+    readonly_fields = ['request_id', 'user', 'excursion', 'name', 'phone', 'email', 'contact_method', 'question', 'created_at']
     list_select_related = ['excursion']
 
     def has_add_permission(self, request):

@@ -15,10 +15,11 @@ class ExcursionInquirySerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=120, allow_blank=False, trim_whitespace=True)
     question = serializers.CharField(max_length=2000, allow_blank=False, trim_whitespace=True)
     phone = serializers.RegexField(r'^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$', max_length=18)
+    email = serializers.EmailField(required=False, allow_blank=True)
 
     class Meta:
         model = ExcursionInquiry
-        fields = ['request_id', 'excursion', 'name', 'phone', 'contact_method', 'question']
+        fields = ['request_id', 'excursion', 'name', 'phone', 'email', 'contact_method', 'question']
 
     def validate_name(self, value):
         if len(value) < 2:
@@ -29,6 +30,15 @@ class ExcursionInquirySerializer(serializers.ModelSerializer):
         if len(value) < 5:
             raise serializers.ValidationError('Укажите вопрос не короче 5 символов.')
         return value
+
+
+class MyExcursionInquirySerializer(serializers.ModelSerializer):
+    excursion_title = serializers.CharField(source='excursion.title', read_only=True)
+    public_status = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = ExcursionInquiry
+        fields = ['id', 'excursion', 'excursion_title', 'question', 'created_at', 'public_status']
 
 
 class CategorySerializer(serializers.ModelSerializer):
