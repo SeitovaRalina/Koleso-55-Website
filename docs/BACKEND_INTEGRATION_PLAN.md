@@ -2,6 +2,12 @@
 
 ## Новости (KOLE-7)
 
+Расширение KOLE-7: `/news` показывает только анонсы, обложку и категорию. «Читать далее» ведёт на постоянный `/news/:slug`. Детальная страница показывает упорядоченные блоки `heading`, `paragraph`, `image` и отдельную обложку.
+
+Публичный API: `GET /api/news/?page=N&category=<slug>` возвращает `{count,next,previous,results}`. Элемент списка содержит `title`, `slug`, `excerpt`, `cover`, `published_at`, `category: {name,slug} | null`; полного текста в списке нет. `GET /api/news/categories/` возвращает массив категорий с опубликованными новостями. `GET /api/news/{slug}/` добавляет `blocks: [{kind,position,text,image,alt,caption}]` в порядке `position,pk`. Черновики и будущие записи скрыты во всех публичных ответах.
+
+В Admin редактору нужны `is_staff` и права `view/add/change/delete` только для `news.NewsArticle`, `news.NewsCategory`, `news.NewsBlock`. Категории редактируются отдельно. Блоки редактируются inline в новости, порядок задаётся числом. Поля типа блока проверяются: подзаголовок/абзац требуют текст; изображение требует файл и alt. Миграция `news.0002_categories_and_blocks` переносит прежние строковые категории в отдельную таблицу и старый `body` в первый блок абзаца, не удаляя исходный текст.
+
 `GET /api/news/` возвращает DRF page-number ответ `{count,next,previous,results}` (12 записей на страницу; `?page=2`). `GET /api/news/{slug}/` возвращает одну запись или 404. Оба endpoint доступны гостям и показывают только `is_published=true` с `published_at <= now`, сортировка по дате публикации от новых к старым. Поля записи: `title`, `slug`, `excerpt`, `body` (обычный текст), `cover` (URL либо null), `category`, `published_at`.
 
 Редактору дать `is_staff` и только права `view/add/change/delete` модели `news.NewsArticle` в Django Admin. Публикация управляется флагом «Опубликовано» и датой: будущая дата скрывает запись до наступления срока. Снятие флага сразу убирает новость из API. Обложки хранятся в общем media volume.

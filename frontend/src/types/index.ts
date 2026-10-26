@@ -8,10 +8,27 @@ export interface NewsArticle {
   title: string
   slug: string
   excerpt: string
-  body: string
   cover: string | null
-  category: string
+  category: NewsCategory | null
   published_at: string
+}
+
+export interface NewsCategory {
+  name: string
+  slug: string
+}
+
+export interface NewsBlock {
+  kind: 'heading' | 'paragraph' | 'image'
+  position: number
+  text: string
+  image: string | null
+  alt: string
+  caption: string
+}
+
+export interface NewsArticleDetail extends NewsArticle {
+  blocks: NewsBlock[]
 }
 
 export interface Excursion {

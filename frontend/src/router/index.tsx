@@ -14,6 +14,7 @@ import Booking from '../pages/Booking'
 import Account from '../pages/Account'
 import Certificates from '../pages/Certificates'
 import News from '../pages/News'
+import NewsDetail from '../pages/NewsDetail'
 import RecommendationInfo from '../pages/RecommendationInfo'
 import GoogleCallback from '../pages/GoogleCallback'
 import { About, Activities, BookingRules, Contacts, CustomTour, Faq, LegalPage } from '../pages/PublicPages'
@@ -66,6 +67,10 @@ export const router = createBrowserRouter([
             {
                 path: 'news',
                 element: <News />,
+            },
+            {
+                path: 'news/:slug',
+                element: <NewsDetail />,
             },
             {
                 path: 'recommendations',
