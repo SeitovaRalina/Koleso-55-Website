@@ -193,3 +193,14 @@ Business rules:
 - `nearest_slots` contains up to 3 upcoming slots from today, ordered by date/time.
 - Homepage event cards use `nearest_slots[0]` for nearest date/time and remaining seats.
 - Homepage location search uses `Excursion.LocationType` values and submits `location_type=city|suburban|russia` to catalog.
+
+## Контракт фильтров каталога KOLE-4
+
+`GET /api/excursions/` принимает повторяющиеся `category`, `location_type`, `duration`:
+
+- `category=<slug>`: OR по выбранным категориям; без параметра — все, `category=` — пустой результат.
+- `location_type=city|suburban|russia`: OR; неизвестное значение — пустой результат.
+- `duration=under_2h|2_to_4h|over_4h`: OR. Диапазоны: `<120`, `120..240`, `>240` минут. Прежние `min_duration`/`max_duration` остаются действительными.
+- Разные группы и цена (`min_price`, `max_price`) объединяются через AND.
+- `date_from` и `date_to` включительны и должны совпасть с датой одного слота. Можно указать одну границу. Неверный формат даты возвращает 400; обратный диапазон даёт пустой результат.
+- Прежние одиночные значения и поиск `search` работают как раньше.
