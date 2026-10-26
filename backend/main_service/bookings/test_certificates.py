@@ -73,7 +73,7 @@ class GiftCertificateRequestAdminTests(TestCase):
         model_admin = admin.site._registry[GiftCertificateRequest]
         self.assertIsInstance(model_admin, GiftCertificateRequestAdmin)
         self.assertIn('status', model_admin.list_display)
-        self.assertIn('buyer_email', model_admin.readonly_fields)
+        self.assertNotIn('buyer_email', model_admin.readonly_fields)
         self.assertIn('recipient_name', model_admin.list_display)
 
         request = GiftCertificateRequest.objects.create(
@@ -87,19 +87,74 @@ class GiftCertificateRequestAdminTests(TestCase):
         self.assertContains(response, 'Покупатель')
         self.assertContains(response, 'Получатель')
         self.assertContains(response, '5000')
+        self.assertContains(response, 'Номинал, ₽')
+        self.assertContains(response, 'Статус обработки')
+        self.assertContains(response, 'Формат сертификата')
+        self.assertContains(response, 'Создать заявку')
+        self.assertNotContains(response, 'Добавить Заявка')
 
         change_url = reverse('admin:bookings_giftcertificaterequest_change', args=[request.pk])
-        response = self.client.post(change_url, {'status': GiftCertificateRequest.Status.IN_PROGRESS, '_save': 'Save'})
+        form = {
+            'buyer_name': request.buyer_name, 'buyer_phone': request.buyer_phone,
+            'buyer_email': request.buyer_email, 'recipient_name': request.recipient_name,
+            'recipient_phone': '', 'recipient_email': '', 'amount': request.amount,
+            'format': request.format, 'message': '', '_save': 'Сохранить',
+        }
+        response = self.client.post(change_url, {**form, 'status': GiftCertificateRequest.Status.IN_PROGRESS})
         self.assertEqual(response.status_code, 302)
         request.refresh_from_db()
         self.assertEqual(request.status, GiftCertificateRequest.Status.IN_PROGRESS)
 
-        response = self.client.post(change_url, {'status': GiftCertificateRequest.Status.COMPLETED, '_save': 'Save'})
+        response = self.client.post(change_url, {**form, 'status': GiftCertificateRequest.Status.COMPLETED})
         self.assertEqual(response.status_code, 302)
         request.refresh_from_db()
         self.assertEqual(request.status, GiftCertificateRequest.Status.COMPLETED)
 
-        response = self.client.post(change_url, {'status': 'invalid', '_save': 'Save'})
+        response = self.client.post(change_url, {**form, 'status': 'invalid'})
         self.assertEqual(response.status_code, 200)
         request.refresh_from_db()
         self.assertEqual(request.status, GiftCertificateRequest.Status.COMPLETED)
+
+    def test_admin_add_and_change_forms_have_russian_labels_and_editable_contacts(self):
+        user = get_user_model().objects.create_superuser(email='admin@example.com', password='test-password')
+        self.client.force_login(user)
+        add_url = reverse('admin:bookings_giftcertificaterequest_add')
+        response = self.client.get(add_url)
+        self.assertContains(response, 'Создать заявку на подарочный сертификат')
+        self.assertNotContains(response, 'Добавить Заявка')
+        for label in ('Покупатель', 'Получатель', 'Сертификат', 'Обработка',
+                      'Имя покупателя', 'Телефон получателя', 'Номинал, ₽',
+                      'Формат сертификата', 'Статус обработки', 'Сохранить'):
+            with self.subTest(label=label):
+                self.assertContains(response, label)
+        self.assertContains(response, 'name="buyer_email"')
+
+        response = self.client.post(add_url, {
+            'buyer_name': 'Тестовый покупатель', 'buyer_phone': '+79000000000',
+            'buyer_email': 'buyer@example.com', 'recipient_name': 'Тестовый получатель',
+            'recipient_phone': '', 'recipient_email': '', 'amount': 3000,
+            'format': 'digital', 'message': '', 'status': GiftCertificateRequest.Status.NEW,
+            '_save': 'Сохранить',
+        })
+        self.assertEqual(response.status_code, 302)
+        request = GiftCertificateRequest.objects.get(buyer_email='buyer@example.com')
+        list_url = reverse('admin:bookings_giftcertificaterequest_changelist')
+        self.assertContains(self.client.get(list_url), 'успешно добавлена')
+        change_url = reverse('admin:bookings_giftcertificaterequest_change', args=[request.pk])
+        response = self.client.get(change_url)
+        self.assertContains(response, 'Редактировать заявку на подарочный сертификат')
+        self.assertContains(response, 'Дата создания')
+        self.assertContains(response, 'Дата обновления')
+        self.assertContains(response, 'name="buyer_email"')
+        response = self.client.post(change_url, {
+            'buyer_name': 'Исправленное имя', 'buyer_phone': '+79000000000',
+            'buyer_email': 'buyer@example.com', 'recipient_name': 'Тестовый получатель',
+            'recipient_phone': '', 'recipient_email': '', 'amount': 3000,
+            'format': 'digital', 'message': '', 'status': GiftCertificateRequest.Status.IN_PROGRESS,
+            '_save': 'Сохранить',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertContains(self.client.get(list_url), 'успешно изменена')
+        request.refresh_from_db()
+        self.assertEqual(request.buyer_name, 'Исправленное имя')
+        self.assertEqual(request.status, GiftCertificateRequest.Status.IN_PROGRESS)

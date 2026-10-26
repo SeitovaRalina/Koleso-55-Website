@@ -17,18 +17,19 @@ class GiftCertificateRequest(models.Model):
         DIGITAL = 'digital', 'Электронный'
         PRINTED = 'printed', 'Печатный'
 
-    buyer_name = models.CharField(max_length=150)
-    buyer_phone = models.CharField(max_length=30)
-    buyer_email = models.EmailField()
-    recipient_name = models.CharField(max_length=150)
-    recipient_phone = models.CharField(max_length=30, blank=True)
-    recipient_email = models.EmailField(blank=True)
-    amount = models.PositiveIntegerField()
-    format = models.CharField(max_length=10, choices=Format.choices)
-    message = models.TextField(blank=True, max_length=1000)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    buyer_name = models.CharField('Имя покупателя', max_length=150)
+    buyer_phone = models.CharField('Телефон покупателя', max_length=30)
+    buyer_email = models.EmailField('Электронная почта покупателя')
+    recipient_name = models.CharField('Имя получателя', max_length=150)
+    recipient_phone = models.CharField('Телефон получателя', max_length=30, blank=True)
+    recipient_email = models.EmailField('Электронная почта получателя', blank=True)
+    amount = models.PositiveIntegerField('Номинал, ₽', help_text='Сумма заявки в рублях.')
+    format = models.CharField('Формат сертификата', max_length=10, choices=Format.choices)
+    message = models.TextField('Поздравление', blank=True, max_length=1000)
+    status = models.CharField('Статус обработки', max_length=20, choices=Status.choices, default=Status.NEW,
+                              help_text='Менеджер меняет статус по мере обработки заявки.')
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
