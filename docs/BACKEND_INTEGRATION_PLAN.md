@@ -1,5 +1,11 @@
 # Backend Integration Plan
 
+## KOLE-5: расписание и отображение цены
+
+`SlotSerializer` в списке и деталях события отдаёт `end_date` и `end_time` (оба `null` для старых слотов). Окончание задаётся парой полей и должно быть позже начала; переход через полночь допустим. Клиент не вычисляет окончание из `Excursion.duration`. Для многодневной программы число календарных дней считается включительно по `Slot.date` и `Slot.end_date`.
+
+Список событий отдаёт `is_multi_day` и `ticket_types` с `is_active`, как и детали. Клиент показывает цену ближайшего доступного слота: `price_override`, если задана, иначе минимальную цену активных тарифов или базовую `Excursion.price` при отсутствии тарифов. При нескольких тарифах выводится «от»; при одном тарифе и выбранном слоте цена точная. Сортировка и фильтр по `price` продолжают использовать базовое поле модели; при изменении тарифов базовую цену нужно поддерживать как индекс каталога.
+
 Цель: стабильно связать Django `main_service`, FastAPI `recommendation_service`, frontend и будущую оплату YooKassa.
 
 Current priority note: frontend production-ready work goes first. Backend pricing, YooKassa, and deploy remain planned later phases.
@@ -189,3 +195,14 @@ Business rules:
 - `nearest_slots` contains up to 3 upcoming slots from today, ordered by date/time.
 - Homepage event cards use `nearest_slots[0]` for nearest date/time and remaining seats.
 - Homepage location search uses `Excursion.LocationType` values and submits `location_type=city|suburban|russia` to catalog.
+
+## Контракт фильтров каталога KOLE-4
+
+`GET /api/excursions/` принимает повторяющиеся `category`, `location_type`, `duration`:
+
+- `category=<slug>`: OR по выбранным категориям; без параметра — все, `category=` — пустой результат.
+- `location_type=city|suburban|russia`: OR; неизвестное значение — пустой результат.
+- `duration=under_2h|2_to_4h|over_4h`: OR. Диапазоны: `<120`, `120..240`, `>240` минут. Прежние `min_duration`/`max_duration` остаются действительными.
+- Разные группы и цена (`min_price`, `max_price`) объединяются через AND.
+- `date_from` и `date_to` включительны и должны совпасть с датой одного слота. Можно указать одну границу. Неверный формат даты возвращает 400; обратный диапазон даёт пустой результат.
+- Прежние одиночные значения и поиск `search` работают как раньше.

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Компактная карточка и время слота — Колесо путешествий 55</title>
+  <style>
+    :root { font-family: Arial, Helvetica, sans-serif; color: #172033; background: #f4f6f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button { font: inherit; cursor: pointer; }
+    button:focus-visible { outline: 3px solid #0b8ed8; outline-offset: 3px; }
+    .site-header { border-bottom: 1px solid #dfe5eb; background: #fff; }
+    .site-header-inner { display: flex; align-items: center; gap: 20px; max-width: 1180px; margin: auto; padding: 12px 24px; }
+    .logo { width: 122px; height: auto; }
+    .site-label { padding-left: 20px; border-left: 1px solid #d5dfe8; color: #526176; font-size: 13px; line-height: 1.4; }
+    main { max-width: 1180px; margin: auto; padding: 40px 24px 70px; }
+    .eyebrow { margin: 0 0 10px; color: #0a3f9a; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { max-width: 760px; margin: 0; font-size: clamp(30px, 4vw, 46px); line-height: 1.08; }
+    .intro { max-width: 700px; margin: 16px 0 0; color: #4b5563; line-height: 1.6; }
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 27px 0 32px; }
+    .controls-label { width: 100%; color: #4b5563; font-size: 13px; font-weight: 700; }
+    .switch { min-height: 42px; padding: 9px 15px; border: 1px solid #cdd8e3; border-radius: 7px; background: #fff; color: #172033; font-weight: 700; }
+    .switch[aria-pressed="true"] { border-color: #0a3f9a; background: #0a3f9a; color: #fff; }
+    .preview { display: grid; grid-template-columns: 326px minmax(300px, 390px); align-items: start; gap: 36px; }
+    .preview-label { min-height: 52px; }
+    .preview-label h2 { margin: 0 0 4px; font-size: 19px; }
+    .preview-label p { margin: 0; color: #667386; font-size: 13px; }
+    .event-card, .booking-panel { overflow: hidden; border: 1px solid #dfe5eb; border-radius: 8px; background: #fff; box-shadow: 0 6px 22px rgba(23, 32, 51, .05); }
+    .photo { position: relative; aspect-ratio: 3 / 4; overflow: hidden; background: #0a3f9a; }
+    .photo::before { position: absolute; inset: 0; content: ""; background: url('../frontend/public/hero-bg.jpg') 17% center / auto 100% no-repeat; transform: scale(1.05); }
+    .photo::after { position: absolute; inset: 0; content: ""; background: linear-gradient(180deg, rgba(7, 33, 54, .14), transparent 45%, rgba(7, 33, 54, .68)); }
+    .photo-top, .photo-bottom { position: absolute; z-index: 1; left: 14px; right: 14px; display: flex; justify-content: space-between; gap: 8px; }
+    .photo-top { top: 14px; }
+    .photo-bottom { bottom: 14px; }
+    .category { display: inline-flex; align-items: center; max-width: 76%; padding: 7px 10px; border-radius: 6px; background: #f4efe6; color: #173c58; font-size: 12px; font-weight: 800; line-height: 1.2; }
+    .heart { display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #fff; color: #0a3f9a; font-size: 21px; }
+    .slot-badge { max-width: 100%; padding: 8px 11px; border-radius: 6px; background: rgba(13, 42, 65, .87); color: #fff; font-size: 12px; line-height: 1.45; }
+    .slot-badge strong, .slot-badge span { display: block; }
+    .slot-badge span { font-weight: 700; }
+    .card-body { padding: 16px; }
+    .card-title { min-height: 50px; margin: 0 0 8px; font-size: 17px; line-height: 1.4; }
+    .card-copy { min-height: 40px; margin: 0 0 16px; color: #596475; font-size: 13px; line-height: 1.5; }
+    .card-foot { display: flex; justify-content: space-between; align-items: end; gap: 12px; }
+    .price-caption { display: block; color: #657083; font-size: 12px; }
+    .price { color: #0a3f9a; font-size: 21px; font-weight: 800; white-space: nowrap; }
+    .card-duration { color: #4b5563; font-size: 13px; text-align: right; }
+    .rating { display: block; margin-top: 4px; color: #657083; font-size: 12px; }
+    .booking-panel { padding: 22px; }
+    .booking-panel h3 { margin: 0 0 14px; font-size: 22px; }
+    .booking-price { color: #0a3f9a; font-size: 27px; font-weight: 800; }
+    .booking-panel h4 { margin: 25px 0 10px; font-size: 15px; }
+    .ticket { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 10px; border: 1px solid #dfe5eb; border-radius: 6px; font-size: 13px; line-height: 1.35; }
+    .ticket + .ticket { margin-top: 8px; }
+    .ticket input { accent-color: #0a3f9a; }
+    .ticket span { flex: 1; }
+    .ticket strong { white-space: nowrap; }
+    .ticket-note { margin: 0; color: #596475; font-size: 13px; line-height: 1.5; }
+    .slot-choice { width: 100%; padding: 12px 14px; border: 1px solid #0a3f9a; border-radius: 7px; background: #edf5fc; color: #172033; text-align: left; }
+    .slot-choice strong, .slot-choice small { display: block; }
+    .slot-choice strong { font-size: 14px; line-height: 1.45; }
+    .slot-choice small { margin-top: 5px; color: #596475; font-size: 12px; }
+    .detail-duration { display: flex; justify-content: space-between; gap: 15px; margin-top: 25px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 14px; }
+    .detail-duration span { color: #596475; }
+    .notes { max-width: 790px; margin-top: 36px; padding: 19px 22px; border-left: 4px solid #6fa36b; background: #fff; color: #4b5563; font-size: 14px; line-height: 1.6; }
+    .notes p { margin: 0; }
+    .notes p + p { margin-top: 9px; }
+    .notes strong { color: #172033; }
+    @media (max-width: 760px) {
+      .preview { grid-template-columns: minmax(0, 390px); gap: 30px; }
+      .preview-label { min-height: 0; margin-bottom: 10px; }
+    }
+    @media (max-width: 520px) {
+      .site-header-inner { padding-inline: 16px; }
+      .logo { width: 105px; }
+      .site-label { padding-left: 12px; font-size: 11px; }
+      main { padding: 30px 16px 56px; }
+      .card-title, .card-copy { min-height: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header"><div class="site-header-inner"><img class="logo" src="../frontend/public/logo.png" alt="Колесо путешествий 55"><span class="site-label">Компактный прототип<br>Сайт не изменён</span></div></header>
+  <main>
+    <p class="eyebrow">Карточка · слот · цена</p>
+    <h1>Полное время — внутри слота</h1>
+    <p class="intro">Карточка осталась прежней ширины. В плитке указаны начало и окончание, внизу — длительность без «34 ч». Цена без «от», когда активный тип билета один.</p>
+    <div class="controls" role="group" aria-label="Сценарий события">
+      <span class="controls-label">Тип события</span>
+      <button type="button" class="switch" data-event="day" aria-pressed="true">Однодневная экскурсия</button>
+      <button type="button" class="switch" data-event="trip" aria-pressed="false">Двухдневная программа</button>
+      <span class="controls-label">Типы билетов</span>
+      <button type="button" class="switch" data-tickets="one" aria-pressed="true">Один</button>
+      <button type="button" class="switch" data-tickets="two" aria-pressed="false">Два</button>
+    </div>
+    <div class="preview">
+      <section aria-labelledby="card-label">
+        <div class="preview-label"><h2 id="card-label">Каталог</h2><p>Карточка шириной 326 px — как в сетке сайта.</p></div>
+        <article class="event-card">
+          <div class="photo">
+            <div class="photo-top"><span class="category" data-field="category"></span><button class="heart" type="button" aria-label="Добавить в избранное" aria-pressed="false">♡</button></div>
+            <div class="photo-bottom"><div class="slot-badge"><strong data-field="seats"></strong><span data-field="cardSlot"></span></div></div>
+          </div>
+          <div class="card-body"><h3 class="card-title" data-field="title"></h3><p class="card-copy" data-field="copy"></p><div class="card-foot"><div><span class="price-caption" data-price-caption></span><span class="price" data-price></span></div><div class="card-duration"><span data-field="duration"></span><span class="rating">★ 4,9 · 12 отзывов</span></div></div></div>
+        </article>
+      </section>
+      <section aria-labelledby="booking-label">
+        <div class="preview-label"><h2 id="booking-label">Страница события</h2><p>Та же информация в плитке выбора слота.</p></div>
+        <div class="booking-panel"><h3>Бронирование</h3><div class="booking-price"><span data-booking-price-prefix></span><span data-price></span></div><h4>Тип билета</h4><div data-ticket-list></div><h4>Выберите дату и время</h4><button type="button" class="slot-choice" aria-label="Выбранное время события"><strong data-field="slot"></strong><small data-field="seats"></small></button><div class="detail-duration"><span>Длительность</span><strong data-field="duration"></strong></div></div>
+      </section>
+    </div>
+    <aside class="notes"><p><strong>Важное условие:</strong> сейчас слот хранит только дату и время начала. Для точного интервала нужно добавить дату и время окончания в Admin/API и проверить, что окончание позже начала. У старых слотов без окончания показывать только известное начало.</p><p>Для многодневной программы «2 дня» означает два календарных дня; число дней не следует получать округлением часов. Цену брать из действующих типов билетов с учётом цены выбранного слота.</p></aside>
+  </main>
+  <script>
+    const examples = {
+      day: { category: 'Городская экскурсия', title: 'Истории старого Омска', copy: 'Прогулка по историческому центру и знакомство с городом.', cardSlot: '14.10 10:00–15:00', slot: '14.10 10:00–15:00', duration: '5 ч', seats: 'Осталось 18 мест', price: 1800 },
+      trip: { category: 'Путешествия по России', title: 'Новосибирск: Академгородок и термы', copy: 'Программа на два дня с поездкой и прогулками.', cardSlot: '14.10 – 15.10', slot: '14.10 10:00 – 15.10 15:00', duration: '2 дня', seats: 'Осталось 15 мест', price: 11200 }
+    };
+    let currentEvent = 'day';
+    let currentTickets = 'one';
+    const money = amount => new Intl.NumberFormat('ru-RU').format(amount) + ' ₽';
+    function render() {
+      const event = examples[currentEvent];
+      document.querySelectorAll('[data-field]').forEach(node => { node.textContent = event[node.dataset.field]; });
+      const multiple = currentTickets === 'two';
+      const prices = multiple ? [event.price, event.price + 800] : [event.price];
+      document.querySelectorAll('[data-price]').forEach(node => { node.textContent = money(prices[0]); });
+      document.querySelector('[data-price-caption]').textContent = multiple ? 'От' : 'Цена';
+      document.querySelector('[data-booking-price-prefix]').textContent = multiple ? 'от ' : '';
+      const list = document.querySelector('[data-ticket-list]');
+      list.replaceChildren();
+      prices.forEach((price, index) => {
+        const row = document.createElement(multiple ? 'label' : 'div');
+        row.className = 'ticket';
+        if (multiple) {
+          const radio = document.createElement('input');
+          radio.type = 'radio'; radio.name = 'ticket'; radio.checked = index === 0;
+          row.append(radio);
+        }
+        const name = document.createElement('span');
+        name.textContent = multiple ? (index === 0 ? 'Стандартный' : 'Расширенный') : 'Единый билет';
+        const value = document.createElement('strong');
+        value.textContent = money(price);
+        row.append(name, value);
+        list.append(row);
+      });
+    }
+    document.querySelectorAll('[data-event]').forEach(button => button.addEventListener('click', () => {
+      currentEvent = button.dataset.event;
+      document.querySelectorAll('[data-event]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+      render();
+    }));
+    document.querySelectorAll('[data-tickets]').forEach(button => button.addEventListener('click', () => {
+      currentTickets = button.dataset.tickets;
+      document.querySelectorAll('[data-tickets]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+      render();
+    }));
+    document.querySelector('.heart').addEventListener('click', event => {
+      const button = event.currentTarget;
+      const active = button.getAttribute('aria-pressed') !== 'true';
+      button.setAttribute('aria-pressed', String(active));
+      button.setAttribute('aria-label', active ? 'Убрать из избранного' : 'Добавить в избранное');
+      button.textContent = active ? '♥' : '♡';
+    });
+    render();
+  </script>
+</body>
+</html>
