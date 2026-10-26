@@ -176,3 +176,14 @@ class AdminSlotTests(TestCase):
         ).status_code, 403)
         slot.refresh_from_db()
         self.assertIsNone(slot.end_date)
+
+    def test_excursion_admin_status_actions(self):
+        list_url = reverse('admin:excursions_excursion_changelist')
+        for action, expected in [('deactivate_excursions', False), ('activate_excursions', True)]:
+            with self.subTest(action=action):
+                response = self.client.post(list_url, {
+                    'action': action, '_selected_action': [self.excursion.pk],
+                })
+                self.assertEqual(response.status_code, 302)
+                self.excursion.refresh_from_db()
+                self.assertEqual(self.excursion.is_active, expected)
