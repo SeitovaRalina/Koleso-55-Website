@@ -4,6 +4,10 @@ Source of truth for product and business decisions.
 
 ## Booking And Auth
 
+Current public path (KOLE-3): choose an excursion and date, leave a request with name and phone, then wait for the manager to contact the customer. Creating a `TourOrder` records a request with status `new`; it does not confirm a place or take payment. The guest flow works without an account. The public UI must not promise online payment, instant confirmation, tickets, or an automatic email. Earlier payment rules below describe a future integration, not the current customer journey.
+
+Cancelling a `new` request leaves slot occupancy unchanged, because the request did not reserve a seat. The current form title is «Бронь»; the reported «Бронх» is absent from the source and may reflect an older production bundle.
+
 - Booking is available to all users.
 - Authorization is optional.
 - Authorized user benefits:
@@ -13,13 +17,15 @@ Source of truth for product and business decisions.
   - ability to add excursions to wishlist;
   - personalized recommendations.
 - Guest booking must collect required contact data and legal consents.
-- Guest can receive order access link.
+- Guest order access link is a future feature; the current request confirmation is shown in the form.
 
 ## Payment
 
+Future integration only. The current public request path has no online payment; manager contact is its primary next step.
+
 - YooKassa is the main payment method.
 - YooKassa works only in test mode until explicit decision to switch to live mode.
-- Manager contact is fallback, not primary flow.
+- Manager contact becomes a fallback after payment integration ships.
 - Payment is available immediately after booking creation.
 - Prepayment is 100%.
 - Slot is not reserved before payment.
@@ -92,7 +98,7 @@ Current implementation priority:
 4. Redesign booking/order flow.
 5. Add legal pages and consent UI.
 6. Fix existing frontend/backend contract gaps.
-7. Delay online payments and deploy until frontend foundation is stable.
+7. Online payment remains future work; production releases follow separate review.
 
 MVP page priority:
 
@@ -127,5 +133,5 @@ Next priority:
 
 ## Deployment
 
-- Domain is not ready yet.
-- Deployment planning must include domain purchase/connection, DNS, HTTPS, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, and YooKassa return/webhook URLs.
+- Production domain is `koleso-travel55.ru`. Follow `docs/AGENT_HANDOVER.md` for release constraints.
+- Future payment deployment must configure HTTPS, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, and YooKassa return/webhook URLs.

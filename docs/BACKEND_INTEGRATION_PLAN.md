@@ -10,6 +10,8 @@
 
 Current priority note: frontend production-ready work goes first. Backend pricing, YooKassa, and deploy remain planned later phases.
 
+Current public contract (KOLE-3): `POST /api/bookings/orders/` accepts a guest's name, phone, excursion and slot; it creates `TourOrder` with `status=new`. It does not charge the customer, confirm participation or occupy a seat. The manager contacts the customer to agree on availability and terms. The YooKassa rules below are future integration requirements, not the current public flow.
+
 Update 2026-06-07:
 
 - Local `python manage.py check` in `backend/main_service` currently fails before Django setup because Python cannot import `celery`.
