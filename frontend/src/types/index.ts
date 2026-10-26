@@ -47,6 +47,7 @@ export interface Excursion {
   meeting_point?: string
   price: string
   duration: number
+  is_multi_day?: boolean
   average_rating: number | null
   review_count: number
   rating_distribution?: { 1: number; 2: number; 3: number; 4: number; 5: number }
@@ -89,8 +90,8 @@ export interface ReviewImage {
 export interface ExcursionSlot {
   id: number
   date: string
-  date_to?: string
-  end_date?: string
+  end_date?: string | null
+  end_time?: string | null
   time: string
   max_participants: number
   available_seats: number

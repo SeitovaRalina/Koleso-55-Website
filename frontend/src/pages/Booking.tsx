@@ -5,6 +5,7 @@ import { excursionsApi } from '../api/excursions'
 import { bookingsApi } from '../api/bookings'
 import { useAuth } from '../contexts/useAuth'
 import { formatApiFieldErrors } from '../utils/apiError'
+import { formatDuration, formatSlot, getPrice } from '../utils/excursionDisplay'
 
 export default function Booking() {
   const { excursionId, slotId } = useParams<{
@@ -115,7 +116,8 @@ export default function Booking() {
     )
   }
 
-  const totalPrice = Number(excursion.price) * formData.participants_count
+  const unitPrice = getPrice(excursion, selectedSlot)
+  const totalPrice = unitPrice.amount * formData.participants_count
 
   return (
     <div className='min-h-screen bg-gray-50 py-8'>
@@ -143,12 +145,10 @@ export default function Booking() {
                 <div className='bg-gray-50 p-4 rounded-lg'>
                   <h3 className='font-medium'>{excursion.title}</h3>
                   <p className='text-gray-600'>
-                    {new Date(selectedSlot.date).toLocaleDateString('ru-RU')} в{' '}
-                    {selectedSlot.time}
+                    {formatSlot(selectedSlot)}
                   </p>
                   <p className='text-gray-600'>
-                    Длительность: {Math.floor(excursion.duration / 60)}ч{' '}
-                    {excursion.duration % 60}мин
+                    Длительность: {formatDuration(excursion, selectedSlot)}
                   </p>
                 </div>
               </div>
@@ -315,7 +315,7 @@ export default function Booking() {
               <div className='space-y-2'>
                 <div className='flex justify-between'>
                   <span className='text-gray-600'>Цена за человека:</span>
-                  <span>{excursion.price} ₽</span>
+                  <span>{unitPrice.from ? 'от ' : ''}{unitPrice.amount} ₽</span>
                 </div>
                 <div className='flex justify-between'>
                   <span className='text-gray-600'>Количество:</span>
@@ -323,7 +323,7 @@ export default function Booking() {
                 </div>
                 <div className='border-t pt-2 flex justify-between font-semibold'>
                   <span>Итого:</span>
-                  <span className='text-blue-600'>{totalPrice} ₽</span>
+                  <span className='text-blue-600'>{unitPrice.from ? 'от ' : ''}{totalPrice} ₽</span>
                 </div>
               </div>
 
