@@ -5,9 +5,9 @@ export interface InquiryPayload {
   request_id: string
   excursion: number
   name: string
-  phone: string
+  phone?: string
   email?: string
-  contact_method: 'call' | 'whatsapp' | 'telegram' | 'max'
+  contact_method: 'call' | 'whatsapp' | 'telegram' | 'max' | 'email'
   question: string
 }
 

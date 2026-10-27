@@ -16,7 +16,8 @@ import News from '../pages/News'
 import NewsDetail from '../pages/NewsDetail'
 import RecommendationInfo from '../pages/RecommendationInfo'
 import GoogleCallback from '../pages/GoogleCallback'
-import { About, Activities, BookingRules, Contacts, CustomTour, Faq, LegalPage } from '../pages/PublicPages'
+import About from '../pages/About'
+import { Activities, BookingRules, Contacts, CustomTour, Faq, LegalPage } from '../pages/PublicPages'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 
 const UiKit = import.meta.env.DEV ? lazy(() => import('../pages/UiKit')) : null

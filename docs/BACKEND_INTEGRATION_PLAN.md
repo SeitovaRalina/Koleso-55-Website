@@ -18,6 +18,9 @@
 
 Current priority note: frontend production-ready work goes first. Backend pricing, YooKassa, and deploy remain planned later phases.
 
+## Gift certificate requests (KOLE-2)
+
+`POST /api/bookings/certificate-requests/` accepts guests without auth. Required JSON fields: `buyer_name`, `buyer_phone`, `buyer_email`, `recipient_name`, `amount` (1000, 2000, 3000, 5000, 10000), `format` (`digital` or `printed`). Optional: `recipient_phone`, `recipient_email`, `message`. A successful `201` returns the saved request with `id` and `created_at`; it means only that a manager can review the request in Django Admin. It does not issue, charge, or send a certificate. Invalid fields return `400` with field errors. Public list and detail endpoints are absent. Django Admin lists and displays submitted requests, but cannot create, edit, change status, or delete them. The internal status remains `new` for these requests; any future processing workflow needs a separate product decision.
 Current public contract (KOLE-3): `POST /api/bookings/orders/` accepts a guest's name, phone, excursion and slot; it creates `TourOrder` with `status=new`. It does not charge the customer, confirm participation or occupy a seat. The manager contacts the customer to agree on availability and terms. The YooKassa rules below are future integration requirements, not the current public flow.
 
 Update 2026-06-07:
@@ -173,6 +176,22 @@ Business rules:
 
 ## Homepage Reviews API
 
+- `Review.user` заполнен для отзывов сайта и пуст для ручных отзывов клиента.
+  Ручной отзыв хранит `manual_first_name`, `manual_last_name` и
+  `is_admin_added=True`. Для отзывов сайта действует уникальность
+  `(user, excursion)`; точный дубль ручного отзыва блокируется формой Admin.
+- `GET /api/reviews/excursions/{id}/reviews/` возвращает `user_name` из
+  имени аккаунта или имени ручного автора. `GET /api/reviews/homepage/`
+  возвращает `author_name` по тому же правилу, если не задано
+  `homepage_author_name`. Только одобренные отзывы публичны.
+- Создание через `POST /api/reviews/` остаётся доступно авторизованному
+  пользователю с завершённым заказом; ручное создание доступно только
+  сотруднику с правом добавления отзыва в Django Admin.
+  Внешний отзыв из Admin сразу получает `approved`; отзыв через API остаётся
+  `pending` (либо `rejected` после фильтра). Поля происхождения и статус из
+  публичного POST игнорируются. Успешный POST возвращает `201` с числовым ID
+  экскурсии в поле `excursion`. Существующие записи и миграция `0006` не меняются.
+
 - Admin controls homepage inclusion on `Review`:
   - `show_on_homepage`;
   - `homepage_author_name`;
@@ -209,7 +228,7 @@ Business rules:
 - `POST /api/excursions/inquiries/` доступен гостю, принимает JSON: `request_id` (UUID), `excursion` (ID активной программы), `name` (2–120 символов), `phone` (`+7 (999) 999-99-99`), `contact_method` (`call|whatsapp|telegram|max`), `question` (5–2000 символов).
 - Успех: HTTP 201 `{"id": 123}` только после сохранения в БД. Повтор с тем же `request_id` и теми же данными возвращает тот же ID без новой записи; другой текст с тем же ключом — HTTP 400. Ошибки полей — HTTP 400, лимит 5 запросов в час с IP — HTTP 429.
 - Публичного чтения обращений нет. Сотрудник видит обращение и меняет статус (`new`, `in_progress`, `closed`) в Django Admin → «Обращения по программам». Контактные данные не передаются в аналитику и не выводятся в ответ API.
-- Необязательный `email` валидируется и сохраняется с обращением. Если запрос авторизован, сервер связывает запись с текущим аккаунтом; `user_id` от клиента игнорируется. Повтор `request_id` от другого аккаунта или гостя отклоняется HTTP 400.
+- Доступны WhatsApp, Telegram, MAX, звонок и email. При выборе email обязателен email, а телефон остаётся необязательным резервным контактом; для остальных четырёх способов обязателен телефон, а email необязателен. Оба контакта при наличии подставляются из профиля авторизованного пользователя и могут быть исправлены. Имя авторизованного пользователя заполняется из профиля как «Фамилия Имя Отчество» или «Фамилия Имя» без отчества. Если запрос авторизован, сервер связывает запись с текущим аккаунтом; `user_id` от клиента игнорируется. Повтор `request_id` от другого аккаунта или гостя отклоняется HTTP 400.
 - `GET /api/excursions/inquiries/` требует авторизации (иначе HTTP 401) и отдаёт только обращения текущего аккаунта в формате `count`, `next`, `previous`, `results`. Элемент: `id`, `excursion`, `excursion_title`, `question`, `created_at`, `public_status` (`Новое`, `В работе`, `Закрыто`). Совпадение телефона или email не открывает гостевые и чужие записи. Внутренние данные администратора не выдаются.
 - Форма требует согласие на обработку данных. После ошибки сохраняет введённые данные и ключ запроса для безопасной повторной отправки. Уведомления менеджеру сейчас не отправляются; источник обращений — Admin, сбой внешнего сервиса не влияет на сохранение.
 ## Контракт фильтров каталога KOLE-4

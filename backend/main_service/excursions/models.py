@@ -19,12 +19,13 @@ class ExcursionInquiry(models.Model):
         WHATSAPP = 'whatsapp', 'WhatsApp'
         TELEGRAM = 'telegram', 'Telegram'
         MAX = 'max', 'MAX'
+        EMAIL = 'email', 'Email'
 
     request_id = models.UUIDField('Ключ отправки', default=uuid.uuid4, unique=True, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='excursion_inquiries', verbose_name='Пользователь')
     excursion = models.ForeignKey('Excursion', on_delete=models.PROTECT, related_name='inquiries', verbose_name='Программа')
     name = models.CharField('Имя', max_length=120)
-    phone = models.CharField('Телефон', max_length=18)
+    phone = models.CharField('Телефон', max_length=18, blank=True)
     email = models.EmailField('Email', blank=True)
     contact_method = models.CharField('Способ связи', max_length=20, choices=ContactMethod.choices)
     question = models.TextField('Вопрос', max_length=2000)

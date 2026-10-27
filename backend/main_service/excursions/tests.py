@@ -157,6 +157,27 @@ class ExcursionInquiryTests(TestCase):
         payload = {**self.payload, 'email': 'invalid'}
         self.assertEqual(self.client.post('/api/excursions/inquiries/', payload, format='json').status_code, 400)
         self.assertEqual(ExcursionInquiry.objects.count(), 0)
+
+    def test_email_contact_method_requires_email_but_not_phone(self):
+        email_only = {
+            **self.payload,
+            'request_id': str(uuid.uuid4()),
+            'contact_method': 'email',
+            'email': 'guest@example.com',
+        }
+        del email_only['phone']
+        response = self.client.post('/api/excursions/inquiries/', email_only, format='json')
+        self.assertEqual(response.status_code, 201)
+        inquiry = ExcursionInquiry.objects.get(pk=response.data['id'])
+        self.assertEqual(inquiry.phone, '')
+        self.assertEqual(inquiry.email, 'guest@example.com')
+
+    def test_non_email_contact_method_requires_phone(self):
+        payload = {**self.payload, 'request_id': str(uuid.uuid4())}
+        del payload['phone']
+        response = self.client.post('/api/excursions/inquiries/', payload, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('phone', response.data)
 class SlotContractTests(TestCase):
     @classmethod
     def setUpTestData(cls):

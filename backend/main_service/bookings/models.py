@@ -5,6 +5,41 @@ from django.core.validators import MinValueValidator
 from accounts.models import CustomUser
 from excursions.models import Excursion, Slot
 
+
+class GiftCertificateRequest(models.Model):
+    class Status(models.TextChoices):
+        NEW = 'new', 'Новая'
+        IN_PROGRESS = 'in_progress', 'В работе'
+        COMPLETED = 'completed', 'Обработана'
+        CANCELLED = 'cancelled', 'Отменена'
+
+    class Format(models.TextChoices):
+        DIGITAL = 'digital', 'Электронный'
+        PRINTED = 'printed', 'Печатный'
+
+    buyer_name = models.CharField('Имя покупателя', max_length=150)
+    buyer_phone = models.CharField('Телефон покупателя', max_length=30)
+    buyer_email = models.EmailField('Электронная почта покупателя')
+    recipient_name = models.CharField('Имя получателя', max_length=150)
+    recipient_phone = models.CharField('Телефон получателя', max_length=30, blank=True)
+    recipient_email = models.EmailField('Электронная почта получателя', blank=True)
+    amount = models.PositiveIntegerField('Номинал, ₽', help_text='Сумма заявки в рублях.')
+    format = models.CharField('Формат сертификата', max_length=10, choices=Format.choices)
+    message = models.TextField('Поздравление', blank=True, max_length=1000)
+    status = models.CharField('Статус обработки', max_length=20, choices=Status.choices, default=Status.NEW,
+                              help_text='Менеджер меняет статус по мере обработки заявки.')
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Заявка на подарочный сертификат'
+        verbose_name_plural = 'заявки на подарочные сертификаты'
+
+    def __str__(self):
+        return f'Заявка #{self.pk}: {self.buyer_name}'
+
+
 class ContactMethod(models.TextChoices):
     CALL = 'call', 'Звонок'
     WHATSAPP = 'whatsapp', 'WhatsApp'

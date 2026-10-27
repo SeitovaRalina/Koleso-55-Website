@@ -14,7 +14,7 @@ class ExcursionInquirySerializer(serializers.ModelSerializer):
     excursion = serializers.PrimaryKeyRelatedField(queryset=Excursion.objects.filter(is_active=True))
     name = serializers.CharField(max_length=120, allow_blank=False, trim_whitespace=True)
     question = serializers.CharField(max_length=2000, allow_blank=False, trim_whitespace=True)
-    phone = serializers.RegexField(r'^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$', max_length=18)
+    phone = serializers.RegexField(r'^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$', max_length=18, required=False, allow_blank=True)
     email = serializers.EmailField(required=False, allow_blank=True)
 
     class Meta:
@@ -30,6 +30,14 @@ class ExcursionInquirySerializer(serializers.ModelSerializer):
         if len(value) < 5:
             raise serializers.ValidationError('Укажите вопрос не короче 5 символов.')
         return value
+
+    def validate(self, attrs):
+        if attrs['contact_method'] == ExcursionInquiry.ContactMethod.EMAIL:
+            if not attrs.get('email'):
+                raise serializers.ValidationError({'email': 'Укажите email для связи.'})
+        elif not attrs.get('phone'):
+            raise serializers.ValidationError({'phone': 'Укажите телефон для выбранного способа связи.'})
+        return attrs
 
 
 class MyExcursionInquirySerializer(serializers.ModelSerializer):

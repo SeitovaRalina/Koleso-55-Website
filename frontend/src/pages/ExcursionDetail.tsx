@@ -333,8 +333,17 @@ export default function ExcursionDetail() {
   const handleQuestionSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!excursion || questionSubmitting) return
-    if (!/^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$/.test(questionPhone)) {
+    const requiresEmail = questionContactMethod === 'email'
+    if (questionPhone && !/^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$/.test(questionPhone)) {
       setQuestionError('Укажите телефон полностью: +7 (999) 999-99-99')
+      return
+    }
+    if (!requiresEmail && !questionPhone) {
+      setQuestionError('Укажите телефон для выбранного способа связи.')
+      return
+    }
+    if (requiresEmail && !questionEmail.trim()) {
+      setQuestionError('Укажите email для связи.')
       return
     }
     if (questionName.trim().length < 2 || questionText.trim().length < 5 || !questionConsent) {
@@ -348,9 +357,9 @@ export default function ExcursionDetail() {
         request_id: questionRequestId,
         excursion: excursion.id,
         name: questionName.trim(),
-        phone: questionPhone,
-        email: questionEmail.trim(),
-        contact_method: questionContactMethod as 'call' | 'whatsapp' | 'telegram' | 'max',
+        ...(questionPhone ? { phone: questionPhone } : {}),
+        ...(questionEmail.trim() ? { email: questionEmail.trim() } : {}),
+        contact_method: questionContactMethod,
         question: questionText.trim(),
       })
       setQuestionSuccess(true)
@@ -724,17 +733,17 @@ export default function ExcursionDetail() {
                 <input id="question-name" type="text" required minLength={2} maxLength={120} autoComplete="name" className="w-full border rounded-lg p-2" placeholder="Как к вам обращаться?" value={questionName} onChange={(event) => { setQuestionName(event.target.value); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
               </div>
               <div>
-                <label htmlFor="question-phone" className="block text-sm font-medium text-gray-700 mb-1">Телефон *</label>
-                <input id="question-phone" type="tel" required inputMode="tel" autoComplete="tel" className="w-full border rounded-lg p-2" placeholder="+7 (___) ___-__-__" value={questionPhone} onChange={(event) => { setQuestionPhone(formatRussianPhone(event.target.value)); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
+                <label htmlFor="question-phone" className="block text-sm font-medium text-gray-700 mb-1">Телефон{questionContactMethod === 'email' ? '' : ' *'}</label>
+                <input id="question-phone" type="tel" required={questionContactMethod !== 'email'} inputMode="tel" autoComplete="tel" className="w-full border rounded-lg p-2" placeholder="+7 (___) ___-__-__" value={questionPhone} onChange={(event) => { setQuestionPhone(formatRussianPhone(event.target.value)); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
               </div>
               <div>
-                <label htmlFor="question-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input id="question-email" type="email" autoComplete="email" className="w-full border rounded-lg p-2" placeholder="name@example.com" value={questionEmail} onChange={(event) => { setQuestionEmail(event.target.value); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
+                <label htmlFor="question-email" className="block text-sm font-medium text-gray-700 mb-1">Email{questionContactMethod === 'email' ? ' *' : ''}</label>
+                <input id="question-email" type="email" required={questionContactMethod === 'email'} autoComplete="email" className="w-full border rounded-lg p-2" placeholder="name@example.com" value={questionEmail} onChange={(event) => { setQuestionEmail(event.target.value); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Способ связи</label>
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                  {contactMethods.filter((method) => method.value !== 'email').map((method) => (
+                  {contactMethods.map((method) => (
                     <label key={method.value} className="flex items-center gap-2 rounded border p-2 hover:bg-gray-50">
                       <input
                         type="radio"
