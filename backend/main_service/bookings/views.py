@@ -6,11 +6,18 @@ from drf_spectacular.utils import extend_schema
 
 from .models import OrderStatus, TourOrder
 from .serializers import (
+    GiftCertificateRequestSerializer,
     TourOrderCreateSerializer,
     TourOrderDetailSerializer,
     TourOrderListSerializer,
 )
 from analytics.services import publish_recommendation_event
+
+
+@extend_schema(summary='Создать заявку на подарочный сертификат')
+class GiftCertificateRequestCreateView(generics.CreateAPIView):
+    serializer_class = GiftCertificateRequestSerializer
+    permission_classes = [permissions.AllowAny]
 
 
 @extend_schema(
