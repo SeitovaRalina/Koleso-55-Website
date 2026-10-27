@@ -81,15 +81,17 @@ class ReviewAdminTests(TestCase):
         self.assertEqual(Review.objects.count(), 1)
 
         change_url = reverse('admin:reviews_review_change', args=[review.pk])
-        data = self.form_data(text='Обновлённый текст', status=ReviewStatus.APPROVED,
+        data = self.form_data(text='Обновлённый текст', status=ReviewStatus.REJECTED,
                               show_on_homepage='on', homepage_order='100',
                               homepage_author_name='', moderator_comment='')
         response = self.client.post(change_url, data)
         self.assertEqual(response.status_code, 302)
         review.refresh_from_db()
         self.assertEqual(review.text, 'Обновлённый текст')
-        self.assertEqual(review.status, ReviewStatus.APPROVED)
+        self.assertEqual(review.status, ReviewStatus.REJECTED)
         self.assertIsNone(review.user)
+        public = self.client.get(reverse('review-list', args=[self.excursion.pk]))
+        self.assertNotIn(review.pk, [item['id'] for item in public.data['results']])
 
     def test_staff_without_review_permissions_cannot_add_or_edit(self):
         review = Review.objects.create(
