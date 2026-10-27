@@ -7,6 +7,7 @@ import { Badge } from './Badge'
 import { FavoriteIcon } from './FavoriteIcon'
 import { ImagePlaceholder } from './ImagePlaceholder'
 import { useAuth } from '../../contexts/useAuth'
+import { formatDuration, formatSlot, getPrice } from '../../utils/excursionDisplay'
 
 interface ExcursionCardProps {
   excursion: Excursion
@@ -14,31 +15,17 @@ interface ExcursionCardProps {
   compact?: boolean
 }
 
-function formatDuration(minutes: number) {
-  if (minutes < 60) return `${minutes} мин`
-  const hours = Math.floor(minutes / 60)
-  const rest = minutes % 60
-  return rest ? `${hours} ч ${rest} мин` : `${hours} ч`
-}
-
-function formatShortDate(value: string) {
-  return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit' }).format(new Date(value))
-}
-
-function getSlotBadge(slots?: ExcursionSlot[]) {
+function getSlotBadge(slots?: ExcursionSlot[], multiDay = false) {
   const availableSlots = slots?.filter(slot => slot.is_available) || []
   const nearestSlot = availableSlots[0] || slots?.[0]
 
   if (!nearestSlot) return null
 
   const seats = nearestSlot.available_seats
-  const firstDate = formatShortDate(nearestSlot.date)
-  const endDateValue = nearestSlot.date_to || nearestSlot.end_date
-  const endDate = endDateValue && endDateValue !== nearestSlot.date ? formatShortDate(endDateValue) : null
-
   return {
     seats,
-    dateLine: endDate ? `${firstDate} - ${endDate}` : `${firstDate}, ${nearestSlot.time.slice(0, 5)}`,
+    slot: nearestSlot,
+    dateLine: formatSlot(nearestSlot, true, multiDay),
   }
 }
 
@@ -48,7 +35,8 @@ export function ExcursionCard({ excursion, source = 'direct' }: ExcursionCardPro
   const { isAuthenticated } = useAuth()
   const imageUrl = getMediaUrl(excursion.main_image)
   const categoryName = excursion.category?.name || 'Экскурсия'
-  const slotBadge = getSlotBadge(excursion.nearest_slots)
+  const slotBadge = getSlotBadge(excursion.nearest_slots, excursion.is_multi_day)
+  const price = getPrice(excursion, slotBadge?.slot)
   
   // Check initial wishlist status
   const { data: wishlistCheck } = useQuery({
@@ -126,7 +114,7 @@ export function ExcursionCard({ excursion, source = 'direct' }: ExcursionCardPro
             </button>
           </div>
           {slotBadge && (
-            <div className='absolute bottom-3 left-3 max-w-[calc(100%-24px)] rounded-card bg-neutral-ink/84 px-3 py-2 text-xs font-bold leading-5 text-white shadow-sm backdrop-blur'>
+            <div className='absolute bottom-3 left-3 max-w-[calc(100%-24px)] rounded-card bg-neutral-ink/90 px-3 py-2 text-xs font-bold leading-5 text-white shadow-sm'>
               <div>Осталось {slotBadge.seats} мест</div>
               <div>{slotBadge.dateLine}</div>
             </div>
@@ -146,11 +134,11 @@ export function ExcursionCard({ excursion, source = 'direct' }: ExcursionCardPro
 
         <div className='mt-4 flex items-end justify-between gap-3'>
           <div>
-            <p className='text-xs text-neutral-text'>от</p>
-            <p className='text-lg font-bold text-brand-deep'>{excursion.price} ₽</p>
+            {price.from && <p className='text-xs text-neutral-text'>от</p>}
+            <p className='text-lg font-bold text-brand-deep'>{price.amount} ₽</p>
           </div>
           <div className='text-right text-sm text-neutral-text'>
-            <p>{formatDuration(excursion.duration)}</p>
+            <p>{formatDuration(excursion, slotBadge?.slot)}</p>
             <p aria-label='Рейтинг'>
               ★ {excursion.average_rating ?? '-'} <span className='text-neutral-text/70'>({excursion.review_count})</span>
             </p>

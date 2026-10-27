@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 class Category(models.Model):
@@ -52,9 +53,9 @@ class Excursion(models.Model):
         COMBINED = 'combined', 'Комбинированная'
 
     title = models.CharField(
-        'Название экскурсии', 
+        'Название программы или экскурсии',
         max_length=200,
-        help_text='Название экскурсии'
+        help_text='Название программы, экскурсии или встречи'
     )
     slug = models.SlugField(
         'Slug', 
@@ -68,7 +69,7 @@ class Excursion(models.Model):
         on_delete=models.PROTECT, 
         related_name='excursions',
         verbose_name='Категория',
-        help_text='Категория, к которой относится экскурсия'
+        help_text='Категория программы или экскурсии'
     )
     location_type = models.CharField(
         'Тип локации',
@@ -91,9 +92,9 @@ class Excursion(models.Model):
         help_text='Максимальное количество человек в группе'
     )
     is_multi_day = models.BooleanField(
-        'Многодневный тур',
+        'Многодневная программа',
         default=False,
-        help_text='Является ли экскурсия многодневным туром'
+        help_text='Программа проходит в несколько календарных дней'
     )
     description = models.TextField(
         'Полное описание',
@@ -159,8 +160,8 @@ class Excursion(models.Model):
     )
 
     class Meta:
-        verbose_name = _('Экскурсия')
-        verbose_name_plural = _('Экскурсии')
+        verbose_name = _('Программа или экскурсия')
+        verbose_name_plural = _('Программы и экскурсии')
         ordering = ['-created_at']
 
     def __str__(self):
@@ -215,8 +216,8 @@ class Slot(models.Model):
         Excursion, 
         on_delete=models.CASCADE, 
         related_name='slots',
-        verbose_name='Экскурсия',
-        help_text='Экскурсия, для которой создан слот'
+        verbose_name='Программа или экскурсия',
+        help_text='Программа или экскурсия, для которой создан слот'
     )
     date = models.DateField(
         'Дата',
@@ -226,6 +227,8 @@ class Slot(models.Model):
         'Время начала',
         help_text='Время начала проведения экскурсии'
     )
+    end_date = models.DateField('Дата окончания', null=True, blank=True)
+    end_time = models.TimeField('Время окончания', null=True, blank=True)
     max_participants = models.PositiveIntegerField(
         'Макс. человек', 
         default=20,
@@ -253,6 +256,13 @@ class Slot(models.Model):
 
     def __str__(self):
         return f'{self.excursion.title} — {self.date} {self.time}'
+
+    def clean(self):
+        super().clean()
+        if (self.end_date is None) != (self.end_time is None):
+            raise ValidationError('Укажите дату и время окончания вместе.')
+        if self.end_date and (self.end_date, self.end_time) <= (self.date, self.time):
+            raise ValidationError('Окончание должно быть позже начала.')
 
     @property
     def available_seats(self):

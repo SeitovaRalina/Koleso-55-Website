@@ -85,10 +85,10 @@ with `host not found in upstream`.
 
 ## Known functional gap
 
-The “Остались вопросы?” form on the excursion page is currently presentation
-only. It has no submit handler, API endpoint, database model, email, or admin
-workflow; submitted text is lost. Implement an inquiry model/API/admin
-workflow and manager notification before promising this feature to users.
+The former “Остались вопросы?” form on the excursion page had no submit
+handler, API endpoint, database model, email, or admin workflow; submitted
+text was lost. KOLE-3 replaces it with a contacts link. An inquiry form can
+return only after its model/API/admin workflow and manager notification exist.
 
 ## Smoke procedure
 
