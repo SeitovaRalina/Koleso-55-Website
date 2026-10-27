@@ -7,7 +7,7 @@ export interface TourOrderCreateRequest {
   first_name: string
   last_name: string
   middle_name?: string
-  phone?: string
+  phone: string
   email?: string
   num_participants: number
   contact_method: 'call' | 'whatsapp' | 'telegram' | 'max' | 'email'

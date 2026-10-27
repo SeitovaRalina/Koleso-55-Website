@@ -115,7 +115,7 @@ export default function UiKit() {
           <div className='mt-5 flex flex-wrap gap-3'>
             <Badge variant='category'>История</Badge>
             <Badge variant='availability'>12 мест</Badge>
-            <Badge variant='status'>Ожидает оплаты</Badge>
+            <Badge variant='status'>Заявка отправлена</Badge>
             <Badge variant='warning'>Цена по запросу</Badge>
             <Badge>Черновик</Badge>
           </div>
@@ -139,7 +139,7 @@ export default function UiKit() {
             />
             <Checkbox
               label='Согласие с условиями бронирования'
-              description='Слот занимает место только после успешной оплаты.'
+              description='Отправка заявки не подтверждает участие. Менеджер уточнит доступность.'
             />
           </div>
         </UiSection>
@@ -164,7 +164,7 @@ export default function UiKit() {
           </div>
         </UiSection>
 
-        <UiSection title='Бронирование' description='Состояния показывают оплату, manager fallback и правило 48 часов.'>
+        <UiSection title='Заявка на экскурсию' description='Доступность и детали участия уточняет менеджер.'>
           <div className='grid gap-5 lg:grid-cols-3'>
             <BookingPanel
               title='Иртыш, крепость и легенды'
@@ -181,11 +181,11 @@ export default function UiKit() {
               state='manager'
             />
             <BookingPanel
-              title='Заказ #55'
-              date='Оплата получена'
+              title='Заявка #55'
+              date='Ожидает звонка менеджера'
               seatsLabel='2 участника'
               priceLabel='3 600 ₽'
-              state='paid'
+              state='pending'
             />
           </div>
         </UiSection>
@@ -203,7 +203,7 @@ export default function UiKit() {
               {
                 id: 'orders',
                 label: 'Заказы',
-                content: <Alert variant='success' title='Оплата прошла'>Заказ стал paid после trusted payment status.</Alert>,
+                content: <Alert variant='success' title='Заявка отправлена'>Менеджер свяжется с клиентом и согласует детали.</Alert>,
               },
               {
                 id: 'refund',

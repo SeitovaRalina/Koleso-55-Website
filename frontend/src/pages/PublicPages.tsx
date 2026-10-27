@@ -9,12 +9,12 @@ export function Contacts() {
 }
 
 export function Faq() {
-  const questions = [['Как забронировать экскурсию?', 'Выберите дату и свободный слот в карточке экскурсии. Бронирование доступно и без аккаунта.'], ['Когда место считается занятым?', 'После успешной оплаты.'], ['Можно отменить заказ?', 'В кабинете отмена оплаченного заказа доступна более чем за 48 часов до события.']]
+  const questions = [['Как оставить заявку на экскурсию?', 'Выберите программу и дату, укажите ФИО и телефон. Аккаунт не нужен. Менеджер свяжется с вами.'], ['Когда участие подтверждено?', 'После связи с менеджером и согласования деталей. Отправка заявки не занимает место автоматически.'], ['Как отменить заявку?', 'Сообщите менеджеру об отмене. Если заявка видна в личном кабинете, её также можно отменить там, пока она новая или подтверждённая.']]
   return <section className={pageClass}><h1 className='text-4xl font-bold'>Частые вопросы</h1><div className='mt-8 grid gap-4'>{questions.map(([question, answer]) => <details key={question} className='rounded-card border border-neutral-line bg-white p-5'><summary className='cursor-pointer font-bold'>{question}</summary><p className='mt-3 text-neutral-text'>{answer}</p></details>)}</div></section>
 }
 
 export function BookingRules() {
-  return <section className={pageClass}><h1 className='text-4xl font-bold'>Правила бронирования</h1><ul className='mt-6 list-disc space-y-3 pl-5 text-neutral-text'><li>Бронирование доступно гостям и пользователям с аккаунтом.</li><li>Стоимость и доступность подтверждает сервер.</li><li>Предоплата — 100%; место занимает только успешная оплата.</li><li>Для договорной цены менеджер согласует детали отдельно.</li></ul></section>
+  return <section className={pageClass}><h1 className='text-4xl font-bold'>Правила бронирования</h1><ul className='mt-6 list-disc space-y-3 pl-5 text-neutral-text'><li>Выберите программу и дату, укажите ФИО и телефон, отправьте заявку. Аккаунт не нужен.</li><li>Менеджер свяжется с вами, уточнит стоимость и доступность.</li><li>Отправка заявки не подтверждает участие и не занимает место автоматически.</li><li>Онлайн-оплата сейчас недоступна; условия согласуются с менеджером.</li></ul></section>
 }
 
 export function Activities() {

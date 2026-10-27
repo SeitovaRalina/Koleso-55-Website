@@ -14,9 +14,9 @@ from analytics.services import publish_recommendation_event
 
 
 @extend_schema(
-    summary="Создание заказа на экскурсию",
-    description="Создает новый заказ на экскурсию. Доступно как для авторизованных, так и для неавторизованных пользователей. "
-                   "Проверяет доступность слота и корректность данных. Для авторизованных пользователей авто-заполняет данные из профиля.",
+    summary="Создание заявки на экскурсию",
+    description="Создает заявку со статусом new по ФИО и телефону гостя или авторизованного пользователя. "
+                   "Проверяет доступность слота и корректность данных. Заявка не оплачивает заказ, не подтверждает участие и не занимает место; менеджер связывается с клиентом.",
 )
 class TourOrderCreateView(generics.CreateAPIView):
     serializer_class = TourOrderCreateSerializer
@@ -42,7 +42,7 @@ class TourOrderCreateView(generics.CreateAPIView):
         # Добавляем предупреждение о неподтвержденном email для авторизованных пользователей
         if request.user.is_authenticated and not request.user.is_email_verified:
             response.data['warnings'] = [
-                "Пожалуйста, подтвердите ваш email для получения ваучеров"
+                "Пожалуйста, подтвердите ваш email в профиле"
             ]
         
         return response

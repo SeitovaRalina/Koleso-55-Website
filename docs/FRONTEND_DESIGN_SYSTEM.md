@@ -66,7 +66,7 @@ Must exist as reusable patterns:
 - Badge: category, status, availability.
 - ExcursionCard: image, category, favorite, price, rating, duration.
 - FilterSidebar: category, price, duration, location, date.
-- BookingPanel: slot, participants, summary, pay action.
+- BookingPanel: slot, participants, summary, request action and manager contact state.
 - StatusAlert: backend warnings and payment state.
 - EmptyState, ErrorState, Skeleton.
 - Tabs for account.
@@ -128,15 +128,15 @@ Excursion detail:
 - Similar excursions from recommender.
 - Track analytics view source.
 
-Booking:
+Booking (current public request path):
 
 - Show all backend fields.
-- Show business rules: guest booking, optional auth, slot availability, full prepayment, YooKassa as main payment, manager fallback.
-- Slot is occupied only after payment.
+- Show business rules: guest request, optional auth, slot availability, and manager follow-up. Do not show payment or instant confirmation as the next step.
+- Creating a request does not occupy a slot.
 - Show adult/child price breakdown when backend supports it.
 - Show negotiated/custom price fallback when price is not fixed.
 - Never calculate trusted payment amount on frontend; show backend-computed amount.
-- YooKassa test mode should be clear in dev/staging.
+- YooKassa test mode and payment UI belong to a future integration.
 - Guest booking must include legal consent checkboxes.
 - Authorized booking can show compact legal notice if consent already accepted.
 
@@ -175,3 +175,16 @@ Avoid:
 - decorative blobs;
 - huge marketing sections on operational pages;
 - hiding backend errors behind generic text.
+
+## Каталог KOLE-4 (решение 25.10.2026)
+
+- На desktop слева обычная боковая панель в потоке страницы. Кнопка скрывает её и расширяет сетку. На mobile фильтры раскрываются кнопкой, закрываются кнопкой и Escape.
+- Разделы категорий, цены, локации, длительности и даты раскрываются независимо. Заголовок показывает число выбранных значений или заданных границ; доступны сброс раздела и общий сброс.
+- Категории: сначала 6, далее список с ограниченной высотой и прокруткой, поиск. Отсутствие `category` в URL означает все категории; `category=` означает явный пустой выбор.
+- «Сбросить все фильтры» удаляет фильтры, поиск, сортировку и страницу из URL, очищает поиск категорий и возвращает исходный каталог. Сброс раздела «Категории» и «Все категории» удаляют `category` из URL и показывают все категории.
+- Локация и длительность допускают множественный выбор. Внутри раздела OR, между разделами AND.
+- Дата — один раздел с двумя полями. Обе границы относятся к одному слоту. Некорректный диапазон показывает ошибку и не отправляется.
+- URL — источник состояния фильтров, поиска, сортировки и страницы. Изменение фильтра сбрасывает страницу, Back/Forward и прямые ссылки восстанавливают состояние.
+- Цвет активных разделов — `brand.sky`; фокус клавиатуры видим. Проверять при ширине 1440 и 390 px.
+
+Старый HTML-макет `docs/catalog-filter-concept.html` — архив ранней идеи, не спецификация реализации.

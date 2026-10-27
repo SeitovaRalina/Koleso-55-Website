@@ -140,7 +140,7 @@ class TourOrder(models.Model):
             if self.status == OrderStatus.PAID and old_order.status != OrderStatus.PAID:
                 self.slot.booked_participants += self.num_participants
                 self.slot.save()
-            elif self.status == OrderStatus.CANCELLED:
+            elif self.status == OrderStatus.CANCELLED and old_order.status == OrderStatus.PAID:
                 self.slot.booked_participants = max(0, self.slot.booked_participants - self.num_participants)
                 self.slot.save()
 

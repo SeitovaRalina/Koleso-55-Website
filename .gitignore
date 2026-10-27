@@ -1,6 +1,7 @@
 .env
 db.sqlite3
 venv/
+.venv/
 __pycache__/
 *.pyc
 **/chroma_data/
@@ -9,3 +10,7 @@ backend/certs/*
 !backend/certs/.gitkeep
 backend/certbot/
 .multica/
+.visual-shots/
+.visual-tools/
+frontend/.npm-cache/
+.tmp_visual.*

@@ -218,7 +218,7 @@ export default function Certificates() {
                 <ul className="list-disc list-inside space-y-2">
                   <li>Действителен 12 месяцев с момента покупки</li>
                   <li>Можно использовать на любую экскурсию</li>
-                  <li>Возможна частичная оплата</li>
+                  <li>Условия оплаты уточнит менеджер</li>
                   <li>Перевод на другого получателя</li>
                 </ul>
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
