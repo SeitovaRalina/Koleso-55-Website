@@ -1,12 +1,66 @@
-from rest_framework import generics, filters as drf_filters
+from rest_framework import generics, filters as drf_filters, permissions, status
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.throttling import SimpleRateThrottle
+from rest_framework.views import APIView
+from django.db import IntegrityError, transaction
 from django_filters.rest_framework import DjangoFilterBackend
 
 from drf_spectacular.utils import OpenApiExample, extend_schema
 
 from .filters import ExcursionFilter
-from .models import Excursion, Category
-from .serializers import ExcursionDetailSerializer, ExcursionListSerializer, CategorySerializer
+from .models import Excursion, Category, ExcursionInquiry
+from .serializers import ExcursionDetailSerializer, ExcursionListSerializer, CategorySerializer, ExcursionInquirySerializer, MyExcursionInquirySerializer
+
+
+class InquiryThrottle(SimpleRateThrottle):
+    rate = '5/hour'
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {'scope': 'inquiry', 'ident': self.get_ident(request)}
+
+
+@extend_schema(
+    summary='Отправить вопрос по программе',
+    description='Гостевая или авторизованная отправка. Для авторизованного пользователя аккаунт берётся из токена. Повтор с тем же request_id и теми же данными возвращает тот же результат.',
+    request=ExcursionInquirySerializer,
+    responses={201: None, 400: None, 429: None},
+)
+class ExcursionInquiryCreateView(APIView):
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [InquiryThrottle]
+
+    def get_throttles(self):
+        return [] if self.request.method == 'GET' else super().get_throttles()
+
+    @extend_schema(summary='Мои вопросы', responses=MyExcursionInquirySerializer(many=True))
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Требуется авторизация.'}, status=status.HTTP_401_UNAUTHORIZED)
+        queryset = ExcursionInquiry.objects.filter(user=request.user).select_related('excursion')
+        paginator = PageNumberPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        return paginator.get_paginated_response(MyExcursionInquirySerializer(page, many=True).data)
+
+    def post(self, request):
+        serializer = ExcursionInquirySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        owner = request.user if request.user.is_authenticated else None
+        existing = ExcursionInquiry.objects.filter(request_id=data['request_id']).first()
+        if existing:
+            if existing.user_id == (owner.pk if owner else None) and all(getattr(existing, key) == value for key, value in data.items()):
+                return Response({'id': existing.id}, status=status.HTTP_201_CREATED)
+            return Response({'request_id': ['Ключ уже использован для другого обращения.']}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            with transaction.atomic():
+                inquiry = ExcursionInquiry.objects.create(**data, user=owner)
+        except IntegrityError:
+            existing = ExcursionInquiry.objects.get(request_id=data['request_id'])
+            if existing.user_id != (owner.pk if owner else None) or not all(getattr(existing, key) == value for key, value in data.items()):
+                return Response({'request_id': ['Ключ уже использован для другого обращения.']}, status=status.HTTP_400_BAD_REQUEST)
+            inquiry = existing
+        return Response({'id': inquiry.id}, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(

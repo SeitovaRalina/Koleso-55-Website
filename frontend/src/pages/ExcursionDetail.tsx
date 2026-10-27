@@ -6,6 +6,7 @@ import { analyticsApi } from '../api/analytics'
 import { wishlistApi } from '../api/wishlist'
 import { recommendationsApi } from '../api/recommendations'
 import { bookingsApi } from '../api/bookings'
+import { inquiriesApi } from '../api/inquiries'
 import { authApi } from '../api/auth'
 import { useAuth } from '../contexts/useAuth'
 import { useHydratedExcursions } from '../hooks/useHydratedExcursions'
@@ -43,6 +44,19 @@ const contactMethods: Array<{ value: ContactMethod; label: string }> = [
   { value: 'call', label: 'Звонок' },
   { value: 'email', label: 'Email' },
 ]
+
+function formatRussianPhone(input: string): string {
+  let digits = input.replace(/\D/g, '')
+  if (digits.startsWith('7') || digits.startsWith('8')) digits = digits.slice(1)
+  digits = digits.slice(0, 10)
+  if (!digits) return ''
+  let result = `+7 (${digits.slice(0, 3)}`
+  if (digits.length >= 3) result += ')'
+  if (digits.length > 3) result += ` ${digits.slice(3, 6)}`
+  if (digits.length > 6) result += `-${digits.slice(6, 8)}`
+  if (digits.length > 8) result += `-${digits.slice(8, 10)}`
+  return result
+}
 
 function getUserFullName(user: { first_name?: string; last_name?: string; patronymic?: string } | null) {
   return [user?.last_name, user?.first_name, user?.patronymic].filter(Boolean).join(' ').trim()
@@ -82,6 +96,22 @@ export default function ExcursionDetail() {
   const [bookingError, setBookingError] = useState('')
   const [bookingSuccess, setBookingSuccess] = useState('')
   const [isBookingSubmitting, setIsBookingSubmitting] = useState(false)
+  const [questionContactMethod, setQuestionContactMethod] = useState<ContactMethod>('whatsapp')
+  const [questionName, setQuestionName] = useState('')
+  const [questionPhone, setQuestionPhone] = useState('')
+  const [questionEmail, setQuestionEmail] = useState('')
+  const [questionText, setQuestionText] = useState('')
+  const [questionConsent, setQuestionConsent] = useState(false)
+  const [questionRequestId, setQuestionRequestId] = useState(() => crypto.randomUUID())
+  const [questionSubmitting, setQuestionSubmitting] = useState(false)
+  const [questionError, setQuestionError] = useState('')
+  const [questionSuccess, setQuestionSuccess] = useState(false)
+  useEffect(() => {
+    if (!isAuthenticated || !user) return
+    setQuestionName((current) => current || getUserFullName(user))
+    setQuestionPhone((current) => current || formatRussianPhone(user.phone || ''))
+    setQuestionEmail((current) => current || user.email || '')
+  }, [isAuthenticated, user])
   const { data: excursion, isLoading, error } = useQuery<Excursion>({
     queryKey: ['excursion', excursionId],
     queryFn: () => excursionsApi.getExcursionById(Number(excursionId!)),
@@ -297,6 +327,52 @@ export default function ExcursionDetail() {
       setBookingError(getApiErrorMessage(err, 'Не удалось создать заказ. Проверьте данные и попробуйте ещё раз.'))
     } finally {
       setIsBookingSubmitting(false)
+    }
+  }
+
+  const handleQuestionSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!excursion || questionSubmitting) return
+    const requiresEmail = questionContactMethod === 'email'
+    if (questionPhone && !/^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$/.test(questionPhone)) {
+      setQuestionError('Укажите телефон полностью: +7 (999) 999-99-99')
+      return
+    }
+    if (!requiresEmail && !questionPhone) {
+      setQuestionError('Укажите телефон для выбранного способа связи.')
+      return
+    }
+    if (requiresEmail && !questionEmail.trim()) {
+      setQuestionError('Укажите email для связи.')
+      return
+    }
+    if (questionName.trim().length < 2 || questionText.trim().length < 5 || !questionConsent) {
+      setQuestionError('Заполните имя, вопрос и согласие на обработку данных.')
+      return
+    }
+    setQuestionError('')
+    setQuestionSubmitting(true)
+    try {
+      await inquiriesApi.create({
+        request_id: questionRequestId,
+        excursion: excursion.id,
+        name: questionName.trim(),
+        ...(questionPhone ? { phone: questionPhone } : {}),
+        ...(questionEmail.trim() ? { email: questionEmail.trim() } : {}),
+        contact_method: questionContactMethod,
+        question: questionText.trim(),
+      })
+      setQuestionSuccess(true)
+      setQuestionName('')
+      setQuestionPhone('')
+      setQuestionEmail('')
+      setQuestionText('')
+      setQuestionConsent(false)
+      setQuestionRequestId(crypto.randomUUID())
+    } catch (error) {
+      setQuestionError(getApiErrorMessage(error, 'Не удалось подтвердить отправку. Проверьте соединение и повторите попытку.'))
+    } finally {
+      setQuestionSubmitting(false)
     }
   }
 
@@ -649,9 +725,51 @@ export default function ExcursionDetail() {
                 Менеджер ответит удобным для вас способом и поможет выбрать подходящий слот.
               </p>
             </div>
-            <Link to="/contacts" className="inline-flex justify-center rounded-lg bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700">
-              Открыть контакты
-            </Link>
+            <form className="space-y-4" onSubmit={handleQuestionSubmit}>
+              {questionSuccess && <p role="status" className="rounded border border-green-300 bg-green-50 p-3 text-sm text-green-800">Вопрос сохранён. Менеджер свяжется с вами.</p>}
+              {questionError && <p role="alert" className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{questionError}</p>}
+              <div>
+                <label htmlFor="question-name" className="block text-sm font-medium text-gray-700 mb-1">Ваше имя *</label>
+                <input id="question-name" type="text" required minLength={2} maxLength={120} autoComplete="name" className="w-full border rounded-lg p-2" placeholder="Как к вам обращаться?" value={questionName} onChange={(event) => { setQuestionName(event.target.value); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
+              </div>
+              <div>
+                <label htmlFor="question-phone" className="block text-sm font-medium text-gray-700 mb-1">Телефон{questionContactMethod === 'email' ? '' : ' *'}</label>
+                <input id="question-phone" type="tel" required={questionContactMethod !== 'email'} inputMode="tel" autoComplete="tel" className="w-full border rounded-lg p-2" placeholder="+7 (___) ___-__-__" value={questionPhone} onChange={(event) => { setQuestionPhone(formatRussianPhone(event.target.value)); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
+              </div>
+              <div>
+                <label htmlFor="question-email" className="block text-sm font-medium text-gray-700 mb-1">Email{questionContactMethod === 'email' ? ' *' : ''}</label>
+                <input id="question-email" type="email" required={questionContactMethod === 'email'} autoComplete="email" className="w-full border rounded-lg p-2" placeholder="name@example.com" value={questionEmail} onChange={(event) => { setQuestionEmail(event.target.value); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Способ связи</label>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                  {contactMethods.map((method) => (
+                    <label key={method.value} className="flex items-center gap-2 rounded border p-2 hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="question_contact_method"
+                        value={method.value}
+                        checked={questionContactMethod === method.value}
+                        onChange={() => { setQuestionContactMethod(method.value); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">{method.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label htmlFor="question-text" className="block text-sm font-medium text-gray-700 mb-1">Сообщение *</label>
+                <textarea id="question-text" className="w-full border rounded-lg p-2" rows={3} required minLength={5} maxLength={2000} placeholder="Ваш вопрос..." value={questionText} onChange={(event) => { setQuestionText(event.target.value); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
+              </div>
+              <label className="flex items-start gap-2 text-sm text-gray-600">
+                <input type="checkbox" required checked={questionConsent} onChange={(event) => setQuestionConsent(event.target.checked)} className="mt-1" />
+                <span>Согласен на обработку персональных данных согласно <Link to="/legal/personal-data-policy" className="text-blue-600 underline">политике конфиденциальности</Link>.</span>
+              </label>
+              <button type="submit" disabled={questionSubmitting} className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60">
+                {questionSubmitting ? 'Отправляем...' : 'Отправить вопрос'}
+              </button>
+            </form>
           </div>
         </div>
 

@@ -5,8 +5,48 @@ from datetime import date, time
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from .models import Excursion, Category, ExcursionImage, Slot, ExcursionProgramDay, TicketType
+from .models import Excursion, Category, ExcursionImage, Slot, ExcursionProgramDay, TicketType, ExcursionInquiry
 from reviews.serializers import ReviewListSerializer
+
+
+class ExcursionInquirySerializer(serializers.ModelSerializer):
+    request_id = serializers.UUIDField(required=True)
+    excursion = serializers.PrimaryKeyRelatedField(queryset=Excursion.objects.filter(is_active=True))
+    name = serializers.CharField(max_length=120, allow_blank=False, trim_whitespace=True)
+    question = serializers.CharField(max_length=2000, allow_blank=False, trim_whitespace=True)
+    phone = serializers.RegexField(r'^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$', max_length=18, required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+
+    class Meta:
+        model = ExcursionInquiry
+        fields = ['request_id', 'excursion', 'name', 'phone', 'email', 'contact_method', 'question']
+
+    def validate_name(self, value):
+        if len(value) < 2:
+            raise serializers.ValidationError('Укажите имя не короче 2 символов.')
+        return value
+
+    def validate_question(self, value):
+        if len(value) < 5:
+            raise serializers.ValidationError('Укажите вопрос не короче 5 символов.')
+        return value
+
+    def validate(self, attrs):
+        if attrs['contact_method'] == ExcursionInquiry.ContactMethod.EMAIL:
+            if not attrs.get('email'):
+                raise serializers.ValidationError({'email': 'Укажите email для связи.'})
+        elif not attrs.get('phone'):
+            raise serializers.ValidationError({'phone': 'Укажите телефон для выбранного способа связи.'})
+        return attrs
+
+
+class MyExcursionInquirySerializer(serializers.ModelSerializer):
+    excursion_title = serializers.CharField(source='excursion.title', read_only=True)
+    public_status = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = ExcursionInquiry
+        fields = ['id', 'excursion', 'excursion_title', 'question', 'created_at', 'public_status']
 
 
 class CategorySerializer(serializers.ModelSerializer):
