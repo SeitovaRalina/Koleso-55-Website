@@ -1,8 +1,24 @@
 # Backend Integration Plan
 
+## Новости (KOLE-7)
+
+Расширение KOLE-7: `/news` показывает только анонсы, обложку и категорию. «Читать далее» ведёт на постоянный `/news/:slug`. Детальная страница показывает упорядоченные блоки `heading`, `paragraph`, `image` и отдельную обложку.
+
+Публичный API: `GET /api/news/?page=N&category=<slug>` возвращает `{count,next,previous,results}`. Элемент списка содержит `title`, `slug`, `excerpt`, `cover`, `published_at`, `category: {name,slug} | null`; полного текста в списке нет. `GET /api/news/categories/` возвращает массив категорий с опубликованными новостями. `GET /api/news/{slug}/` добавляет `blocks: [{kind,position,text,image,alt,caption}]` в порядке `position,pk`. Черновики и будущие записи скрыты во всех публичных ответах.
+
+В Admin редактору нужны `is_staff` и права `view/add/change/delete` только для `news.NewsArticle`, `news.NewsCategory`, `news.NewsBlock`. Категории редактируются отдельно. Блоки редактируются inline в новости, порядок задаётся числом. Поля типа блока проверяются: подзаголовок/абзац требуют текст; изображение требует файл и alt. Миграция `news.0002_categories_and_blocks` переносит прежние строковые категории в отдельную таблицу и старый `body` в первый блок абзаца, не удаляя исходный текст.
+
+## KOLE-5: расписание и отображение цены
+
+`SlotSerializer` в списке и деталях события отдаёт `end_date` и `end_time` (оба `null` для старых слотов). Окончание задаётся парой полей и должно быть позже начала; переход через полночь допустим. Клиент не вычисляет окончание из `Excursion.duration`. Для многодневной программы число календарных дней считается включительно по `Slot.date` и `Slot.end_date`.
+
+Список событий отдаёт `is_multi_day` и `ticket_types` с `is_active`, как и детали. Клиент показывает цену ближайшего доступного слота: `price_override`, если задана, иначе минимальную цену активных тарифов или базовую `Excursion.price` при отсутствии тарифов. При нескольких тарифах выводится «от»; при одном тарифе и выбранном слоте цена точная. Сортировка и фильтр по `price` продолжают использовать базовое поле модели; при изменении тарифов базовую цену нужно поддерживать как индекс каталога.
+
 Цель: стабильно связать Django `main_service`, FastAPI `recommendation_service`, frontend и будущую оплату YooKassa.
 
 Current priority note: frontend production-ready work goes first. Backend pricing, YooKassa, and deploy remain planned later phases.
+
+Current public contract (KOLE-3): `POST /api/bookings/orders/` accepts a guest's name, phone, excursion and slot; it creates `TourOrder` with `status=new`. It does not charge the customer, confirm participation or occupy a seat. The manager contacts the customer to agree on availability and terms. The YooKassa rules below are future integration requirements, not the current public flow.
 
 Update 2026-06-07:
 
@@ -196,3 +212,13 @@ Business rules:
 - Необязательный `email` валидируется и сохраняется с обращением. Если запрос авторизован, сервер связывает запись с текущим аккаунтом; `user_id` от клиента игнорируется. Повтор `request_id` от другого аккаунта или гостя отклоняется HTTP 400.
 - `GET /api/excursions/inquiries/` требует авторизации (иначе HTTP 401) и отдаёт только обращения текущего аккаунта в формате `count`, `next`, `previous`, `results`. Элемент: `id`, `excursion`, `excursion_title`, `question`, `created_at`, `public_status` (`Новое`, `В работе`, `Закрыто`). Совпадение телефона или email не открывает гостевые и чужие записи. Внутренние данные администратора не выдаются.
 - Форма требует согласие на обработку данных. После ошибки сохраняет введённые данные и ключ запроса для безопасной повторной отправки. Уведомления менеджеру сейчас не отправляются; источник обращений — Admin, сбой внешнего сервиса не влияет на сохранение.
+## Контракт фильтров каталога KOLE-4
+
+`GET /api/excursions/` принимает повторяющиеся `category`, `location_type`, `duration`:
+
+- `category=<slug>`: OR по выбранным категориям; без параметра — все, `category=` — пустой результат.
+- `location_type=city|suburban|russia`: OR; неизвестное значение — пустой результат.
+- `duration=under_2h|2_to_4h|over_4h`: OR. Диапазоны: `<120`, `120..240`, `>240` минут. Прежние `min_duration`/`max_duration` остаются действительными.
+- Разные группы и цена (`min_price`, `max_price`) объединяются через AND.
+- `date_from` и `date_to` включительны и должны совпасть с датой одного слота. Можно указать одну границу. Неверный формат даты возвращает 400; обратный диапазон даёт пустой результат.
+- Прежние одиночные значения и поиск `search` работают как раньше.

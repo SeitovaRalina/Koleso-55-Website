@@ -79,16 +79,28 @@ class ExcursionAdmin(admin.ModelAdmin):
         (_('Описание'), {
             'fields': ('short_description', 'description')
         }),
-        (_('Детали экскурсии'), {
+        (_('Детали программы или экскурсии'), {
             'fields': (
                 'group_size', 'included_in_price', 'not_included_in_price',
                 'what_to_bring', 'meeting_point'
             )
         }),
         (_('Параметры'), {
-            'fields': ('price', 'duration', 'is_active')
+            'fields': ('price', 'duration', 'is_multi_day', 'is_active')
         }),
     )
+
+    def add_view(self, request, form_url='', extra_context=None):
+        return super().add_view(
+            request, form_url,
+            {**(extra_context or {}), 'title': 'Добавить программу или экскурсию'},
+        )
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        return super().change_view(
+            request, object_id, form_url,
+            {**(extra_context or {}), 'title': 'Изменить программу или экскурсию'},
+        )
     
     def get_formatted_price(self, obj):
         """Форматированная цена с рублем"""
@@ -213,7 +225,7 @@ class SlotAdmin(admin.ModelAdmin):
     """Админ-панель для управления слотами"""
     
     list_display = [
-        'excursion', 'get_date_formatted', 'get_time_formatted', 
+        'excursion', 'get_date_formatted', 'get_time_formatted', 'end_date', 'end_time',
         'max_participants', 'booked_participants', 
         'get_available_seats', 'get_availability_status'
     ]

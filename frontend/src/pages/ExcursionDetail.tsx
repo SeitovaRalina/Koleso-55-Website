@@ -21,6 +21,7 @@ import { FavoriteIcon } from '../components/ui/FavoriteIcon'
 import { ExcursionCard } from '../components/ui/ExcursionCard'
 import { ExcursionPhotoGallery } from '../components/excursion/ExcursionPhotoGallery'
 import { getApiErrorMessage } from '../utils/apiError'
+import { formatDuration, formatSlot, getPrice } from '../utils/excursionDisplay'
 
 type ContactMethod = 'call' | 'whatsapp' | 'telegram' | 'max' | 'email'
 
@@ -268,8 +269,13 @@ export default function ExcursionDetail() {
     }
 
     const { firstName, lastName, middleName } = splitFullName(bookingForm.fullName)
-    if (!firstName) {
+    if (!firstName || !lastName) {
       setBookingError('Укажите ФИО')
+      return
+    }
+
+    if (!bookingForm.phone.trim()) {
+      setBookingError('Укажите телефон для связи с менеджером')
       return
     }
 
@@ -309,7 +315,7 @@ export default function ExcursionDetail() {
         }
       }
 
-      setBookingSuccess('Заказ успешно создан. Статус заказа можно отслеживать в личном кабинете.')
+      setBookingSuccess('Заявка отправлена. Менеджер свяжется с вами по указанному телефону и уточнит детали.')
       setBookingForm((current) => ({
         ...current,
         participantNames: '',
@@ -382,6 +388,8 @@ export default function ExcursionDetail() {
     )
   }
 
+  const priceSlot = selectedSlot || excursion.slots?.find(slot => slot.is_available)
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -426,7 +434,7 @@ export default function ExcursionDetail() {
                 </svg>
                 <div>
                   <div className="text-sm text-gray-500">Длительность</div>
-                  <div className="font-medium">{Math.floor(excursion.duration / 60)}ч {excursion.duration % 60}мин</div>
+                  <div className="font-medium">{formatDuration(excursion, selectedSlot || excursion.slots?.find(slot => slot.is_available))}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -622,22 +630,26 @@ export default function ExcursionDetail() {
           {/* Правая колонка: sidebar бронирования */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
-              <h3 className="text-xl font-bold mb-4">Бронирование</h3>
+              <h3 className="text-xl font-bold mb-4">Заявка на экскурсию</h3>
               <div className="text-3xl font-bold text-blue-600 mb-6">
-                от {excursion.price} ₽
+                {getPrice(excursion, priceSlot).from ? 'от ' : ''}{getPrice(excursion, priceSlot).amount} ₽
               </div>
 
               {/* Типы билетов */}
-              {excursion.ticket_types && excursion.ticket_types.length > 0 && (
+              {priceSlot?.price_override != null && (
+                <p className="mb-4 text-sm text-gray-600">
+                  Цена {selectedSlot ? 'выбранного' : 'ближайшего доступного'} слота.
+                </p>
+              )}
+              {priceSlot?.price_override == null && excursion.ticket_types && excursion.ticket_types.some((t: TicketType) => t.is_active) && (
                 <div className="mb-6">
                   <h4 className="font-semibold mb-3">Тип билета</h4>
                   <div className="space-y-2">
                     {excursion.ticket_types.filter((t: TicketType) => t.is_active).map((ticket: TicketType) => (
-                      <label key={ticket.id} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
-                        <input type="radio" name="ticket_type" className="w-4 h-4" />
+                      <div key={ticket.id} className="flex items-center gap-2 p-2 border rounded">
                         <span>{ticket.name}</span>
                         <span className="ml-auto font-medium">{ticket.price} ₽</span>
-                      </label>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -658,8 +670,7 @@ export default function ExcursionDetail() {
                           : 'border-gray-200 hover:border-gray-300'
                       } ${!slot.is_available ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      <div className="font-medium">{new Date(slot.date).toLocaleDateString('ru-RU')}</div>
-                      <div className="text-sm text-gray-600">{slot.time}</div>
+                      <div className="font-medium">{formatSlot(slot)}</div>
                       <div className="text-xs text-gray-500">
                         Осталось мест: {slot.available_seats}/{slot.max_participants}
                       </div>
@@ -689,7 +700,7 @@ export default function ExcursionDetail() {
                 onClick={handleBookNow}
                 className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
-                Забронировать место
+                Оставить заявку
               </button>
             </div>
           </div>
@@ -776,7 +787,7 @@ export default function ExcursionDetail() {
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">Бронирование</h2>
+                <h2 className="text-2xl font-bold">Бронь</h2>
                 <button
                   onClick={() => setIsBookingModalOpen(false)}
                   className="p-2 hover:bg-gray-100 rounded-lg"
@@ -789,7 +800,7 @@ export default function ExcursionDetail() {
 
               {/* Ваше бронирование */}
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold mb-3">Ваше бронирование</h3>
+                <h3 className="font-semibold mb-3">Данные заявки</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Экскурсия:</span>
@@ -798,7 +809,7 @@ export default function ExcursionDetail() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Дата и время:</span>
                     <span className="font-medium">
-                      {selectedSlot && new Date(selectedSlot.date).toLocaleDateString('ru-RU')} {selectedSlot?.time}
+                      {selectedSlot && formatSlot(selectedSlot)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -808,20 +819,20 @@ export default function ExcursionDetail() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Итого:</span>
                     <span className="font-bold text-blue-600">
-                      от {excursion.price} ₽ за человека
+                      {getPrice(excursion, selectedSlot).from ? 'от ' : ''}{getPrice(excursion, selectedSlot).amount} ₽ за человека
                     </span>
                   </div>
                 </div>
                 <p className="mt-3 text-xs text-gray-500">
-                  Слот окончательно занимается после подтверждения оплаты или менеджером.
+                  Отправка заявки не подтверждает участие. Менеджер свяжется с вами и уточнит доступность.
                 </p>
               </div>
 
               {bookingSuccess ? (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-5">
-                  <h3 className="text-lg font-semibold text-green-800">Заказ успешно создан</h3>
+                  <h3 className="text-lg font-semibold text-green-800">Заявка отправлена</h3>
                   <p className="mt-2 text-sm text-green-700">
-                    Статус заказа можно отслеживать в личном кабинете.
+                    Менеджер свяжется с вами по указанному телефону и уточнит детали.
                   </p>
                   <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                     {isAuthenticated ? (
@@ -997,7 +1008,7 @@ export default function ExcursionDetail() {
                   disabled={isBookingSubmitting}
                   className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isBookingSubmitting ? 'Создание заказа...' : 'Подтвердить бронирование'}
+                  {isBookingSubmitting ? 'Отправляем заявку...' : 'Отправить заявку'}
                 </button>
               </form>
                 </>

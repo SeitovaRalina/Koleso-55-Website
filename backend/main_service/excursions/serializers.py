@@ -112,6 +112,8 @@ class SlotSerializer(serializers.ModelSerializer):
         label="Время начала",
         help_text="Время начала экскурсии"
     )
+    end_date = serializers.DateField(required=False, allow_null=True)
+    end_time = serializers.TimeField(required=False, allow_null=True)
     max_participants = serializers.IntegerField(
         label="Макс. участников",
         help_text="Максимальное количество участников"
@@ -138,9 +140,20 @@ class SlotSerializer(serializers.ModelSerializer):
     class Meta:
         model = Slot
         fields = [
-            'id', 'date', 'time', 'max_participants',
+            'id', 'date', 'time', 'end_date', 'end_time', 'max_participants',
             'available_seats', 'is_available', 'price_override'
         ]
+
+    def validate(self, attrs):
+        start_date = attrs.get('date', getattr(self.instance, 'date', None))
+        start_time = attrs.get('time', getattr(self.instance, 'time', None))
+        end_date = attrs.get('end_date', getattr(self.instance, 'end_date', None))
+        end_time = attrs.get('end_time', getattr(self.instance, 'end_time', None))
+        if (end_date is None) != (end_time is None):
+            raise serializers.ValidationError('Укажите дату и время окончания вместе.')
+        if end_date and (end_date, end_time) <= (start_date, start_time):
+            raise serializers.ValidationError('Окончание должно быть позже начала.')
+        return attrs
 
 
 class ExcursionProgramDaySerializer(serializers.ModelSerializer):
@@ -258,13 +271,14 @@ class ExcursionListSerializer(serializers.ModelSerializer):
     )
 
     nearest_slots = serializers.SerializerMethodField()
+    ticket_types = TicketTypeSerializer(many=True, read_only=True)
 
     class Meta:
         model = Excursion
         fields = [
             'id', 'title', 'slug', 'short_description',
             'location_type_display', 'price', 'duration', 'category', 'main_image',
-            'average_rating', 'review_count', 'nearest_slots'
+            'average_rating', 'review_count', 'nearest_slots', 'ticket_types', 'is_multi_day'
         ]
 
     @extend_schema_field(serializers.URLField())
