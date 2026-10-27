@@ -95,7 +95,7 @@ class ReviewAdmin(admin.ModelAdmin):
         if obj is None:
             return (("Отзыв клиента (добавлен администратором)", {
                 'fields': ('manual_first_name', 'manual_last_name', 'excursion', 'rating', 'text'),
-                'description': 'Вносите только настоящий отзыв, полученный вне сайта. После сохранения он ожидает модерации.',
+                'description': 'Вносите только настоящий отзыв, полученный вне сайта. После сохранения он сразу публикуется.',
             }),)
         author_fields = ('manual_first_name', 'manual_last_name') if obj.is_admin_added else ('user',)
         return (
@@ -113,7 +113,7 @@ class ReviewAdmin(admin.ModelAdmin):
         if not change:
             obj.is_admin_added = True
             obj.user = None
-            obj.status = ReviewStatus.PENDING
+            obj.status = ReviewStatus.APPROVED
         super().save_model(request, obj, form, change)
 
     actions = [

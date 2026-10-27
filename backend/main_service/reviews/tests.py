@@ -2,9 +2,11 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
-from excursions.models import Category, Excursion
+from bookings.models import TourOrder, OrderStatus
+from excursions.models import Category, Excursion, Slot
 from .models import Review, ReviewStatus
 
 
@@ -45,7 +47,7 @@ class ReviewAdminTests(TestCase):
         data.update(changes)
         return data
 
-    def test_add_form_creates_pending_review_without_user(self):
+    def test_add_form_publishes_external_review_without_user(self):
         response = self.client.get(self.add_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'manual_first_name')
@@ -56,8 +58,11 @@ class ReviewAdminTests(TestCase):
         review = Review.objects.get()
         self.assertTrue(review.is_admin_added)
         self.assertIsNone(review.user)
-        self.assertEqual(review.status, ReviewStatus.PENDING)
+        self.assertEqual(review.status, ReviewStatus.APPROVED)
         self.assertEqual(review.author_name, 'Иванова Анна')
+        public = self.client.get(reverse('review-list', args=[self.excursion.pk]))
+        self.assertEqual(public.status_code, 200)
+        self.assertIn(review.pk, [item['id'] for item in public.data['results']])
 
     def test_missing_fields_are_form_errors_not_server_error(self):
         for changes in ({'manual_first_name': ''}, {'excursion': ''}, {'rating': ''}, {'text': ''}):
@@ -125,6 +130,32 @@ class ReviewAdminTests(TestCase):
         }, format='json')
         self.assertEqual(response.status_code, 400)
         self.assertFalse(Review.objects.exists())
+
+    def test_api_cannot_impersonate_admin_or_bypass_moderation(self):
+        slot = Slot.objects.create(
+            excursion=self.excursion, date=timezone.localdate(), time='12:00',
+        )
+        TourOrder.objects.create(
+            user=self.site_user, excursion=self.excursion, slot=slot,
+            first_name='Клиент', phone='+70000000000', num_participants=1,
+            status=OrderStatus.COMPLETED,
+        )
+        api_client = APIClient()
+        api_client.force_authenticate(user=self.site_user)
+        response = api_client.post(reverse('review-create'), {
+            'excursion': self.excursion.pk, 'rating': 5, 'text': 'Отзыв с сайта',
+            'is_admin_added': True, 'status': ReviewStatus.APPROVED,
+            'manual_first_name': 'Чужое', 'manual_last_name': 'Имя',
+            'user': self.admin_user.pk,
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        review = Review.objects.get()
+        self.assertEqual(review.user, self.site_user)
+        self.assertFalse(review.is_admin_added)
+        self.assertEqual(review.status, ReviewStatus.PENDING)
+        self.assertEqual(review.manual_first_name, '')
+        public = api_client.get(reverse('review-list', args=[self.excursion.pk]))
+        self.assertNotIn(review.pk, [item['id'] for item in public.data['results']])
 
     def test_registered_uniqueness_does_not_conflate_manual_authors(self):
         Review.objects.create(
