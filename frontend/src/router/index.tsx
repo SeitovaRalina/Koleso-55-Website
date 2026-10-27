@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, redirect } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import RootLayout from '../components/layout/RootLayout'
 import MainLayout from '../components/layout/MainLayout'
@@ -10,10 +10,10 @@ import Register from '../pages/Register'
 import PasswordReset from '../pages/PasswordReset'
 import PasswordResetConfirm from '../pages/PasswordResetConfirm'
 import ExcursionDetail from '../pages/ExcursionDetail'
-import Booking from '../pages/Booking'
 import Account from '../pages/Account'
 import Certificates from '../pages/Certificates'
 import News from '../pages/News'
+import NewsDetail from '../pages/NewsDetail'
 import RecommendationInfo from '../pages/RecommendationInfo'
 import GoogleCallback from '../pages/GoogleCallback'
 import { About, Activities, BookingRules, Contacts, CustomTour, Faq, LegalPage } from '../pages/PublicPages'
@@ -45,11 +45,7 @@ export const router = createBrowserRouter([
             },
             {
                 path: 'booking/:excursionId/:slotId',
-                element: (
-                    <ProtectedRoute>
-                        <Booking />
-                    </ProtectedRoute>
-                ),
+                loader: ({ params }) => redirect(`/excursion/${params.excursionId}`),
             },
             {
                 path: 'account',
@@ -66,6 +62,10 @@ export const router = createBrowserRouter([
             {
                 path: 'news',
                 element: <News />,
+            },
+            {
+                path: 'news/:slug',
+                element: <NewsDetail />,
             },
             {
                 path: 'recommendations',

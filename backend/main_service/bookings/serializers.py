@@ -7,9 +7,9 @@ from .models import TourOrder, ContactMethod, GiftCertificateRequest
 class TourOrderCreateSerializer(serializers.ModelSerializer):
     # Для гостевых пользователей
     first_name = serializers.CharField(required=True)
-    last_name = serializers.CharField(required=True, allow_blank=True)
+    last_name = serializers.CharField(required=True)
     middle_name = serializers.CharField(required=False, allow_blank=True)
-    phone = serializers.CharField(required=True, allow_blank=True)
+    phone = serializers.CharField(required=True)
     email = serializers.EmailField(required=False, allow_blank=True)
     comment = serializers.CharField(required=False, allow_blank=True)
     contact_method = serializers.CharField(required=False, default='call')
@@ -32,6 +32,12 @@ class TourOrderCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         slot = attrs['slot']
         num = attrs['num_participants']
+
+        if slot.excursion_id != attrs['excursion'].id:
+            raise serializers.ValidationError({"slot": "Слот не относится к выбранной экскурсии"})
+
+        if not attrs['phone'].strip():
+            raise serializers.ValidationError({"phone": "Укажите телефон для связи с менеджером"})
 
         if not slot.is_available or slot.available_seats < num:
             raise serializers.ValidationError(
