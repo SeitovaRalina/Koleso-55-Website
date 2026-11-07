@@ -14,7 +14,7 @@ class CustomTourRequestApiTests(APITestCase):
     }
 
     def test_guest_can_create_request(self):
-        response = self.client.post(reverse('bookings:custom-tour-request-create'), self.payload)
+        response = self.client.post(reverse('bookings:custom-tour-request-create'), self.payload, format='json')
 
         self.assertEqual(response.status_code, 201)
         request = CustomTourRequest.objects.get(pk=response.data['id'])
