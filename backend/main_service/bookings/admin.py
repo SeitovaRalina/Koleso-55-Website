@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import GiftCertificateRequest, TourOrder
+from .models import CustomTourRequest, GiftCertificateRequest, TourOrder
 
 
 @admin.register(GiftCertificateRequest)
@@ -36,6 +36,18 @@ class GiftCertificateRequestAdmin(admin.ModelAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         title = f'Просмотр заявки на подарочный сертификат №{object_id}'
         return super().change_view(request, object_id, form_url, {'title': title, **(extra_context or {})})
+
+
+@admin.register(CustomTourRequest)
+class CustomTourRequestAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'phone', 'email', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('name', 'phone', 'email', 'description')
+    readonly_fields = ('user', 'name', 'phone', 'email', 'description', 'created_at', 'updated_at')
+    fields = ('user', 'name', 'phone', 'email', 'description', 'status', 'manager_comment', 'created_at', 'updated_at')
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(TourOrder)

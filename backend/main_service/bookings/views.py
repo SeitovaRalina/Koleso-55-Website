@@ -4,9 +4,10 @@ from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema
 
-from .models import OrderStatus, TourOrder
+from .models import CustomTourRequest, OrderStatus, TourOrder
 from .serializers import (
     GiftCertificateRequestSerializer,
+    CustomTourRequestSerializer,
     TourOrderCreateSerializer,
     TourOrderDetailSerializer,
     TourOrderListSerializer,
@@ -18,6 +19,24 @@ from analytics.services import publish_recommendation_event
 class GiftCertificateRequestCreateView(generics.CreateAPIView):
     serializer_class = GiftCertificateRequestSerializer
     permission_classes = [permissions.AllowAny]
+
+
+@extend_schema(summary='Создать заявку на экскурсию на заказ')
+class CustomTourRequestCreateView(generics.CreateAPIView):
+    serializer_class = CustomTourRequestSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user if self.request.user.is_authenticated else None)
+
+
+@extend_schema(summary='Список заявок на экскурсию на заказ текущего пользователя')
+class MyCustomTourRequestListView(generics.ListAPIView):
+    serializer_class = CustomTourRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return CustomTourRequest.objects.filter(user=self.request.user)
 
 
 @extend_schema(

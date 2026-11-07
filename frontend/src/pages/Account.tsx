@@ -6,12 +6,13 @@ import { authApi } from '../api/auth'
 import { bookingsApi } from '../api/bookings'
 import { wishlistApi } from '../api/wishlist'
 import { recommendationsApi } from '../api/recommendations'
+import { customTourRequestsApi } from '../api/customTourRequests'
 import { ExcursionCard } from '../components/ui/ExcursionCard'
 import { useHydratedExcursions } from '../hooks/useHydratedExcursions'
-import type { Booking } from '../types'
+import type { Booking, CustomTourRequest } from '../types'
 import { getApiErrorMessage } from '../utils/apiError'
 
-const accountTabs = ['profile', 'bookings', 'favorites', 'recommendations'] as const
+const accountTabs = ['profile', 'bookings', 'requests', 'favorites', 'recommendations'] as const
 type AccountTab = typeof accountTabs[number]
 
 function getAccountTab(value: string | null): AccountTab {
@@ -44,6 +45,11 @@ export default function Account() {
   const { data: wishlist, isLoading: isLoadingWishlist } = useQuery({
     queryKey: ['wishlist'],
     queryFn: () => wishlistApi.getWishlist(),
+  })
+
+  const { data: customRequests, isLoading: isLoadingCustomRequests } = useQuery({
+    queryKey: ['my-custom-tour-requests'],
+    queryFn: () => customTourRequestsApi.getMine(),
   })
 
   const { data: recommendations, isLoading: isLoadingRecommendations } = useQuery({
@@ -138,6 +144,7 @@ export default function Account() {
                 >
                   {tab === 'profile' && 'Профиль'}
                   {tab === 'bookings' && 'Мои бронирования'}
+                  {tab === 'requests' && 'Мои заявки'}
                   {tab === 'favorites' && 'Избранное'}
                   {tab === 'recommendations' && 'Рекомендации'}
                 </button>
@@ -263,6 +270,26 @@ export default function Account() {
                           </button>
                         )}
                       </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'requests' && (
+              <div>
+                {isLoadingCustomRequests ? (
+                  <div className="text-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" /></div>
+                ) : customRequests?.results.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">У вас пока нет заявок на экскурсию на заказ.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {customRequests?.results.map((request: CustomTourRequest) => (
+                      <article key={request.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between gap-4"><h3 className="font-medium">Экскурсия на заказ</h3>{getStatusBadge(request.status)}</div>
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600">{request.description}</p>
+                        <p className="mt-3 text-xs text-gray-500">Отправлено: {new Date(request.created_at).toLocaleDateString('ru-RU')}</p>
+                      </article>
                     ))}
                   </div>
                 )}

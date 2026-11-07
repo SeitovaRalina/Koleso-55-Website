@@ -114,7 +114,7 @@ export function ExcursionCard({ excursion, source = 'direct' }: ExcursionCardPro
             </button>
           </div>
           {slotBadge && (
-            <div className='absolute bottom-3 left-3 max-w-[calc(100%-24px)] rounded-card bg-neutral-ink/90 px-3 py-2 text-xs font-bold leading-5 text-white shadow-sm'>
+            <div className='absolute bottom-3 left-3 max-w-[calc(100%-24px)] rounded-card bg-neutral-ink/84 px-3 py-2 text-xs font-bold leading-5 text-white shadow-sm backdrop-blur'>
               <div>Осталось {slotBadge.seats} мест</div>
               <div>{slotBadge.dateLine}</div>
             </div>

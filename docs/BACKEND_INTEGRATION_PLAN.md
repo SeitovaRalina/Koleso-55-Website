@@ -223,6 +223,20 @@ Business rules:
 - Homepage event cards use `nearest_slots[0]` for nearest date/time and remaining seats.
 - Homepage location search uses `Excursion.LocationType` values and submits `location_type=city|suburban|russia` to catalog.
 
+## Custom tour requests and slot intervals
+
+- `POST /api/bookings/custom-tour-requests/` accepts `name`, `phone`, optional
+  `email`, and `description`. It is available to guests and authenticated users;
+  the latter are linked to the created request.
+- `GET /api/bookings/my-custom-tour-requests/` is authenticated and returns only
+  the current user's requests. Internal manager comments are never exposed by the
+  public API.
+- Staff process requests in Django Admin. Customer-supplied fields are read-only;
+  staff change only request status and internal manager comment.
+- A slot without both `end_date` and `end_time` derives its finish from its start
+  plus `Excursion.duration`. Migration `excursions.0010_fill_missing_slot_ends`
+  backfills historical blank pairs; explicit end values remain unchanged.
+
 ## Контракт фильтров каталога KOLE-4
 
 `GET /api/excursions/` принимает повторяющиеся `category`, `location_type`, `duration`:

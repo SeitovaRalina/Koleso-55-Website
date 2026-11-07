@@ -35,11 +35,13 @@ class SlotContractTests(TestCase):
         self.assertEqual(data['end_date'], '2026-10-15')
         self.assertTrue(data['end_time'].startswith('02:00'))
 
-    def test_missing_end_is_kept_unknown(self):
+    def test_missing_end_is_calculated_from_excursion_duration(self):
         slot = self.make_slot()
         slot.full_clean()
-        self.assertIsNone(SlotSerializer(slot).data['end_date'])
-        self.assertIsNone(SlotSerializer(slot).data['end_time'])
+        slot.save()
+        data = SlotSerializer(slot).data
+        self.assertEqual(data['end_date'], '2026-10-15')
+        self.assertTrue(data['end_time'].startswith('20:00'))
 
     def test_incomplete_or_earlier_end_is_rejected(self):
         for end_date, end_time in [

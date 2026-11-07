@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { CONTACTS, SOCIAL_LINKS } from '../../config/contacts'
 
 const clientLinks = [
-  ['Афиша активностей', '/activities'],
+  ['Афиша активностей', '/catalog'],
   ['Подарочные сертификаты', '/certificates'],
   ['Создать экскурсию на заказ', '/custom-tour'],
   ['Правила бронирования', '/booking'],

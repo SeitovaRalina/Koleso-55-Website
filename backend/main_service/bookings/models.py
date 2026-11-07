@@ -40,6 +40,35 @@ class GiftCertificateRequest(models.Model):
         return f'Заявка #{self.pk}: {self.buyer_name}'
 
 
+class CustomTourRequest(models.Model):
+    class Status(models.TextChoices):
+        NEW = 'new', 'Новая'
+        IN_PROGRESS = 'in_progress', 'В работе'
+        COMPLETED = 'completed', 'Обработана'
+        CANCELLED = 'cancelled', 'Отменена'
+
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='custom_tour_requests', verbose_name='Пользователь',
+    )
+    name = models.CharField('Имя', max_length=150)
+    phone = models.CharField('Телефон', max_length=30)
+    email = models.EmailField('Электронная почта', blank=True)
+    description = models.TextField('Пожелания', max_length=2000)
+    status = models.CharField('Статус обработки', max_length=20, choices=Status.choices, default=Status.NEW)
+    manager_comment = models.TextField('Комментарий менеджера', blank=True)
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Заявка на экскурсию на заказ'
+        verbose_name_plural = 'Заявки на экскурсии на заказ'
+
+    def __str__(self):
+        return f'Заявка на заказ #{self.pk}: {self.name}'
+
+
 class ContactMethod(models.TextChoices):
     CALL = 'call', 'Звонок'
     WHATSAPP = 'whatsapp', 'WhatsApp'
