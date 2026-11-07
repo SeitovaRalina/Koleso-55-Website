@@ -15,7 +15,7 @@ def fill_missing_slot_ends(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('excursions', '0009_inquiry_contact_email'),
+        ('excursions', '0006_slot_end_and_excursion_labels'),
     ]
 
     operations = [
