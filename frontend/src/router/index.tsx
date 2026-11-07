@@ -17,7 +17,7 @@ import NewsDetail from '../pages/NewsDetail'
 import RecommendationInfo from '../pages/RecommendationInfo'
 import GoogleCallback from '../pages/GoogleCallback'
 import About from '../pages/About'
-import { Activities, BookingRules, Contacts, CustomTour, Faq, LegalPage } from '../pages/PublicPages'
+import { BookingRules, Contacts, CustomTour, Faq, LegalPage } from '../pages/PublicPages'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 
 const UiKit = import.meta.env.DEV ? lazy(() => import('../pages/UiKit')) : null
@@ -76,7 +76,7 @@ export const router = createBrowserRouter([
             { path: 'contacts', element: <Contacts /> },
             { path: 'faq', element: <Faq /> },
             { path: 'booking', element: <BookingRules /> },
-            { path: 'activities', element: <Activities /> },
+            { path: 'activities', loader: () => redirect('/catalog') },
             { path: 'custom-tour', element: <CustomTour /> },
             { path: 'legal/personal-data', element: <LegalPage type='consent' /> },
             { path: 'legal/personal-data-consent', element: <LegalPage type='consent' /> },

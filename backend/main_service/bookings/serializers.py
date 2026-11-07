@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
-from .models import TourOrder, ContactMethod, GiftCertificateRequest
+from .models import CustomTourRequest, TourOrder, ContactMethod, GiftCertificateRequest
 
 
 class TourOrderCreateSerializer(serializers.ModelSerializer):
@@ -156,4 +156,23 @@ class GiftCertificateRequestSerializer(serializers.ModelSerializer):
             if not attrs[field].strip():
                 raise serializers.ValidationError({field: 'Обязательное поле.'})
             attrs[field] = attrs[field].strip()
+        return attrs
+
+
+class CustomTourRequestSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = CustomTourRequest
+        fields = ('id', 'name', 'phone', 'email', 'description', 'status', 'status_display', 'created_at')
+        read_only_fields = ('id', 'status', 'status_display', 'created_at')
+
+    def validate(self, attrs):
+        for field in ('name', 'phone', 'description'):
+            value = attrs[field].strip()
+            if not value:
+                raise serializers.ValidationError({field: 'Обязательное поле.'})
+            attrs[field] = value
+        if attrs.get('email'):
+            attrs['email'] = attrs['email'].strip()
         return attrs

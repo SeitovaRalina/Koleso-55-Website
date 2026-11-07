@@ -147,6 +147,17 @@ export interface Booking {
   contact_method_display: string
 }
 
+export interface CustomTourRequest {
+  id: number
+  name: string
+  phone: string
+  email: string
+  description: string
+  status: 'new' | 'in_progress' | 'completed' | 'cancelled'
+  status_display: string
+  created_at: string
+}
+
 export interface User {
   id: number
   email: string

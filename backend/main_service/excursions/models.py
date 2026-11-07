@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from datetime import datetime, timedelta
 from django.db import models
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator
@@ -295,10 +296,24 @@ class Slot(models.Model):
 
     def clean(self):
         super().clean()
+        self.set_automatic_end()
         if (self.end_date is None) != (self.end_time is None):
             raise ValidationError('Укажите дату и время окончания вместе.')
         if self.end_date and (self.end_date, self.end_time) <= (self.date, self.time):
             raise ValidationError('Окончание должно быть позже начала.')
+
+    def set_automatic_end(self):
+        """Fill an omitted end from the excursion duration, never replace a manual end."""
+        if self.end_date is not None or self.end_time is not None:
+            return
+
+        finish = datetime.combine(self.date, self.time) + timedelta(minutes=self.excursion.duration)
+        self.end_date = finish.date()
+        self.end_time = finish.time()
+
+    def save(self, *args, **kwargs):
+        self.set_automatic_end()
+        super().save(*args, **kwargs)
 
     @property
     def available_seats(self):

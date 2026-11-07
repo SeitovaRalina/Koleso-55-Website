@@ -22,8 +22,6 @@ const directions = [
 export default function About() {
   const [ready, setReady] = useState(false)
   const [activeSlide, setActiveSlide] = useState(0)
-  const [userPaused, setUserPaused] = useState(false)
-  const [interactionPaused, setInteractionPaused] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [failedImages, setFailedImages] = useState<string[]>([])
 
@@ -52,32 +50,26 @@ export default function About() {
     .filter((photo): photo is { url: string; title: string } => Boolean(photo.url))
     .filter((photo) => !failedImages.includes(photo.url))
     .slice(0, 9)
-  const slides = Array.from({ length: Math.ceil(photos.length / 3) }, (_, index) => photos.slice(index * 3, index * 3 + 3))
+  // A frame is always a collage of exactly three excursion photos.
+  // Incomplete trailing groups are intentionally not rendered.
+  const slides = Array.from({ length: Math.floor(photos.length / 3) }, (_, index) => photos.slice(index * 3, index * 3 + 3))
   const currentSlide = Math.min(activeSlide, Math.max(slides.length - 1, 0))
 
   useEffect(() => {
-    if (slides.length < 2 || userPaused || interactionPaused || reducedMotion) return
+    if (slides.length < 2 || reducedMotion) return
     const timer = window.setInterval(() => {
       if (!document.hidden) setActiveSlide((slide) => (slide + 1) % slides.length)
     }, 6500)
     return () => window.clearInterval(timer)
-  }, [slides.length, userPaused, interactionPaused, reducedMotion])
+  }, [slides.length, reducedMotion])
 
   return (
     <div className='text-neutral-ink'>
-      <section
-        className='relative isolate overflow-hidden bg-brand-deep py-12 text-white sm:py-16'
-        onMouseEnter={() => setInteractionPaused(true)}
-        onMouseLeave={() => setInteractionPaused(false)}
-        onFocusCapture={() => setInteractionPaused(true)}
-        onBlurCapture={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget)) setInteractionPaused(false)
-        }}
-      >
+      <section className='relative isolate min-h-[430px] overflow-hidden bg-neutral-ink py-12 text-white sm:py-16'>
         {slides[currentSlide] && (
           <div
             key={slides[currentSlide][0].url}
-            className='absolute inset-0 -z-20 grid grid-cols-2 gap-1 sm:grid-cols-3'
+            className='absolute inset-0 -z-20 grid animate-[about-fade-in_900ms_ease-out] grid-cols-2 gap-1 sm:grid-cols-3'
           >
             {slides[currentSlide].map((photo, photoIndex) => (
               <img
@@ -91,8 +83,9 @@ export default function About() {
             ))}
           </div>
         )}
-        <div className='absolute inset-0 -z-10 bg-gradient-to-r from-brand-deep/95 via-brand-deep/85 to-brand-deep/70' aria-hidden='true' />
-        <div className='mx-auto max-w-content px-4'>
+        <div className='absolute inset-0 -z-10 bg-neutral-ink/50 backdrop-blur-[2px]' aria-hidden='true' />
+        <div className='absolute inset-0 -z-10 bg-gradient-to-r from-neutral-ink/88 via-neutral-ink/58 to-neutral-ink/18' aria-hidden='true' />
+        <div className='relative mx-auto flex min-h-[334px] max-w-content flex-col justify-center px-4 sm:min-h-[366px]'>
           <p className='text-sm font-semibold uppercase tracking-wider text-white'>О компании</p>
           <h1 className='mt-4 max-w-3xl text-3xl font-bold leading-tight sm:text-5xl'>
             Путешествия, которые подходят именно вам
@@ -102,14 +95,6 @@ export default function About() {
             Омской области и России. Мы работаем с частными гостями, школьными группами
             и организациями.
           </p>
-          {slides.length > 1 && (
-            <div className='mt-8 flex items-center gap-3' aria-label='Фотографии экскурсий'>
-              <button type='button' onClick={() => setActiveSlide((currentSlide - 1 + slides.length) % slides.length)} className='rounded-card border border-white/70 px-3 py-2 text-sm font-semibold hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white' aria-label='Предыдущие фотографии'>←</button>
-              <span className='text-sm' aria-live='off'>{currentSlide + 1} / {slides.length}</span>
-              <button type='button' onClick={() => setActiveSlide((currentSlide + 1) % slides.length)} className='rounded-card border border-white/70 px-3 py-2 text-sm font-semibold hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white' aria-label='Следующие фотографии'>→</button>
-              <button type='button' onClick={() => setUserPaused((value) => !value)} className='rounded-card border border-white/70 px-3 py-2 text-sm font-semibold hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white' aria-label={userPaused ? 'Запустить смену фотографий' : 'Остановить смену фотографий'}>{userPaused ? '▶' : 'Ⅱ'}</button>
-            </div>
-          )}
         </div>
       </section>
 
