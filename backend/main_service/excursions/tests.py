@@ -338,13 +338,14 @@ class AdminSlotTests(TestCase):
         slot = Slot.objects.create(
             excursion=self.excursion, date=date(2027, 10, 14), time=time(10),
         )
+        original_end = (slot.end_date, slot.end_time)
         self.client.force_login(self.staff)
         self.assertEqual(self.client.get(reverse('admin:excursions_slot_change', args=[slot.pk])).status_code, 403)
         self.assertEqual(self.client.post(
             reverse('admin:excursions_slot_change', args=[slot.pk]), self.slot_data(),
         ).status_code, 403)
         slot.refresh_from_db()
-        self.assertIsNone(slot.end_date)
+        self.assertEqual((slot.end_date, slot.end_time), original_end)
 
     def test_excursion_admin_status_actions(self):
         list_url = reverse('admin:excursions_excursion_changelist')
