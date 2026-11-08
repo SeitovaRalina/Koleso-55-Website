@@ -1,15 +1,15 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
-from .models import TourOrder, ContactMethod
+from .models import TourOrder, ContactMethod, GiftCertificateRequest
 
 
 class TourOrderCreateSerializer(serializers.ModelSerializer):
     # Для гостевых пользователей
     first_name = serializers.CharField(required=True)
-    last_name = serializers.CharField(required=True, allow_blank=True)
+    last_name = serializers.CharField(required=True)
     middle_name = serializers.CharField(required=False, allow_blank=True)
-    phone = serializers.CharField(required=True, allow_blank=True)
+    phone = serializers.CharField(required=True)
     email = serializers.EmailField(required=False, allow_blank=True)
     comment = serializers.CharField(required=False, allow_blank=True)
     contact_method = serializers.CharField(required=False, default='call')
@@ -32,6 +32,12 @@ class TourOrderCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         slot = attrs['slot']
         num = attrs['num_participants']
+
+        if slot.excursion_id != attrs['excursion'].id:
+            raise serializers.ValidationError({"slot": "Слот не относится к выбранной экскурсии"})
+
+        if not attrs['phone'].strip():
+            raise serializers.ValidationError({"phone": "Укажите телефон для связи с менеджером"})
 
         if not slot.is_available or slot.available_seats < num:
             raise serializers.ValidationError(
@@ -131,3 +137,23 @@ class TourOrderDetailSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.CharField())
     def get_slot_datetime(self, obj):
         return f"{obj.slot.date} {obj.slot.time}"
+
+
+class GiftCertificateRequestSerializer(serializers.ModelSerializer):
+    amount = serializers.ChoiceField(choices=(1000, 2000, 3000, 5000, 10000))
+
+    class Meta:
+        model = GiftCertificateRequest
+        fields = (
+            'id', 'buyer_name', 'buyer_phone', 'buyer_email', 'recipient_name',
+            'recipient_phone', 'recipient_email', 'amount', 'format', 'message',
+            'created_at',
+        )
+        read_only_fields = ('id', 'created_at')
+
+    def validate(self, attrs):
+        for field in ('buyer_name', 'buyer_phone', 'recipient_name'):
+            if not attrs[field].strip():
+                raise serializers.ValidationError({field: 'Обязательное поле.'})
+            attrs[field] = attrs[field].strip()
+        return attrs

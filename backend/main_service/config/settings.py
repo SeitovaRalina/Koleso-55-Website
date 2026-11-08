@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'reviews',
     'wishlist',
     'analytics',
+    'news',
 ]
 
 if DEBUG:

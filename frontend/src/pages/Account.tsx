@@ -6,12 +6,13 @@ import { authApi } from '../api/auth'
 import { bookingsApi } from '../api/bookings'
 import { wishlistApi } from '../api/wishlist'
 import { recommendationsApi } from '../api/recommendations'
+import { inquiriesApi } from '../api/inquiries'
 import { ExcursionCard } from '../components/ui/ExcursionCard'
 import { useHydratedExcursions } from '../hooks/useHydratedExcursions'
 import type { Booking } from '../types'
 import { getApiErrorMessage } from '../utils/apiError'
 
-const accountTabs = ['profile', 'bookings', 'favorites', 'recommendations'] as const
+const accountTabs = ['profile', 'bookings', 'inquiries', 'favorites', 'recommendations'] as const
 type AccountTab = typeof accountTabs[number]
 
 function getAccountTab(value: string | null): AccountTab {
@@ -23,6 +24,7 @@ export default function Account() {
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState<AccountTab>(() => getAccountTab(searchParams.get('tab')))
+  const [inquiryPage, setInquiryPage] = useState(1)
   const [profileForm, setProfileForm] = useState({
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
@@ -39,6 +41,12 @@ export default function Account() {
   const { data: bookings, isLoading: isLoadingBookings } = useQuery({
     queryKey: ['my-orders'],
     queryFn: () => bookingsApi.getMyOrders(),
+  })
+
+  const { data: inquiries, isLoading: isLoadingInquiries, error: inquiriesError } = useQuery({
+    queryKey: ['my-inquiries', user?.id, inquiryPage],
+    queryFn: () => inquiriesApi.listMine(inquiryPage),
+    enabled: !!user?.id && activeTab === 'inquiries',
   })
 
   const { data: wishlist, isLoading: isLoadingWishlist } = useQuery({
@@ -122,7 +130,7 @@ export default function Account() {
 
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="border-b">
-            <nav className="flex -mb-px">
+            <nav className="flex -mb-px overflow-x-auto" aria-label="Разделы личного кабинета">
               {accountTabs.map((tab) => (
                 <button
                   key={tab}
@@ -138,6 +146,7 @@ export default function Account() {
                 >
                   {tab === 'profile' && 'Профиль'}
                   {tab === 'bookings' && 'Мои бронирования'}
+                  {tab === 'inquiries' && 'Мои вопросы'}
                   {tab === 'favorites' && 'Избранное'}
                   {tab === 'recommendations' && 'Рекомендации'}
                 </button>
@@ -146,6 +155,29 @@ export default function Account() {
           </div>
 
           <div className="p-6">
+            {activeTab === 'inquiries' && (
+              <section aria-label="Мои вопросы" className="space-y-4">
+                {isLoadingInquiries && <p role="status">Загружаем вопросы...</p>}
+                {inquiriesError && <p role="alert" className="text-red-700">Не удалось загрузить вопросы. Обновите страницу и попробуйте снова.</p>}
+                {!isLoadingInquiries && !inquiriesError && inquiries?.results.length === 0 && <p>Вы ещё не задавали вопросов по программам.</p>}
+                {inquiries?.results.map((inquiry) => (
+                  <article key={inquiry.id} className="rounded-lg border p-4 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Link to={`/excursion/${inquiry.excursion}`} className="font-medium text-blue-700 hover:underline">{inquiry.excursion_title}</Link>
+                      <span className="rounded bg-blue-50 px-2 py-1 text-sm text-blue-900">{inquiry.public_status}</span>
+                    </div>
+                    <p className="whitespace-pre-wrap break-words">{inquiry.question}</p>
+                    <time dateTime={inquiry.created_at} className="block text-sm text-gray-600">{new Date(inquiry.created_at).toLocaleString('ru-RU')}</time>
+                  </article>
+                ))}
+                {(inquiries?.previous || inquiries?.next) && (
+                  <div className="flex gap-3">
+                    <button type="button" disabled={!inquiries.previous} onClick={() => setInquiryPage((page) => page - 1)} className="rounded border px-3 py-2 disabled:opacity-50">Назад</button>
+                    <button type="button" disabled={!inquiries.next} onClick={() => setInquiryPage((page) => page + 1)} className="rounded border px-3 py-2 disabled:opacity-50">Далее</button>
+                  </div>
+                )}
+              </section>
+            )}
             {activeTab === 'profile' && (
               <form onSubmit={handleSaveProfile} className="max-w-2xl space-y-6">
                 {profileError && (

@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { isAxiosError } from 'axios'
+import { createCertificateRequest } from '../api/certificates'
+import { CONTACTS } from '../config/contacts'
 
 export default function Certificates() {
   const [formData, setFormData] = useState({
@@ -22,10 +25,12 @@ export default function Certificates() {
     setIsLoading(true)
 
     try {
-      console.log('Certificate purchase:', formData)
+      await createCertificateRequest({ ...formData, amount: Number(formData.amount) })
       setSuccess(true)
-    } catch {
-      setError('Ошибка покупки сертификата')
+    } catch (requestError) {
+      setError(isAxiosError(requestError) && requestError.response?.status === 400
+        ? 'Проверьте введённые данные и отправьте заявку ещё раз.'
+        : 'Не удалось сохранить заявку. Попробуйте ещё раз позже.')
     } finally {
       setIsLoading(false)
     }
@@ -40,9 +45,9 @@ export default function Certificates() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Заказ оформлен!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Заявка принята</h2>
           <p className="text-gray-600 mb-6">
-            Сертификат будет отправлен на указанный email в ближайшее время
+            Менеджер свяжется с вами для уточнения условий и оформления сертификата.
           </p>
           <button
             onClick={() => window.location.href = '/'}
@@ -64,7 +69,7 @@ export default function Certificates() {
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6 space-y-6">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+                <div role="alert" className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
                   {error}
                 </div>
               )}
@@ -170,7 +175,7 @@ export default function Certificates() {
                           onChange={(e) => setFormData({ ...formData, format: e.target.value as 'digital' | 'printed' })}
                           className="mr-2"
                         />
-                        <span>Электронный (отправится на email)</span>
+                        <span>Электронный</span>
                       </label>
                       <label className="flex items-center">
                         <input
@@ -181,7 +186,7 @@ export default function Certificates() {
                           onChange={(e) => setFormData({ ...formData, format: e.target.value as 'digital' | 'printed' })}
                           className="mr-2"
                         />
-                        <span>Печатный (самовывоз)</span>
+                        <span>Печатный</span>
                       </label>
                     </div>
                   </div>
@@ -203,7 +208,7 @@ export default function Certificates() {
                 disabled={isLoading}
                 className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Оформление...' : 'Оформить заказ'}
+                {isLoading ? 'Отправка...' : 'Отправить заявку'}
               </button>
             </form>
           </div>
@@ -213,17 +218,11 @@ export default function Certificates() {
               <h2 className="text-xl font-semibold mb-4">О сертификатах</h2>
               <div className="space-y-4 text-sm text-gray-600">
                 <p>
-                  Подарочный сертификат — это идеальный подарок для любителей путешествий
+                  Выберите желаемый номинал и формат. Менеджер уточнит условия, оплату и получение.
                 </p>
-                <ul className="list-disc list-inside space-y-2">
-                  <li>Действителен 12 месяцев с момента покупки</li>
-                  <li>Можно использовать на любую экскурсию</li>
-                  <li>Возможна частичная оплата</li>
-                  <li>Перевод на другого получателя</li>
-                </ul>
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <p className="text-blue-800 font-medium">Нужна помощь?</p>
-                  <p className="text-blue-600 mt-1">+7 (XXX) XXX-XX-XX</p>
+                  <a className="text-blue-600 mt-1 block" href={`tel:${CONTACTS.phones[0].raw}`}>{CONTACTS.phones[0].label}</a>
                 </div>
               </div>
             </div>

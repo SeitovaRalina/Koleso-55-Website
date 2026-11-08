@@ -30,7 +30,8 @@ class ReviewImageSerializer(serializers.ModelSerializer):
 class ReviewCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания отзыва"""
     
-    excursion = serializers.IntegerField(
+    excursion = serializers.PrimaryKeyRelatedField(
+        queryset=Excursion.objects.all(),
         label="Экскурсия",
         help_text="ID экскурсии, на которую оставляется отзыв"
     )
@@ -59,10 +60,8 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         request = self.context['request']
-        excursion_id = attrs['excursion']
-        try:
-            excursion = Excursion.objects.get(id=excursion_id, is_active=True)
-        except Excursion.DoesNotExist:
+        excursion = attrs['excursion']
+        if not excursion.is_active:
             raise serializers.ValidationError({"excursion": "Экскурсия не найдена или неактивна"})
 
         has_completed_order = request.user.orders.filter(
@@ -100,8 +99,8 @@ class ReviewListSerializer(serializers.ModelSerializer):
     )
     user_name = serializers.CharField(
         label="Имя пользователя",
-        help_text="Полное имя пользователя, оставившего отзыв",
-        source='user.get_full_name',
+        help_text="Имя автора отзыва",
+        source='author_name',
         read_only=True
     )
     rating = serializers.IntegerField(
@@ -151,7 +150,7 @@ class HomepageReviewSerializer(serializers.ModelSerializer):
         ]
 
     def get_author_name(self, obj: Review) -> str:
-        return obj.homepage_author_name or obj.user.get_full_name() or obj.user.email
+        return obj.homepage_author_name or obj.author_name
 
     def get_main_photo(self, obj: Review) -> Optional[str]:
         selected_image = obj.images.filter(is_homepage_main=True).order_by('homepage_order', 'uploaded_at').first()

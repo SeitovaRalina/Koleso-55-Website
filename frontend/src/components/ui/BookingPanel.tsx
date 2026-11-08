@@ -16,13 +16,13 @@ interface BookingPanelProps {
 const stateCopy: Record<BookingState, { badge: string; action: string; alert: string }> = {
   available: {
     badge: 'Есть места',
-    action: 'Забронировать',
-    alert: 'Слот будет занят только после успешной оплаты.',
+    action: 'Оставить заявку',
+    alert: 'Оставьте телефон: менеджер свяжется с вами и уточнит доступность.',
   },
   pending: {
-    badge: 'Ожидает оплаты',
-    action: 'Перейти к оплате',
-    alert: 'YooKassa test mode будет основным шагом после бронирования.',
+    badge: 'Заявка отправлена',
+    action: 'Связаться с менеджером',
+    alert: 'Менеджер свяжется с вами для согласования деталей.',
   },
   paid: {
     badge: 'Оплачено',

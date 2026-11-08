@@ -1,100 +1,74 @@
 import django_filters
 from django.db import models
+from django.db.models import Exists, OuterRef, Q
 
-from .models import Excursion
+from .models import Excursion, Slot
+
+
+DURATION_BUCKETS = {
+    "under_2h": Q(duration__lt=120),
+    "2_to_4h": Q(duration__gte=120, duration__lte=240),
+    "over_4h": Q(duration__gt=240),
+}
 
 
 class ExcursionFilter(django_filters.FilterSet):
-    category = django_filters.CharFilter(
-        field_name="category__slug",
-        label="Категория",
-        help_text="Фильтр по категории экскурсии. Используйте slug категории.",
-        method="filter_category",
-    )
-
-    min_price = django_filters.NumberFilter(field_name="price", lookup_expr="gte", label="Цена от")
-    max_price = django_filters.NumberFilter(field_name="price", lookup_expr="lte", label="Цена до")
-
-    min_duration = django_filters.NumberFilter(
-        field_name="duration",
-        lookup_expr="gte",
-        label="Длительность от (мин)",
-    )
-    max_duration = django_filters.NumberFilter(
-        field_name="duration",
-        lookup_expr="lte",
-        label="Длительность до (мин)",
-    )
-
-    location_type = django_filters.ChoiceFilter(
-        choices=Excursion.LocationType.choices,
-        field_name="location_type",
-        label="Тип локации",
-    )
-
-    search = django_filters.CharFilter(
-        method="filter_search",
-        label="Поиск",
-    )
-
-    date_from = django_filters.DateFilter(
-        method="filter_date_from",
-        label="Дата от",
-    )
-
-    date_to = django_filters.DateFilter(
-        method="filter_date_to",
-        label="Дата до",
-    )
-
-    ids = django_filters.BaseInFilter(
-        field_name="id",
-        lookup_expr="in",
-        label="ID экскурсий",
-        help_text="Фильтр по списку ID экскурсий.",
-    )
+    # The multi-value fields are applied together in filter_queryset. A regular
+    # CharFilter or ChoiceFilter silently keeps only the last repeated value.
+    category = django_filters.CharFilter(method="passthrough", label="Категория")
+    location_type = django_filters.CharFilter(method="passthrough", label="Тип локации")
+    duration = django_filters.CharFilter(method="passthrough", label="Диапазон длительности")
+    min_price = django_filters.NumberFilter(field_name="price", lookup_expr="gte")
+    max_price = django_filters.NumberFilter(field_name="price", lookup_expr="lte")
+    min_duration = django_filters.NumberFilter(field_name="duration", lookup_expr="gte")
+    max_duration = django_filters.NumberFilter(field_name="duration", lookup_expr="lte")
+    search = django_filters.CharFilter(method="filter_search")
+    date_from = django_filters.DateFilter(method="passthrough")
+    date_to = django_filters.DateFilter(method="passthrough")
+    ids = django_filters.BaseInFilter(field_name="id", lookup_expr="in")
 
     class Meta:
         model = Excursion
         fields = []
 
-    def filter_category(self, queryset, name, value):
-        """Фильтрация по одной или нескольким категориям."""
-        if not value:
-            return queryset
-
-        # Логирование для отладки
-        print(f"filter_category called with value: {value}, type: {type(value)}")
-
-        # Если value - это список (несколько категорий)
-        if isinstance(value, list):
-            return queryset.filter(category__slug__in=value).distinct()
-
-        # Если value - это строка (одна категория)
-        return queryset.filter(category__slug=value).distinct()
+    def passthrough(self, queryset, name, value):
+        return queryset
 
     def filter_search(self, queryset, name, value):
-        """Поиск по названию, краткому и полному описанию."""
-        if not value:
-            return queryset
-
         return queryset.filter(
             models.Q(title__icontains=value)
             | models.Q(short_description__icontains=value)
             | models.Q(description__icontains=value)
         )
 
-    def filter_date_from(self, queryset, name, value):
-        """Только экскурсии, у которых есть хотя бы один слот с датой >= value."""
-        if not value:
-            return queryset
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+        if "category" in self.data:
+            categories = self.data.getlist("category")
+            queryset = queryset.filter(category__slug__in=categories) if all(categories) else queryset.none()
+        if "location_type" in self.data:
+            locations = self.data.getlist("location_type")
+            valid = set(Excursion.LocationType.values)
+            queryset = queryset.filter(location_type__in=locations) if locations and all(v in valid for v in locations) else queryset.none()
+        if "duration" in self.data:
+            durations = self.data.getlist("duration")
+            if durations and all(v in DURATION_BUCKETS for v in durations):
+                condition = Q()
+                for duration in durations:
+                    condition |= DURATION_BUCKETS[duration]
+                queryset = queryset.filter(condition)
+            else:
+                queryset = queryset.none()
 
-        # Временно упрощаем - просто фильтруем по дате слота
-        return queryset.filter(slots__date__gte=value).distinct()
-
-    def filter_date_to(self, queryset, name, value):
-        """Только экскурсии, у которых есть хотя бы один слот с датой <= value."""
-        if not value:
-            return queryset
-
-        return queryset.filter(slots__date__lte=value).distinct()
+        start = self.form.cleaned_data.get("date_from")
+        end = self.form.cleaned_data.get("date_to")
+        if start or end:
+            if start and end and start > end:
+                return queryset.none()
+            slots = Slot.objects.filter(excursion_id=OuterRef("pk"))
+            if start:
+                slots = slots.filter(date__gte=start)
+            if end:
+                slots = slots.filter(date__lte=end)
+            queryset = queryset.filter(Exists(slots))
+        return queryset

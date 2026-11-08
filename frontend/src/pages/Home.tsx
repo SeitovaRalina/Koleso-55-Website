@@ -95,8 +95,8 @@ export default function Home() {
               Открой Омск и Россию по-новому
             </h1>
             <p className='mt-4 max-w-xl text-base leading-7 text-white/92 md:text-lg'>
-              Экскурсии, активные туры и мастер-классы. Бронируйте онлайн,
-              выбирайте дату и маршрут.
+              Экскурсии, активные туры и мастер-классы. Выбирайте дату и маршрут,
+              оставляйте заявку — менеджер свяжется с вами.
             </p>
           </div>
 
@@ -204,13 +204,13 @@ export default function Home() {
               ],
               [
                 '2',
-                'Забронируйте и оплатите',
-                'Выберите дату, укажите участников и оплатите онлайн. Статус доступен в личном кабинете.',
+                'Оставьте заявку',
+                'Выберите дату, укажите участников, ФИО и телефон. Регистрация не нужна.',
               ],
               [
                 '3',
-                'Получите подтверждение',
-                'Детали заказа приходят на email, а место закрепляется после успешной оплаты.',
+                'Дождитесь звонка менеджера',
+                'Менеджер свяжется с вами, уточнит детали и подтвердит возможность участия.',
               ],
             ].map(([step, title, text]) => (
               <article
@@ -341,7 +341,7 @@ function HomepageReviewsCarousel({
 }: {
   query: { data?: HomepageReview[]; isLoading: boolean; isError: boolean }
 }) {
-  const reviews = query.data || []
+  const reviews = Array.isArray(query.data) ? query.data : []
 
   if (query.isLoading) {
     return (
@@ -461,7 +461,7 @@ function SimpleHomepageReviewsCarousel({
 }: {
   query: { data?: HomepageReview[]; isLoading: boolean; isError: boolean }
 }) {
-  const reviews = query.data || []
+  const reviews = Array.isArray(query.data) ? query.data : []
   const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
@@ -570,7 +570,7 @@ function OrganizationPanel() {
             1000+ довольных клиентов
           </IconListItem>
           <IconListItem icon={<FaShieldHalved />}>
-            Безопасные онлайн-платежи
+            Помощь с выбором маршрута
           </IconListItem>
           <IconListItem icon={<FaHeadset />}>Поддержка 24/7</IconListItem>
         </ul>

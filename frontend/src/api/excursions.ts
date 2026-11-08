@@ -6,7 +6,8 @@ export const excursionsApi = {
     category?: string | string[]
     date_from?: string
     date_to?: string
-    location_type?: string
+    location_type?: string | string[]
+    duration?: string[]
     min_duration?: number
     max_duration?: number
     min_price?: number

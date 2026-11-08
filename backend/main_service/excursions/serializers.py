@@ -5,8 +5,48 @@ from datetime import date, time
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from .models import Excursion, Category, ExcursionImage, Slot, ExcursionProgramDay, TicketType
+from .models import Excursion, Category, ExcursionImage, Slot, ExcursionProgramDay, TicketType, ExcursionInquiry
 from reviews.serializers import ReviewListSerializer
+
+
+class ExcursionInquirySerializer(serializers.ModelSerializer):
+    request_id = serializers.UUIDField(required=True)
+    excursion = serializers.PrimaryKeyRelatedField(queryset=Excursion.objects.filter(is_active=True))
+    name = serializers.CharField(max_length=120, allow_blank=False, trim_whitespace=True)
+    question = serializers.CharField(max_length=2000, allow_blank=False, trim_whitespace=True)
+    phone = serializers.RegexField(r'^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$', max_length=18, required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+
+    class Meta:
+        model = ExcursionInquiry
+        fields = ['request_id', 'excursion', 'name', 'phone', 'email', 'contact_method', 'question']
+
+    def validate_name(self, value):
+        if len(value) < 2:
+            raise serializers.ValidationError('Укажите имя не короче 2 символов.')
+        return value
+
+    def validate_question(self, value):
+        if len(value) < 5:
+            raise serializers.ValidationError('Укажите вопрос не короче 5 символов.')
+        return value
+
+    def validate(self, attrs):
+        if attrs['contact_method'] == ExcursionInquiry.ContactMethod.EMAIL:
+            if not attrs.get('email'):
+                raise serializers.ValidationError({'email': 'Укажите email для связи.'})
+        elif not attrs.get('phone'):
+            raise serializers.ValidationError({'phone': 'Укажите телефон для выбранного способа связи.'})
+        return attrs
+
+
+class MyExcursionInquirySerializer(serializers.ModelSerializer):
+    excursion_title = serializers.CharField(source='excursion.title', read_only=True)
+    public_status = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = ExcursionInquiry
+        fields = ['id', 'excursion', 'excursion_title', 'question', 'created_at', 'public_status']
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -80,6 +120,8 @@ class SlotSerializer(serializers.ModelSerializer):
         label="Время начала",
         help_text="Время начала экскурсии"
     )
+    end_date = serializers.DateField(required=False, allow_null=True)
+    end_time = serializers.TimeField(required=False, allow_null=True)
     max_participants = serializers.IntegerField(
         label="Макс. участников",
         help_text="Максимальное количество участников"
@@ -106,9 +148,20 @@ class SlotSerializer(serializers.ModelSerializer):
     class Meta:
         model = Slot
         fields = [
-            'id', 'date', 'time', 'max_participants',
+            'id', 'date', 'time', 'end_date', 'end_time', 'max_participants',
             'available_seats', 'is_available', 'price_override'
         ]
+
+    def validate(self, attrs):
+        start_date = attrs.get('date', getattr(self.instance, 'date', None))
+        start_time = attrs.get('time', getattr(self.instance, 'time', None))
+        end_date = attrs.get('end_date', getattr(self.instance, 'end_date', None))
+        end_time = attrs.get('end_time', getattr(self.instance, 'end_time', None))
+        if (end_date is None) != (end_time is None):
+            raise serializers.ValidationError('Укажите дату и время окончания вместе.')
+        if end_date and (end_date, end_time) <= (start_date, start_time):
+            raise serializers.ValidationError('Окончание должно быть позже начала.')
+        return attrs
 
 
 class ExcursionProgramDaySerializer(serializers.ModelSerializer):
@@ -226,13 +279,14 @@ class ExcursionListSerializer(serializers.ModelSerializer):
     )
 
     nearest_slots = serializers.SerializerMethodField()
+    ticket_types = TicketTypeSerializer(many=True, read_only=True)
 
     class Meta:
         model = Excursion
         fields = [
             'id', 'title', 'slug', 'short_description',
             'location_type_display', 'price', 'duration', 'category', 'main_image',
-            'average_rating', 'review_count', 'nearest_slots'
+            'average_rating', 'review_count', 'nearest_slots', 'ticket_types', 'is_multi_day'
         ]
 
     @extend_schema_field(serializers.URLField())

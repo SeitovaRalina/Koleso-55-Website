@@ -10,3 +10,7 @@ backend/certs/*
 backend/certbot/
 .multica/
 docs/operations/production-local.md
+.visual-shots/
+.visual-tools/
+frontend/.npm-cache/
+.tmp_visual.*
