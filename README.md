@@ -19,15 +19,9 @@ AI-помощник: LangChain + ChromaDB + LLM
 Assistant ChromaDB files are runtime data. Docker stores them in the
 `assistant_chroma_data` named volume; they are not kept in repository root.
 
-## Agent Docs
+## Documentation
 
-- `AGENTS.md` - обязательные правила для Codex/AI-агента в репозитории.
-- `docs/AI_AGENT_WORKFLOW.md` - рабочий процесс для задач агенту.
-- `docs/BACKEND_INTEGRATION_PLAN.md` - план интеграции `main_service`, `recommendation_service`, frontend.
-- `docs/YOOKASSA_IMPLEMENTATION.md` - план реализации YooKassa.
-- `docs/TIMEWEB_NGINX_DEPLOY.md` - nginx и деплой на Timeweb.
-- `docs/FRONTEND_DESIGN_SYSTEM.md` - дизайн-система frontend.
-- `docs/DEVELOPMENT_QUESTIONS.md` - вопросы по продукту, оплате, frontend, backend, деплою.
-- `docs/PRODUCT_DECISIONS.md` - принятые продуктовые и бизнес-решения.
-- `docs/NEXT_STEPS.md` - рекомендуемый порядок реализации.
-- `.codex/skills/koleso-react-frontend/SKILL.md` - project skill для React/frontend задач.
+Start with `docs/INDEX.md`. It routes product, architecture, API, operations
+and development questions without loading obsolete plans. Agent rules are in
+`AGENTS.md`; active task context is in `harness/`; delivery evidence is in
+`reports/`.
