@@ -10,6 +10,16 @@
 - Всегда использовать `ast-index` перед поиском по коду, если задача связана со структурой проекта, классами, функциями, роутами, API, зависимостями или рефакторингом.
 - После изменений в коде запускать точечную проверку, указанную ниже. Если проверка не запущена, явно написать причину.
 
+## Планирование продуктовых изменений
+
+- Не начинать реализацию новой продуктовой функциональности или менять согласованный UX по собственной инициативе.
+- Сначала подготовить подробный план: пользовательский сценарий, данные и API, статусы, Admin, UX, миграции, тесты и критерии приёмки.
+- После планирования обязательно создать `reports/plan-<slug>.md` по шаблону в `reports/README.md`. Его статус — `draft` до утверждения.
+- Реализацию начинать только после явного подтверждения пользователем именно этого плана и фиксации статуса `approved` в plan-report.
+- После реализации создать `reports/implementation-<slug>.md`: фактический scope, миграции/API, deliberate deviations и ограничения.
+- `reports/testing-<slug>.md` и `reports/review-<slug>.md` обязательны для product/code/API/миграций, Admin, runtime-конфигурации, UI, merge или deploy. Для documentation-only/low-risk задач — только если проверка выявила риск, пользователь запросил их или задача идёт в merge/deploy.
+- После product/code изменений обязательны проверка, E2E там, где применимо, и review результата с пользователем до merge/deploy. Без implementation-, testing- и review-report merge/deploy запрещены.
+
 ## Карта проекта
 
 - `frontend/` - React 19, Vite, TypeScript, TanStack Query, axios.
@@ -89,14 +99,38 @@ ast-index.cmd refs "TourOrder"
 
 ## Документация
 
+### Карта контекста
+
+Перед нетривиальной задачей читать контекст постепенно:
+
+1. `AGENTS.md` — обязательные правила.
+2. `harness/README.md`, `docs/project/current-state.md` и карточку активной
+   задачи, если она есть.
+3. Только связанные с задачей документы из `docs/`, ADR и код, найденный через
+   `ast-index`.
+
+`docs/` — долговременный источник истины; `harness/` — краткий активный
+контекст; `reports/` — доказательства планирования, реализации, тестов и
+review. Не читать целые архивы задач и отчётов без ссылки из активной задачи.
+Статусы задач ведутся в Multica; локальные task-файлы содержат только scope,
+решения и ссылки.
+
+### Production access
+
+Для deploy/production-задачи прочитать `docs/operations/production.md` и,
+если файл существует, локальный gitignored
+`docs/operations/production-local.md`. Последний хранит private infrastructure
+coordinates only; never commit, copy into reports/Multica or print credentials.
+Если local handover отсутствует, не угадывать production access и запросить
+у владельца актуальный путь/доступ.
+
 Перед крупной задачей обновить relevant docs:
 
-- `docs/AI_AGENT_WORKFLOW.md`
-- `docs/BACKEND_INTEGRATION_PLAN.md`
-- `docs/YOOKASSA_IMPLEMENTATION.md`
-- `docs/TIMEWEB_NGINX_DEPLOY.md`
-- `docs/FRONTEND_DESIGN_SYSTEM.md`
-- `docs/DEVELOPMENT_QUESTIONS.md`
+- `docs/development/workflow.md`
+- `docs/architecture/components.md` and `docs/api/contracts.md`
+- `docs/product/business-rules.md`, `docs/product/payments.md`, `docs/product/design-system.md`
+- `docs/operations/production.md`
+- `docs/product/open-questions.md`
 
 ## Project Skills
 

@@ -8,3 +8,5 @@ backend/.env.production
 backend/certs/*
 !backend/certs/.gitkeep
 backend/certbot/
+.multica/
+docs/operations/production-local.md
