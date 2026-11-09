@@ -2,7 +2,7 @@ import axios from 'axios'
 import type { Recommendation } from '../types'
 
 const RECOMMENDER_URL =
-  import.meta.env.VITE_RECOMMENDER_URL || 'http://localhost:8002/api/v1'
+  import.meta.env.VITE_RECOMMENDER_URL || '/api/v1'
 
 interface RecommendationResponse {
   recommendations?: Recommendation[]

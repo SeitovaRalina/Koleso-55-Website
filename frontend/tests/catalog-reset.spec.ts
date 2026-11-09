@@ -19,7 +19,7 @@ const excursion = {
 }
 
 async function mockCatalog(page: Page) {
-  await page.route('http://localhost:8001/api/**', async route => {
+  await page.route('**/api/**', async route => {
     const url = new URL(route.request().url())
     const filtered = url.searchParams.has('category') || url.searchParams.has('search') || url.searchParams.has('location_type')
     const body = url.pathname.endsWith('/categories/')

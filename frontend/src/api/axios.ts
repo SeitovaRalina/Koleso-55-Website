@@ -6,7 +6,9 @@ import {
   clearAuthTokens,
 } from '../utils/session'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api'
+// Browser talks only to the Vite/nginx origin. Vite proxies this locally;
+// production nginx exposes the same `/api` path.
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 const api = axios.create({
   baseURL: API_URL,
