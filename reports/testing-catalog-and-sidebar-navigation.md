@@ -30,10 +30,13 @@
   equivalent certificate behaviour plus normal mobile document flow.
 - The test API mock now targets only browser requests to `/api/`; it no longer
   intercepts Vite source modules under `src/api/` and returns JSON as a module.
+- Live local verification used 20 temporary, clearly labelled pagination
+  records in addition to the existing five. Django returned 25 active records
+  as pages of 12, 12 and 1; the browser opened `/catalog?page=2` and
+  `/catalog?page=3` and rendered the corresponding records and controls.
 
-## Runtime limitation
+## Local data note
 
-The local Django API at `127.0.0.1:8088` was unavailable during this pass.
-Catalogue Playwright scenarios therefore use deterministic intercepted API
-responses; they validate frontend interaction and layout but not live backend
-data. This task does not alter backend contracts.
+The extra records are local Docker/Postgres test data only. They are named
+“Локальная проверка пагинации 01” through “20”, include valid slots, are not
+part of Git and must not be seeded into production.
