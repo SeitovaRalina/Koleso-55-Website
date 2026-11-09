@@ -177,6 +177,8 @@ export interface UnifiedRequest {
   title: string
   summary: string
   excursion?: number
+}
+
 export interface User {
   id: number
   email: string
