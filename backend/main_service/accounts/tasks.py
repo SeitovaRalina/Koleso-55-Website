@@ -29,18 +29,19 @@ def send_verification_email_task(self, user_id, domain, protocol='http'):
         if user.is_email_verified:
             return f"Email для пользователя {user.email} уже подтвержден"
         
-        # Проверяем, не проходило ли 24 часа с последней отправки
+        # View rate-limits resend requests to one minute. Keep the worker guard
+        # aligned so a permitted retry really sends a new link.
         if user.email_verification_sent_at:
             time_since_last_sent = timezone.now() - user.email_verification_sent_at
-            if time_since_last_sent < timedelta(hours=24):
-                return f"Письмо подтверждения уже отправлялось менее 24 часов назад для {user.email}"
+            if time_since_last_sent < timedelta(minutes=1):
+                return f"Письмо подтверждения уже отправлялось менее минуты назад для {user.email}"
         
         # Генерируем токен и uidb64
         token = default_token_generator.make_token(user)
         uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
         
         # Строим URL подтверждения
-        verify_url = f"{protocol}://{domain}/api/accounts/verify-email/{uidb64}/{token}/"
+        verify_url = f"{settings.FRONTEND_BASE_URL}/verify-email/{uidb64}/{token}"
         
         # Тема и тело письма
         subject = 'Подтверждение email - КОЛЕСО путешествий 55'

@@ -33,6 +33,21 @@ class GiftCertificateRequestAPITests(APITestCase):
         self.assertEqual(request.status, GiftCertificateRequest.Status.NEW)
         self.assertNotIn('status', response.data)
 
+    def test_authenticated_request_belongs_to_current_user_and_is_listed(self):
+        user = get_user_model().objects.create_user(
+            email='buyer@example.com', password='test-password',
+        )
+        self.client.force_authenticate(user)
+        response = self.client.post(self.url, self.payload, format='json')
+
+        self.assertEqual(response.status_code, 201)
+        request = GiftCertificateRequest.objects.get(pk=response.data['id'])
+        self.assertEqual(request.user, user)
+        listing = self.client.get(reverse('bookings:my-certificate-request-list'))
+        self.assertEqual(listing.status_code, 200)
+        self.assertEqual(listing.data['count'], 1)
+        self.assertNotIn('buyer_email', listing.data['results'][0])
+
     def test_invalid_fields_do_not_create_request(self):
         for field, value in [('amount', 1234), ('format', 'unknown'), ('buyer_email', 'bad'), ('buyer_name', '   ')]:
             with self.subTest(field=field):
@@ -91,7 +106,7 @@ class GiftCertificateRequestAdminTests(TestCase):
         self.assertEqual(self.client.get(detail_url).status_code, 200)
         self.assertEqual(self.client.post(detail_url, {'buyer_name': 'Подмена'}).status_code, 403)
 
-    def test_admin_displays_requests_without_editing_controls(self):
+    def test_admin_displays_request_data_read_only_and_status_editable(self):
         model_admin = admin.site._registry[GiftCertificateRequest]
         self.assertIsInstance(model_admin, GiftCertificateRequestAdmin)
         self.assertIn('buyer_email', model_admin.readonly_fields)
@@ -113,9 +128,10 @@ class GiftCertificateRequestAdminTests(TestCase):
         self.assertContains(response, 'buyer@example.com')
         self.assertContains(response, 'Дата создания')
         self.assertNotContains(response, 'name="buyer_email"')
-        self.assertNotContains(response, 'name="_save"')
+        self.assertContains(response, 'name="status"')
+        self.assertContains(response, 'name="_save"')
 
-    def test_admin_cannot_create_change_or_delete_requests(self):
+    def test_admin_cannot_create_or_delete_and_cannot_edit_submitted_data(self):
         self.client.force_login(self.admin_user)
         add_url = reverse('admin:bookings_giftcertificaterequest_add')
         detail_url = reverse('admin:bookings_giftcertificaterequest_change', args=[self.request.pk])
@@ -125,11 +141,11 @@ class GiftCertificateRequestAdminTests(TestCase):
         self.assertEqual(self.client.post(add_url, {'buyer_name': 'Новая заявка'}).status_code, 403)
         self.assertEqual(self.client.post(detail_url, {
             'buyer_name': 'Подмена', 'status': GiftCertificateRequest.Status.COMPLETED,
-        }).status_code, 403)
+        }).status_code, 302)
         self.assertEqual(self.client.get(delete_url).status_code, 403)
         self.assertEqual(self.client.post(delete_url, {'post': 'yes'}).status_code, 403)
 
         self.request.refresh_from_db()
         self.assertEqual(self.request.buyer_name, 'Покупатель')
-        self.assertEqual(self.request.status, GiftCertificateRequest.Status.NEW)
+        self.assertEqual(self.request.status, GiftCertificateRequest.Status.COMPLETED)
         self.assertEqual(GiftCertificateRequest.objects.count(), 1)

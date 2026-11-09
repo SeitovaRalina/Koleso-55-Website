@@ -6,6 +6,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from rest_framework import generics, status, permissions
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenRefreshView, TokenBlacklistView
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
@@ -20,8 +21,10 @@ from .serializers import (
     VerifyEmailSerializer,
     VerifyEmailConfirmSerializer,
 )
-from .utils import link_guest_bookings, generate_jwt_response, get_domain_and_protocol
+from .utils import claim_guest_records_by_verified_email, generate_jwt_response, get_domain_and_protocol
 from .tasks import send_verification_email_task
+from bookings.models import CustomTourRequest, GiftCertificateRequest
+from excursions.models import ExcursionInquiry
 
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.vk.views import VKOAuth2Adapter
@@ -54,7 +57,7 @@ class SocialConfigView(generics.GenericAPIView):
 @extend_schema(
     summary="Регистрация пользователя",
     description="Создаёт аккаунт с email (обязательно) и телефоном (опционально). "
-                "Возвращает JWT токены, привязывает гостевые бронирования и отправляет приветственное письмо подтверждения.",
+                "Возвращает JWT токены и отправляет письмо подтверждения email.",
 )
 class RegisterView(generics.GenericAPIView):
     serializer_class = CustomRegisterSerializer
@@ -67,13 +70,8 @@ class RegisterView(generics.GenericAPIView):
 
         response = generate_jwt_response(user)
 
-        # Привязываем гостевые бронирования
-        linking_result = link_guest_bookings(user)
-        if linking_result.get('linked'):
-            response['linked_bookings'] = linking_result['linked']
-
         if not user.is_email_verified:
-            response['hint'] = 'Email не подтверждён. Проверьте почту.'
+            response['hint'] = 'Подтвердите email, чтобы увидеть прошлые бронирования и заявки.'
 
         logger.info(f"User registered: {user.email}")
         return Response(response, status=status.HTTP_201_CREATED)
@@ -273,6 +271,7 @@ class VerifyEmailConfirmView(generics.GenericAPIView):
 
         serializer = self.get_serializer(context={'user': user})
         result = serializer.save()
+        result['claimed_records'] = claim_guest_records_by_verified_email(user)
         return Response(result, status=status.HTTP_200_OK)
 
     def _get_user(self, uidb64, token):
@@ -292,7 +291,7 @@ class VerifyEmailConfirmView(generics.GenericAPIView):
 
 @extend_schema(
     summary="Профиль пользователя",
-    description="Просмотр и редактирование профиля. При смене телефона привязываются гостевые бронирования.",
+    description="Просмотр и редактирование профиля. Гостевые записи привязываются только по подтверждённому email.",
 )
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
@@ -302,21 +301,33 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
     def perform_update(self, serializer):
-        old_phone = self.request.user.phone
-        user = serializer.save()
+        serializer.save()
 
-        if old_phone != user.phone and user.phone:
-            linking_result = link_guest_bookings(user)
-            if linking_result.get('linked'):
-                # Сохраняем в сериализатор для ответа
-                serializer._linked_bookings = linking_result['linked']
 
-    def update(self, request, *args, **kwargs):
-        response = super().update(request, *args, **kwargs)
-        linked = getattr(self.get_serializer(), '_linked_bookings', 0)
-        if linked:
-            response.data['linked_bookings'] = f"Привязано {linked} гостевых бронирований"
-        return response
+@extend_schema(summary='Единый список моих заявок')
+class MyRequestListView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        records = []
+        for item in ExcursionInquiry.objects.filter(user=request.user).select_related('excursion'):
+            records.append({'id': item.id, 'type': 'inquiry', 'status': item.status,
+                'status_display': item.get_status_display(), 'created_at': item.created_at,
+                'title': f'Вопрос: {item.excursion.title}', 'summary': item.question,
+                'excursion': item.excursion_id})
+        for item in CustomTourRequest.objects.filter(user=request.user):
+            records.append({'id': item.id, 'type': 'custom_tour', 'status': item.status,
+                'status_display': item.get_status_display(), 'created_at': item.created_at,
+                'title': 'Экскурсия на заказ', 'summary': item.description})
+        for item in GiftCertificateRequest.objects.filter(user=request.user):
+            records.append({'id': item.id, 'type': 'certificate', 'status': item.status,
+                'status_display': item.get_status_display(), 'created_at': item.created_at,
+                'title': 'Подарочный сертификат',
+                'summary': f'Получатель: {item.recipient_name}. Номинал: {item.amount} ₽, {item.get_format_display().lower()}.'})
+        records.sort(key=lambda item: item['created_at'], reverse=True)
+        paginator = PageNumberPagination()
+        page = paginator.paginate_queryset(records, request, view=self)
+        return paginator.get_paginated_response(page)
 
 
 # ============================================================

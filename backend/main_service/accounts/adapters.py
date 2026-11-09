@@ -1,9 +1,17 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.contrib.auth import get_user_model
-from .utils import link_guest_bookings
+from .utils import claim_guest_records_by_verified_email
 
 User = get_user_model()
+
+
+def get_verified_social_email(sociallogin):
+    """Return only an email explicitly marked verified by the provider."""
+    for email_address in getattr(sociallogin, 'email_addresses', []) or []:
+        if getattr(email_address, 'verified', False):
+            return email_address.email
+    return None
 
 
 class CustomAccountAdapter(DefaultAccountAdapter):
@@ -57,21 +65,17 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         if last_name:
             user.last_name = last_name
             
-        # Email из социальных сетей считаем подтвержденным
-        email = None
-        if hasattr(sociallogin, 'email_addresses') and sociallogin.email_addresses:
-            email = sociallogin.email_addresses[0].email
-        elif hasattr(sociallogin.account, 'extra_data'):
-            email = sociallogin.account.extra_data.get('email')
+        # Связывать гостевые записи можно лишь с email, который провайдер
+        # явно пометил как подтверждённый.
+        email = get_verified_social_email(sociallogin)
 
         if email and not user.is_email_verified:
             user.is_email_verified = True
             
         user.save()
         
-        # Привязываем гостевые бронирования
-        if request:
-            link_guest_bookings(user)
+        if email:
+            claim_guest_records_by_verified_email(user)
         
         return user
     
@@ -80,17 +84,18 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         Обрабатывает предварительный вход через социальную сеть.
         Если пользователь с таким email уже существует, привязываем социальный аккаунт.
         """
-        email = None
-        if hasattr(sociallogin, 'email_addresses') and sociallogin.email_addresses:
-            email = sociallogin.email_addresses[0].email
-        elif hasattr(sociallogin.account, 'extra_data'):
-            email = sociallogin.account.extra_data.get('email')
+        email = get_verified_social_email(sociallogin)
 
         if email:
             try:
                 existing_user = User.objects.get(email=email)
                 # Привязываем социальный аккаунт к существующему пользователю
                 sociallogin.connect(request, existing_user)
+                if existing_user.email.lower() == email.lower():
+                    if not existing_user.is_email_verified:
+                        existing_user.is_email_verified = True
+                        existing_user.save(update_fields=['is_email_verified'])
+                    claim_guest_records_by_verified_email(existing_user)
             except User.DoesNotExist:
                 # Пользователь новый, будет создан автоматически
                 pass
@@ -100,18 +105,15 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         Создает нового пользователя для социального входа.
         """
         # Получаем email из данных социальной сети
-        email = None
-        if hasattr(sociallogin, 'email_addresses') and sociallogin.email_addresses:
-            email = sociallogin.email_addresses[0].email
-        elif hasattr(sociallogin.account, 'extra_data'):
-            email = sociallogin.account.extra_data.get('email')
+        email = get_verified_social_email(sociallogin)
 
+        has_provider_email = bool(email)
         if not email:
             # Если email не предоставлен, используем временный
             email = f"social_{sociallogin.account.uid}@social.local"
 
         user = User(
             email=email,
-            is_email_verified=bool(email),
+            is_email_verified=has_provider_email,
         )
         return user

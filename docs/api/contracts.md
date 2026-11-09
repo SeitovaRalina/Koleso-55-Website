@@ -6,7 +6,10 @@
 
 ## Main service
 
-Base in frontend: `VITE_API_URL` or `http://localhost:8001/api`.
+Base in frontend: `VITE_API_URL` or `/api`. Locally Vite at
+`http://127.0.0.1:4173` proxies `/api/` and `/media/` to Django on port 8001;
+production nginx provides the same-origin routes. Browser E2E must use 4173,
+not Django port 8001 directly.
 
 | Area | Routes | Source |
 | --- | --- | --- |
@@ -25,7 +28,8 @@ that route. Treat as a defect investigation, not a supported contract.
 
 ## Recommendation service
 
-Base in frontend: `VITE_RECOMMENDER_URL` or `http://localhost:8002/api/v1`.
+Base in frontend: `VITE_RECOMMENDER_URL` or `/api/v1`. Vite proxies this to
+the local recommender on port 8002; production nginx exposes same route.
 
 | Route | Meaning | Response field used by frontend |
 | --- | --- | --- |
@@ -39,6 +43,10 @@ Query names differ: user-specific endpoint uses `top_k`; generic endpoint uses
 `limit`. The frontend client reflects this distinction.
 
 ## Assistant service
+
+Base in frontend: `VITE_ASSISTANT_URL` or `/api/assistant`. Local Vite
+forwards this route to assistant port 8000 as `/v1`; production must expose
+the identical public contract.
 
 | Route | Meaning |
 | --- | --- |

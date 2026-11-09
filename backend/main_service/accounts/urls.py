@@ -4,7 +4,7 @@ from .views import (
     PasswordResetView, PasswordResetConfirmView,
     VerifyEmailView, VerifyEmailConfirmView,
     CustomTokenRefreshView, CustomTokenBlacklistView,
-    GoogleLogin, VKLogin, SocialConfigView
+    GoogleLogin, VKLogin, SocialConfigView, MyRequestListView
 )
 
 app_name = 'accounts'
@@ -28,6 +28,7 @@ urlpatterns = [
     
     # Профиль
     path('profile/', ProfileView.as_view(), name='profile'),
+    path('my-requests/', MyRequestListView.as_view(), name='my-requests'),
 
     # Социальная аутентификация
     path('google/', GoogleLogin.as_view(), name='google_login'),

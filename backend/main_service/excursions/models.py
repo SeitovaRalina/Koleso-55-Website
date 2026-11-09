@@ -13,7 +13,8 @@ class ExcursionInquiry(models.Model):
     class Status(models.TextChoices):
         NEW = 'new', 'Новое'
         IN_PROGRESS = 'in_progress', 'В работе'
-        CLOSED = 'closed', 'Закрыто'
+        CLOSED = 'closed', 'Вопрос решён'
+        CANCELLED = 'cancelled', 'Отменено'
 
     class ContactMethod(models.TextChoices):
         CALL = 'call', 'Звонок'

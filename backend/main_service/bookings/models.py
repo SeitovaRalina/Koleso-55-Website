@@ -17,6 +17,14 @@ class GiftCertificateRequest(models.Model):
         DIGITAL = 'digital', 'Электронный'
         PRINTED = 'printed', 'Печатный'
 
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='gift_certificate_requests',
+        verbose_name='Пользователь',
+    )
     buyer_name = models.CharField('Имя покупателя', max_length=150)
     buyer_phone = models.CharField('Телефон покупателя', max_length=30)
     buyer_email = models.EmailField('Электронная почта покупателя')
