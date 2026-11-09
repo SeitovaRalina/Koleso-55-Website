@@ -16,6 +16,17 @@
 
 ## Findings
 
+Each finding is mandatory and must remain in this report even after a fix.
+
+| ID | Severity | Status | Evidence | Impact | Required resolution | Retest evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| R-001 | P0/P1/P2/P3 | open/resolved/accepted_by_user | <file:line, command or scenario> | <user/business/security impact> | <specific required change> | <command, UI scenario or link> |
+
+Review independently: do not accept implementation/test report claims without
+checking approved plan, complete diff (including untracked files), relevant
+code, migration/API/Admin behaviour and evidence. Record scope creep,
+unapproved UX, missing proof and design-system inconsistencies as findings.
+
 ## User review checklist
 
 ## Merge/deploy decision
