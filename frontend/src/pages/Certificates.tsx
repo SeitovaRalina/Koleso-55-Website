@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { isAxiosError } from 'axios'
 import { createCertificateRequest } from '../api/certificates'
 import { CONTACTS } from '../config/contacts'
+import { useAuth } from '../contexts/useAuth'
 
 export default function Certificates() {
+  const { user } = useAuth()
   const [formData, setFormData] = useState({
     buyer_name: '',
     buyer_phone: '',
@@ -18,6 +20,15 @@ export default function Certificates() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    setFormData(current => ({ ...current,
+      buyer_name: current.buyer_name || [user.last_name, user.first_name, user.patronymic].filter(Boolean).join(' '),
+      buyer_phone: current.buyer_phone || user.phone || '',
+      buyer_email: current.buyer_email || user.email || '',
+    }))
+  }, [user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,6 +117,7 @@ export default function Certificates() {
                       value={formData.buyer_email}
                       onChange={(e) => setFormData({ ...formData, buyer_email: e.target.value })}
                     />
+                    {!user && <p className="mt-1 text-sm text-gray-600">По этому email заявку можно будет увидеть в личном кабинете после подтверждения адреса.</p>}
                   </div>
                 </div>
               </div>

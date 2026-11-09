@@ -122,7 +122,7 @@ export default function Register() {
         access: response.tokens.access,
         refresh: response.tokens.refresh,
       }, response.user)
-      navigate('/')
+      navigate('/account')
     } catch (err: unknown) {
       // Обработка различных типов ошибок
       const errorData = getApiErrorData(err)

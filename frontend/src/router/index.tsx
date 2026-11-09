@@ -9,6 +9,7 @@ import Login from '../pages/Login'
 import Register from '../pages/Register'
 import PasswordReset from '../pages/PasswordReset'
 import PasswordResetConfirm from '../pages/PasswordResetConfirm'
+import EmailVerificationConfirm from '../pages/EmailVerificationConfirm'
 import ExcursionDetail from '../pages/ExcursionDetail'
 import Account from '../pages/Account'
 import Certificates from '../pages/Certificates'
@@ -107,6 +108,10 @@ export const router = createBrowserRouter([
             {
                 path: 'password-reset/:uidb64/:token',
                 element: <PasswordResetConfirm />,
+            },
+            {
+                path: 'verify-email/:uidb64/:token',
+                element: <EmailVerificationConfirm />,
             },
             {
                 path: 'google-callback',

@@ -1,12 +1,22 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { customTourRequestsApi } from '../../api/customTourRequests'
 import { getApiErrorMessage } from '../../utils/apiError'
+import { useAuth } from '../../contexts/useAuth'
 
 export default function CustomRequest() {
+  const { user } = useAuth()
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', description: '' })
+
+  useEffect(() => {
+    if (!user) return
+    setFormData(current => ({ ...current,
+      name: current.name || [user.last_name, user.first_name, user.patronymic].filter(Boolean).join(' '),
+      phone: current.phone || user.phone || '', email: current.email || user.email || '',
+    }))
+  }, [user])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -33,7 +43,7 @@ export default function CustomRequest() {
           <div className='mb-6 grid grid-cols-1 gap-6 md:grid-cols-2'>
             <Field label='Ваше имя' required value={formData.name} onChange={value => setFormData({ ...formData, name: value })} placeholder='Иван Иванов' />
             <Field label='Телефон' type='tel' required value={formData.phone} onChange={value => setFormData({ ...formData, phone: value })} placeholder='+7 (999) 123-45-67' />
-            <div className='md:col-span-2'><Field label='Email' type='email' value={formData.email} onChange={value => setFormData({ ...formData, email: value })} placeholder='example@mail.ru' /></div>
+            <div className='md:col-span-2'><Field label='Email' type='email' value={formData.email} onChange={value => setFormData({ ...formData, email: value })} placeholder='example@mail.ru' />{!user && <p className='mt-1 text-sm text-gray-600'>Укажите email и подтвердите его после регистрации, чтобы позже увидеть заявку в личном кабинете.</p>}</div>
             <div className='md:col-span-2'>
               <label className='mb-2 block font-medium text-gray-700'>Опишите пожелания *</label>
               <textarea required value={formData.description} onChange={event => setFormData({ ...formData, description: event.target.value })} rows={4} className='w-full resize-none rounded-card border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary' placeholder='Куда хотите поехать, сколько человек, какие даты...' />

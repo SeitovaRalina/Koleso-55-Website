@@ -158,6 +158,27 @@ export interface CustomTourRequest {
   created_at: string
 }
 
+export interface GiftCertificateRequestSummary {
+  id: number
+  recipient_name: string
+  amount: number
+  format: 'digital' | 'printed'
+  status: 'new' | 'in_progress' | 'completed' | 'cancelled'
+  status_display: string
+  created_at: string
+}
+
+export interface UnifiedRequest {
+  id: number
+  type: 'inquiry' | 'custom_tour' | 'certificate'
+  status: 'new' | 'in_progress' | 'completed' | 'cancelled'
+  status_display: string
+  created_at: string
+  title: string
+  summary: string
+  excursion?: number
+}
+
 export interface User {
   id: number
   email: string
@@ -165,6 +186,7 @@ export interface User {
   last_name: string
   patronymic?: string
   phone: string
+  is_email_verified: boolean
 }
 
 export interface AuthTokens {
