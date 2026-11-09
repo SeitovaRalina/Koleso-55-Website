@@ -91,7 +91,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onResetAll, op
     </label>
   )
   return (
-    <aside className={`${open ? 'block' : 'hidden'} lg:block w-full lg:w-64 shrink-0`} aria-label='Фильтры каталога'>
+    <aside className={`${open ? 'block' : 'hidden'} lg:block w-full lg:w-64 shrink-0 lg:sticky lg:top-24`} aria-label='Фильтры каталога'>
       <div className='bg-white border border-gray-200 rounded-lg p-4'>
         <div className='flex justify-between items-center mb-3'>
           <h2 className='text-lg font-bold'>Фильтры</h2>
