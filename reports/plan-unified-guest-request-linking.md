@@ -14,6 +14,13 @@
 | 2026-11-08 | Draft updated | User confirmed restoration of the former “Остались вопросы?” form in this scope |
 | 2026-11-08 | Draft updated | User selected verified-email-only automatic claiming; full verification/linking UX proposed |
 | 2026-11-08 | Approved | User approved ordinary-login reconciliation and proposed verification copy/UX |
+| 2026-11-08 | Approved plan corrected against rebased source | Existing custom-tour and question flows are preserved; only their ownership/listing behaviour changes |
+| 2026-11-08 | Draft updated | User rejected registration and verification intermediary screens; profile-centred verification UX replaces them |
+| 2026-11-09 | Draft updated | User required one visual and semantic status system for all request types; review found list ordering does not meet approved newest-first rule |
+| 2026-11-09 | Approved | User approved profile-centred verification UX, unified newest-first request timeline and one status system |
+| 2026-11-09 | Approved | User approved profile-contact prefill for authenticated custom-tour and certificate forms |
+| 2026-11-09 | Approved | User removed SMS-verification implementation detail from all customer-facing copy |
+| 2026-11-09 | Approved | User approved hiding guest-linking email hints in custom-tour and certificate forms for authenticated users |
 
 ## Goal
 
@@ -24,12 +31,12 @@ created as a guest before the customer authenticates.
 
 - Guest `TourOrder` records are linked by `accounts.utils.link_guest_bookings`
   when email or phone matches a registered user.
-- `CustomTourRequest` is attached only when the sender is already
-  authenticated.
+- `CustomTourRequest` is already persisted and attached when the sender is
+  authenticated, but guest submissions cannot later be claimed.
 - Gift certificate requests have no account relation or personal list.
-- A prior question-form flow existed for an excursion, but the current
-  `Остались вопросы?` block is only a contacts link. User explicitly confirmed
-  restoration of that form in this scope.
+- The excursion-level `Остались вопросы?` form already persists an
+  `ExcursionInquiry` and has an authenticated personal list. Preserve this UI
+  and bring it under the same safe claiming policy.
 - Current `link_guest_bookings` claims unowned orders on registration by either
   matching email or phone; it does not require `is_email_verified`. A phone is
   not independently verified. Profile phone changes rerun linking; ordinary
@@ -39,7 +46,8 @@ created as a guest before the customer authenticates.
 
 - One account-linking policy for guest questions about an excursion, custom
   tour requests and gift certificate requests.
-- Restore the excursion-level “Остались вопросы?” form and persist its request.
+- Preserve the existing excursion-level “Остались вопросы?” form and its
+  persisted request.
 - Display those owned records in `Мои заявки` after successful linking.
 - Preserve existing `TourOrder` linking while making its safety rules explicit.
 - The three request types and their planned statuses:
@@ -52,6 +60,13 @@ created as a guest before the customer authenticates.
 - Website chat or manager-to-customer messages.
 - Payment, certificate issuance, SMS infrastructure or a new identity system.
 - Automatically claiming records that are already owned by another account.
+
+## Approved contact prefill
+
+- For authenticated users, custom-tour form pre-fills name, phone and email
+  from profile; certificate form pre-fills buyer name, phone and email.
+- Prefilled fields stay editable for a particular request and do not update the
+  profile when submitted.
 
 ## Proposed UX and business rules
 
@@ -81,10 +96,10 @@ Replace it with these states:
 
 | Moment | UI | Action/result |
 | --- | --- | --- |
-| Registration success | success screen before redirect: “Подтвердите email, чтобы увидеть прошлые бронирования и заявки” | send verification email; explain that account works now but guest history waits |
+| Registration success | immediate redirect to profile, no success screen | send verification email; show profile warning that account works now but guest history waits |
 | Email unverified in profile | persistent compact warning with exact masked/known email and “Отправить письмо ещё раз” | call existing verification endpoint; show 60-second cooldown and delivery/error state |
 | Empty `Мои бронирования` / `Мои заявки`, email unverified | explanatory empty state, not “nothing exists” | link/button to profile verification block |
-| Confirmation link succeeds | confirmation page says email confirmed and gives claimed counts by record type | invalidate profile/orders/requests queries; link to relevant tabs |
+| Confirmation link succeeds | redirect to profile with a short success notification | invalidate profile/orders/requests queries; profile then shows the updated tabs without an intermediary screen |
 | Email verified, no matches | neutral empty state | do not imply records were lost |
 
 Email stays read-only in profile. Guest forms state: “Чтобы позже увидеть
@@ -104,7 +119,13 @@ remain valid but are not automatically claimed.
   phone/profile change.
 - Extend email-confirmation response with claim summary. Add authenticated
   requests-list API and request serializers/types; all list queries scope to
-  `user=request.user`.
+  `user=request.user`. The list endpoint returns a unified, paginated timeline
+  of question/custom-tour/certificate records with `type`, `status`,
+  `status_display`, `created_at` and a safe type-specific summary; it orders
+  globally by `created_at` descending.
+- Email verification links use an explicit public frontend base URL rather
+  than a proxied Django request host. Add the non-secret environment example
+  and preserve an explicit safe local default for development.
 - Django Admin keeps original submitted data read-only and lets managers change
   only processing status.
 
@@ -135,14 +156,30 @@ remain valid but are not automatically claimed.
 - Migration adds nullable ownership only; rollback is to stop new linking while
   preserving submitted records.
 
-## Open decisions
+## Pending approval: profile-centred verification UX revision
 
-1. Confirm proposed ordinary-login reconciliation: verified-email-only,
-   idempotent claim of currently unowned records.
-2. Confirm exact user-facing copy/tone for verification messages, or delegate
-   final copy to implementation within this meaning.
+- Registration must redirect directly to `Личный кабинет`, not an “Аккаунт создан” screen.
+- The profile keeps a persistent compact warning: “Письмо для подтверждения отправлено на <email>”.
+  It includes “Отправить ещё раз”, with delivery/error state and 60-second cooldown.
+- Successful confirmation redirects to the profile and shows a brief success notification;
+  it does not render an “Email подтверждён” screen or claim-count page.
+- Existing unverified empty-state hints remain links to the profile verification block.
+
+## Pending approval: unified request status presentation
+
+- Every card in `Мои заявки` uses one `RequestStatusBadge` component: the
+  same pill shape, spacing, font size and semantic colour for equivalent
+  states, regardless of request type.
+- Semantic palette: `new` blue, `in_progress` amber, `completed` green and
+  `cancelled` red. Russian text remains grammatically correct for the request
+  type (`Новое` for a question, `Новая` for a certificate/tour).
+- API data for a question includes its machine-readable `status` as well as
+  the Russian display text. The frontend must not infer a state from a label.
+- `Мои заявки` is one combined, newest-first timeline. Pagination must not
+  silently omit old records or regroup them by type.
 
 ## Approval record
 
-Awaiting explicit user approval after the open decisions are resolved. No code,
-migration, API or UX change may start before then.
+Original linking scope approved by the user in Codex chat on 2026-11-08.
+Profile-centred verification UX and unified request rendering were explicitly
+approved by the user in Codex chat on 2026-11-09.

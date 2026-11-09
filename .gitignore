@@ -14,3 +14,4 @@ docs/operations/production-local.md
 .visual-tools/
 frontend/.npm-cache/
 .tmp_visual.*
+frontend/test-results/
