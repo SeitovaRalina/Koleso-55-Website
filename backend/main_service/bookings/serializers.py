@@ -169,7 +169,6 @@ class MyGiftCertificateRequestSerializer(serializers.ModelSerializer):
             'status_display', 'created_at',
         )
 
-
 class CustomTourRequestSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
 

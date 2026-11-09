@@ -17,7 +17,6 @@ export default function CustomRequest() {
       phone: current.phone || user.phone || '', email: current.email || user.email || '',
     }))
   }, [user])
-
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
