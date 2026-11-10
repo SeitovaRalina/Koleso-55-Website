@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const ASSISTANT_URL = import.meta.env.VITE_ASSISTANT_URL || 'http://localhost:8000/v1'
+const ASSISTANT_URL = import.meta.env.VITE_ASSISTANT_URL || '/api/assistant'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'

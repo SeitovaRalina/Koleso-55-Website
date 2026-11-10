@@ -328,4 +328,5 @@ CELERY_TASK_DEFAULT_ROUTING_KEY = 'django'
 # Domain configuration for email links
 DOMAIN = os.environ.get('DOMAIN', 'localhost:8001')
 PROTOCOL = os.environ.get('PROTOCOL', 'http')
+FRONTEND_BASE_URL = os.environ.get('FRONTEND_BASE_URL', 'http://127.0.0.1:4173').rstrip('/')
 RECOMMENDER_BASE_URL = os.environ.get('RECOMMENDER_BASE_URL', 'http://recommender_api:8000')

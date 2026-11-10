@@ -1,60 +1,38 @@
 from django.db import transaction
-from bookings.models import TourOrder
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
-def link_guest_bookings(user):
+def claim_guest_records_by_verified_email(user):
+    """Claim only unowned guest records matching a confirmed account email.
+
+    Phone is not an identity proof: SMS verification is not configured. The
+    ``user__isnull`` predicate makes repeat calls idempotent and prevents moving
+    another account's records.
     """
-    Привязывает гостевые бронирования к пользователю по совпадению email или телефона.
-    Также заполняет профиль пользователя данными из последнего бронирования.
-    
-    Гостевые заявки привязываются один раз - при регистрации или изменении контактов.
-    Уже привязанные заявки остаются с аккаунтом навсегда.
-    """
-    if not user.email and not user.phone:
-        return {'linked': 0, 'profile_updated': False}
-    
-    linked_count = 0
-    profile_updated = False
-    
-    # Ищем гостевые бронирования (user is null) с совпадающим email или телефоном
-    guest_bookings = TourOrder.objects.filter(user__isnull=True)
-    
-    # Используем select_for_update() чтобы избежать блокировки всей таблицы
+    result = {'bookings': 0, 'inquiries': 0, 'custom_tours': 0, 'certificates': 0}
+    if not user.is_email_verified or not user.email:
+        return {**result, 'total': 0}
+
+    # Import locally to avoid an accounts <-> domain-app import cycle.
+    from bookings.models import CustomTourRequest, GiftCertificateRequest, TourOrder
+    from excursions.models import ExcursionInquiry
+
     with transaction.atomic():
-        if user.email:
-            guest_bookings_email = guest_bookings.filter(email__iexact=user.email)
-            linked_email = guest_bookings_email.update(user=user)
-            linked_count += linked_email
-        
-        if user.phone:
-            guest_bookings_phone = guest_bookings.filter(phone=user.phone)
-            linked_phone = guest_bookings_phone.update(user=user)
-            linked_count += linked_phone
-        
-        # Если профиль пользователя не заполнен, заполняем из последнего бронирования
-        if (not user.first_name or not user.last_name) and linked_count > 0:
-            latest_booking = TourOrder.objects.filter(
-                user=user
-            ).order_by('-created_at').first()
-            
-            if latest_booking:
-                if not user.first_name and latest_booking.first_name:
-                    user.first_name = latest_booking.first_name
-                    profile_updated = True
-                
-                if not user.last_name and latest_booking.last_name:
-                    user.last_name = latest_booking.last_name
-                    profile_updated = True
-                
-                if profile_updated:
-                    user.save(update_fields=['first_name', 'last_name'])
-    
-    return {
-        'linked': linked_count,
-        'profile_updated': profile_updated
-    }
+        result['bookings'] = TourOrder.objects.filter(
+            user__isnull=True, email__iexact=user.email,
+        ).update(user=user)
+        result['inquiries'] = ExcursionInquiry.objects.filter(
+            user__isnull=True, email__iexact=user.email,
+        ).update(user=user)
+        result['custom_tours'] = CustomTourRequest.objects.filter(
+            user__isnull=True, email__iexact=user.email,
+        ).update(user=user)
+        result['certificates'] = GiftCertificateRequest.objects.filter(
+            user__isnull=True, buyer_email__iexact=user.email,
+        ).update(user=user)
+
+    return {**result, 'total': sum(result.values())}
 
 def get_domain_and_protocol(request=None):
     """Получение домена и протокола из запроса или settings"""

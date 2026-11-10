@@ -1,5 +1,6 @@
 import api from './axios'
 import type { User } from '../types'
+import type { PaginatedResponse, UnifiedRequest } from '../types'
 
 export const authApi = {
   getSocialConfig: async (provider: 'google' | 'vk'): Promise<{ client_id: string }> => {
@@ -75,6 +76,10 @@ export const authApi = {
 
   verifyEmailConfirm: async (uidb64: string, token: string) => {
     const response = await api.get(`/accounts/verify-email/${uidb64}/${token}/`)
+    return response.data
+  },
+  getMyRequests: async (page = 1): Promise<PaginatedResponse<UnifiedRequest>> => {
+    const response = await api.get('/accounts/my-requests/', { params: { page } })
     return response.data
   },
 

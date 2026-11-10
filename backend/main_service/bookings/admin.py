@@ -1,30 +1,28 @@
 from django.contrib import admin
-from .models import GiftCertificateRequest, TourOrder
+from .models import CustomTourRequest, GiftCertificateRequest, TourOrder
 
 
 @admin.register(GiftCertificateRequest)
 class GiftCertificateRequestAdmin(admin.ModelAdmin):
     change_form_template = 'admin/bookings/giftcertificaterequest/change_form.html'
-    list_display = ('id', 'buyer_name', 'recipient_name', 'amount', 'format', 'created_at')
-    list_filter = ('format', 'created_at')
+    list_display = ('id', 'buyer_name', 'recipient_name', 'amount', 'format', 'status', 'created_at')
+    list_filter = ('status', 'format', 'created_at')
     search_fields = ('buyer_name', 'buyer_phone', 'buyer_email', 'recipient_name', 'recipient_phone', 'recipient_email')
     readonly_fields = (
         'buyer_name', 'buyer_phone', 'buyer_email', 'recipient_name',
         'recipient_phone', 'recipient_email', 'amount', 'format',
-        'message', 'created_at',
+        'message', 'created_at', 'updated_at', 'user',
     )
     actions = None
     fieldsets = (
         ('Покупатель', {'fields': ('buyer_name', 'buyer_phone', 'buyer_email')}),
         ('Получатель', {'fields': ('recipient_name', 'recipient_phone', 'recipient_email')}),
         ('Сертификат', {'fields': ('amount', 'format', 'message')}),
-        ('Поступление', {'fields': ('created_at',)}),
+        ('Обработка', {'fields': ('status', 'updated_at')}),
+        ('Поступление', {'fields': ('user', 'created_at')}),
     )
 
     def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
         return False
 
     def has_delete_permission(self, request, obj=None):
@@ -36,6 +34,18 @@ class GiftCertificateRequestAdmin(admin.ModelAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         title = f'Просмотр заявки на подарочный сертификат №{object_id}'
         return super().change_view(request, object_id, form_url, {'title': title, **(extra_context or {})})
+
+
+@admin.register(CustomTourRequest)
+class CustomTourRequestAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'phone', 'email', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('name', 'phone', 'email', 'description')
+    readonly_fields = ('user', 'name', 'phone', 'email', 'description', 'created_at', 'updated_at')
+    fields = ('user', 'name', 'phone', 'email', 'description', 'status', 'manager_comment', 'created_at', 'updated_at')
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(TourOrder)

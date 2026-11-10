@@ -9,6 +9,7 @@ import Login from '../pages/Login'
 import Register from '../pages/Register'
 import PasswordReset from '../pages/PasswordReset'
 import PasswordResetConfirm from '../pages/PasswordResetConfirm'
+import EmailVerificationConfirm from '../pages/EmailVerificationConfirm'
 import ExcursionDetail from '../pages/ExcursionDetail'
 import Account from '../pages/Account'
 import Certificates from '../pages/Certificates'
@@ -17,7 +18,7 @@ import NewsDetail from '../pages/NewsDetail'
 import RecommendationInfo from '../pages/RecommendationInfo'
 import GoogleCallback from '../pages/GoogleCallback'
 import About from '../pages/About'
-import { Activities, BookingRules, Contacts, CustomTour, Faq, LegalPage } from '../pages/PublicPages'
+import { BookingRules, Contacts, CustomTour, Faq, LegalPage } from '../pages/PublicPages'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 
 const UiKit = import.meta.env.DEV ? lazy(() => import('../pages/UiKit')) : null
@@ -76,7 +77,7 @@ export const router = createBrowserRouter([
             { path: 'contacts', element: <Contacts /> },
             { path: 'faq', element: <Faq /> },
             { path: 'booking', element: <BookingRules /> },
-            { path: 'activities', element: <Activities /> },
+            { path: 'activities', loader: () => redirect('/catalog') },
             { path: 'custom-tour', element: <CustomTour /> },
             { path: 'legal/personal-data', element: <LegalPage type='consent' /> },
             { path: 'legal/personal-data-consent', element: <LegalPage type='consent' /> },
@@ -107,6 +108,10 @@ export const router = createBrowserRouter([
             {
                 path: 'password-reset/:uidb64/:token',
                 element: <PasswordResetConfirm />,
+            },
+            {
+                path: 'verify-email/:uidb64/:token',
+                element: <EmailVerificationConfirm />,
             },
             {
                 path: 'google-callback',

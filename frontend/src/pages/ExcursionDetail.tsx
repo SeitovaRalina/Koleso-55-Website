@@ -638,7 +638,7 @@ export default function ExcursionDetail() {
 
           {/* Правая колонка: sidebar бронирования */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
+            <div className="bg-white rounded-lg shadow-md p-6 lg:sticky lg:top-24">
               <h3 className="text-xl font-bold mb-4">Заявка на экскурсию</h3>
               <div className="text-3xl font-bold text-blue-600 mb-6">
                 {getPrice(excursion, priceSlot).from ? 'от ' : ''}{getPrice(excursion, priceSlot).amount} ₽
@@ -739,6 +739,7 @@ export default function ExcursionDetail() {
               <div>
                 <label htmlFor="question-email" className="block text-sm font-medium text-gray-700 mb-1">Email{questionContactMethod === 'email' ? ' *' : ''}</label>
                 <input id="question-email" type="email" required={questionContactMethod === 'email'} autoComplete="email" className="w-full border rounded-lg p-2" placeholder="name@example.com" value={questionEmail} onChange={(event) => { setQuestionEmail(event.target.value); setQuestionSuccess(false); setQuestionRequestId(crypto.randomUUID()) }} />
+                <p className="mt-1 text-xs text-gray-600">Подтвердите этот email после регистрации, чтобы увидеть вопрос в личном кабинете.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Способ связи</label>

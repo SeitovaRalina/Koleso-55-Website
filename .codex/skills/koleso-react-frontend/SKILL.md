@@ -7,13 +7,24 @@ description: Build, redesign, review, or refactor the Koleso 55 React/Vite front
 
 Use this skill for any `frontend/` task.
 
+## UX approval gate
+
+Before changing UI, verify that the approved plan explicitly describes the
+page/component, states, copy, navigation/redirects, interaction, desktop and
+mobile behaviour. If the user supplied a business goal but no visual UX,
+write a concrete proposed UX in the plan and wait for explicit user approval.
+Never invent a new screen, modal, success/error/empty state, banner, redirect
+or style as an implementation detail.
+
 ## Required Context
 
 Read before editing:
 
 - `AGENTS.md`
-- `docs/FRONTEND_DESIGN_SYSTEM.md`
-- `docs/BACKEND_INTEGRATION_PLAN.md`
+- `docs/product/design-system.md`
+- `docs/architecture/components.md`
+- `docs/api/contracts.md`
+- `docs/product/business-rules.md`
 - `frontend/src/types/index.ts`
 - affected files in `frontend/src/api`, `frontend/src/pages`, `frontend/src/components`
 
@@ -37,7 +48,7 @@ Build modern travel UX for "Колесо путешествий 55":
 
 ## Design System
 
-Use tokens from `docs/FRONTEND_DESIGN_SYSTEM.md`.
+Use tokens from `docs/product/design-system.md`.
 
 Core palette from `frontend/public/hero-bg.jpg`:
 

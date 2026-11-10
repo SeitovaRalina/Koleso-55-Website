@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { isAxiosError } from 'axios'
 import { createCertificateRequest } from '../api/certificates'
 import { CONTACTS } from '../config/contacts'
+import { useAuth } from '../contexts/useAuth'
 
 export default function Certificates() {
+  const { user } = useAuth()
   const [formData, setFormData] = useState({
     buyer_name: '',
     buyer_phone: '',
@@ -18,6 +20,15 @@ export default function Certificates() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    setFormData(current => ({ ...current,
+      buyer_name: current.buyer_name || [user.last_name, user.first_name, user.patronymic].filter(Boolean).join(' '),
+      buyer_phone: current.buyer_phone || user.phone || '',
+      buyer_email: current.buyer_email || user.email || '',
+    }))
+  }, [user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,6 +117,7 @@ export default function Certificates() {
                       value={formData.buyer_email}
                       onChange={(e) => setFormData({ ...formData, buyer_email: e.target.value })}
                     />
+                    {!user && <p className="mt-1 text-sm text-gray-600">По этому email заявку можно будет увидеть в личном кабинете после подтверждения адреса.</p>}
                   </div>
                 </div>
               </div>
@@ -214,15 +226,24 @@ export default function Certificates() {
           </div>
 
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
-              <h2 className="text-xl font-semibold mb-4">О сертификатах</h2>
+            <div className="bg-white rounded-lg shadow-md p-6 lg:sticky lg:top-24">
+              <h2 className="text-xl font-semibold mb-4">Подарите впечатления, которые остаются</h2>
               <div className="space-y-4 text-sm text-gray-600">
                 <p>
-                  Выберите желаемый номинал и формат. Менеджер уточнит условия, оплату и получение.
+                  Выберите номинал — получатель сам найдёт программу по душе: прогулку по Омску, поездку за город или путешествие. Мы поможем оформить подарок и договориться о деталях.
                 </p>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Как это работает</h3>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Оставьте заявку с номиналом и форматом.</li>
+                    <li>Менеджер уточнит детали и подготовит сертификат.</li>
+                    <li>Подарите человеку время для новых впечатлений.</li>
+                  </ol>
+                </div>
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <p className="text-blue-800 font-medium">Нужна помощь?</p>
-                  <a className="text-blue-600 mt-1 block" href={`tel:${CONTACTS.phones[0].raw}`}>{CONTACTS.phones[0].label}</a>
+                  <p className="mt-1">Свяжитесь с нами — менеджер поможет выбрать формат и номинал.</p>
+                  <a className="text-blue-600 mt-1 block" href={`tel:${CONTACTS.phones[0].raw}`}>{CONTACTS.phones[0].label} (Ирина Руснак)</a>
                 </div>
               </div>
             </div>

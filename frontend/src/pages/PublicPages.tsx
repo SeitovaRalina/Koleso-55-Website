@@ -22,7 +22,7 @@ export function Activities() {
 }
 
 export function CustomTour() {
-  return <><div className={pageClass}><h1 className='text-4xl font-bold'>Экскурсия на заказ</h1><p className='mt-4 text-neutral-text'>Расскажите о маршруте, датах и составе группы. Менеджер подготовит предложение.</p></div><CustomRequest /></>
+  return <CustomRequest />
 }
 
 export function LegalPage({ type }: { type: 'consent' | 'policy' }) {

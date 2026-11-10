@@ -202,11 +202,21 @@ class SlotContractTests(TestCase):
         self.assertEqual(data['end_date'], '2026-10-15')
         self.assertTrue(data['end_time'].startswith('02:00'))
 
-    def test_missing_end_is_kept_unknown(self):
+    def test_missing_end_is_calculated_from_excursion_duration(self):
         slot = self.make_slot()
         slot.full_clean()
-        self.assertIsNone(SlotSerializer(slot).data['end_date'])
-        self.assertIsNone(SlotSerializer(slot).data['end_time'])
+        slot.save()
+        data = SlotSerializer(slot).data
+        self.assertEqual(data['end_date'], '2026-10-15')
+        self.assertTrue(data['end_time'].startswith('20:00'))
+
+    def test_missing_end_is_calculated_when_time_is_supplied_as_string(self):
+        slot = Slot.objects.create(
+            excursion=self.excursion, date='2026-10-15', time='12:00',
+        )
+
+        self.assertEqual(slot.end_date.isoformat(), '2026-10-16')
+        self.assertTrue(slot.end_time.isoformat().startswith('22:00'))
 
     def test_incomplete_or_earlier_end_is_rejected(self):
         for end_date, end_time in [
@@ -336,13 +346,14 @@ class AdminSlotTests(TestCase):
         slot = Slot.objects.create(
             excursion=self.excursion, date=date(2027, 10, 14), time=time(10),
         )
+        original_end = (slot.end_date, slot.end_time)
         self.client.force_login(self.staff)
         self.assertEqual(self.client.get(reverse('admin:excursions_slot_change', args=[slot.pk])).status_code, 403)
         self.assertEqual(self.client.post(
             reverse('admin:excursions_slot_change', args=[slot.pk]), self.slot_data(),
         ).status_code, 403)
         slot.refresh_from_db()
-        self.assertIsNone(slot.end_date)
+        self.assertEqual((slot.end_date, slot.end_time), original_end)
 
     def test_excursion_admin_status_actions(self):
         list_url = reverse('admin:excursions_excursion_changelist')

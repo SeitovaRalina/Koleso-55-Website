@@ -4,7 +4,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import CustomUser
 from .validators import normalize_phone, mask_email
-from .utils import get_domain_and_protocol, generate_jwt_response
+from .utils import claim_guest_records_by_verified_email, get_domain_and_protocol, generate_jwt_response
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -166,8 +166,9 @@ class LoginSerializer(serializers.Serializer):
     def create(self, validated_data):
         user = validated_data['user']
         response = generate_jwt_response(user)
+        response['claimed_records'] = claim_guest_records_by_verified_email(user)
         if not user.is_email_verified:
-            response['hint'] = 'Рекомендуем подтвердить email для получения ваучеров'
+            response['hint'] = 'Подтвердите email, чтобы увидеть прошлые бронирования и заявки.'
 
         return response 
 
