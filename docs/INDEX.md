@@ -6,6 +6,7 @@ Read root `AGENTS.md` first. Then choose one route; do not load all documents.
 | --- | --- |
 | What this repository contains | `project/overview.md`, `project/repository-map.md` |
 | What is verified right now | `project/current-state.md` |
+| Customer-facing delivery summary | `project/client-handover-2026-11.md` |
 | Start local work safely | `project/local-development.md` |
 | System/component boundaries | `architecture/context.md`, `architecture/components.md` |
 | User/data flow | `architecture/data-flows.md` |
