@@ -26,13 +26,12 @@
 ## Automated checks
 
 - `npm run lint` — pass.
-- `docker compose exec -T main_service python manage.py test --keepdb accounts.test_guest_claiming bookings.test_certificates bookings.test_custom_tour_requests excursions.tests.ExcursionInquiryTests` — pass, 29 tests.
+- `docker compose exec -T main_service python manage.py test accounts bookings excursions --keepdb` — pass, 51 tests.
 - `docker compose exec -T main_service python manage.py check` — pass.
 - `npm run lint` — pass.
 - `npx tsc --noEmit --incremental false -p tsconfig.app.json` and `tsconfig.node.json` — pass.
 - `npx vite build` — pass. Vite reports existing JS chunk warning over 500 kB.
-- Isolated guest-claim setup plus `npx playwright test tests/account-request-evidence.spec.ts --workers=1` — pass.
-- `npx playwright test tests/authenticated-form-prefill.spec.ts --workers=1` — pass, 3 cases.
+- Local E2E fixture plus `npx playwright test tests/account-request-evidence.spec.ts tests/authenticated-form-prefill.spec.ts` — pass, 4 cases.
 
 ## E2E scenarios
 
@@ -58,6 +57,11 @@
 
 - Production build initially failed inside the sandbox because its process
   could not launch esbuild; the identical build outside the sandbox passed.
+- The full Django suite reaches the unrelated `reviews` toxicity-model test,
+  which waits on a third-party ML model download in the local environment.
+  The complete changed-backend scope (`accounts`, `bookings`, `excursions`)
+  passes 51 tests; this limitation must not be reported as a product pass for
+  the unrelated review model.
 
 ## Handoff to review
 

@@ -1,6 +1,6 @@
 # Review: catalog and sidebar navigation
 
-- Status: approved_for_user_review
+- Status: approved_for_merge
 - Date: 2026-11-09
 - Reviewer stance: independent check against approved plan and actual diff
 - Plan: `reports/plan-catalog-and-sidebar-navigation.md`
@@ -19,7 +19,7 @@ found.
 | ID | Severity | Evidence | Resolution |
 | --- | --- | --- | --- |
 | R-001 | low | User refined the approved copy from a personal name to “Менеджер” during implementation. | Resolved: plan change log, task decision and sidebar text agree. |
-| R-002 | low | Local Django API was unavailable, so live catalogue data could not be exercised. | Open operational limitation, not a product-code defect: mocked-browser coverage plus lint/type/build pass; repeat live E2E once the local API is running. |
+| R-002 | low | Local Django API had previously been unavailable, so live catalogue data could not be exercised. | Resolved: local Django supplied 25 records over three pages (12/12/1); frontend navigation to pages 2 and 3 was verified. |
 | R-003 | high | Whole-panel `overflow-y-auto` contradicted the user's intended DNS-like interaction and caused wheel scrolling inside every audited side panel. | Resolved: plan was revised and approved; removed whole-panel scrolling from filters, certificate and booking sidebars. Browser inspection confirms `sticky` + `overflow-y: visible` on all three. |
 | R-004 | high | The catalogue-specific affix was a visual expansion beyond the final approved in-layout pattern and risked an unnatural horizontal jump/overlay. | Resolved: removed all affix behaviour. Catalogue filters now use the same `lg:sticky lg:top-24` grid-column treatment as certificate help and booking. |
 
@@ -34,12 +34,14 @@ found.
   whole-panel scroll, and four columns are `xl`-only when filters are hidden.
 - Re-ran lint, TypeScript, build and focused Playwright checks described in
   the testing report; all passed.
+- Found and fixed a backend regression in automatic slot-end calculation when
+  Django receives a string time value; the changed backend scope passes 51
+  Django tests including the new regression test.
 - Reviewed the test fixture correction: its old glob matched `src/api/*`
   source modules as well as HTTP `/api/*` calls. The host-and-path-scoped
   matcher restores a valid browser test without changing production code.
 
 ## Merge decision
 
-No unresolved code finding blocks user review. Do not merge or deploy until
-the user accepts this review; separately repeat live E2E when local backend is
-available if that operational confidence is required.
+No unresolved code finding blocks merge. The user requested merge and deploy
+after this review; execute the production runbook preflight before release.

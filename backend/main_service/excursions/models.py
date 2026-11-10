@@ -308,7 +308,9 @@ class Slot(models.Model):
         if self.end_date is not None or self.end_time is not None:
             return
 
-        finish = datetime.combine(self.date, self.time) + timedelta(minutes=self.excursion.duration)
+        date_value = self._meta.get_field('date').to_python(self.date)
+        time_value = self._meta.get_field('time').to_python(self.time)
+        finish = datetime.combine(date_value, time_value) + timedelta(minutes=self.excursion.duration)
         self.end_date = finish.date()
         self.end_time = finish.time()
 

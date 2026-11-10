@@ -210,6 +210,14 @@ class SlotContractTests(TestCase):
         self.assertEqual(data['end_date'], '2026-10-15')
         self.assertTrue(data['end_time'].startswith('20:00'))
 
+    def test_missing_end_is_calculated_when_time_is_supplied_as_string(self):
+        slot = Slot.objects.create(
+            excursion=self.excursion, date='2026-10-15', time='12:00',
+        )
+
+        self.assertEqual(slot.end_date.isoformat(), '2026-10-16')
+        self.assertTrue(slot.end_time.isoformat().startswith('22:00'))
+
     def test_incomplete_or_earlier_end_is_rejected(self):
         for end_date, end_time in [
             (date(2026, 10, 14), None),

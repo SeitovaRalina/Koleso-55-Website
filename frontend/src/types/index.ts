@@ -171,7 +171,7 @@ export interface GiftCertificateRequestSummary {
 export interface UnifiedRequest {
   id: number
   type: 'inquiry' | 'custom_tour' | 'certificate'
-  status: 'new' | 'in_progress' | 'completed' | 'cancelled'
+  status: 'new' | 'in_progress' | 'completed' | 'cancelled' | 'closed'
   status_display: string
   created_at: string
   title: string
